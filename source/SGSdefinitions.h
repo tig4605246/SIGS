@@ -2,7 +2,7 @@
 
     Name: Xu Xi-Ping
     Date: March 1,2017
-    Last Update: March 1,2017
+    Last Update: March 8,2017
     Program statement: 
         In here, We define the struct and some general variables, parameters
 
@@ -39,6 +39,8 @@
 #define MAXDATALENGTH 250
 
 //define the log path of device.conf and data.conf
+
+#define CONFIGURECONF "./configure.conf"
 
 #define DEVICECONF "./device.conf"
 #define DATACONF "./data.conf"

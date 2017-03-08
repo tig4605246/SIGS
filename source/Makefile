@@ -1,12 +1,10 @@
-PROG1=master
+PROG1=SGSmaster
 
 
 
 all:
 
-	$(CC) $(PROG1).c -o ../bin/$(PROG1)
-	#$(CC)  $(PROG19).c -o bin/$(PROG19) `pkg-config --cflags --libs libmodbus`
-	#$(CC)  -o bin/$(PROG20) $(PROG20).c cJSON.c -lm -lcurl
+	$(CC) -o ../bin/$(PROG1) $(PROG1).c SGSipcs.c -pthread -lm
 
 
 clean:

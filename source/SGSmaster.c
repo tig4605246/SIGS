@@ -1,7 +1,7 @@
 /*
     Name: Xu Xi-Ping
     Date: March 1,2017
-    Last Update: March 1,2017
+    Last Update: March 8,2017
     Program statement: 
         This program will manage all other sub processes it creates.
         Also, it's responsible for opening and closing all sub processes.
@@ -44,25 +44,36 @@
 
 #include "SGSipcs.h"
 
+int msgid = 0;
 
 int main()
 {
 
     int i, ret = 0;
-    deviceInfo *deviceInfoPtr = NULL;
+    FILE *daemonFp = NULL;
+    
     dataInfo *dataInfoPtr = NULL;
+    deviceInfo *deviceInfoPtr = NULL;
+    dataLog source;
 
     ret = sgsInitDeviceInfo(&deviceInfoPtr);
     if(ret != 0) return -1;
 
-    sgsShowDeviceInfo(deviceInfoPtr);
-
-    ret = sgsInitDataInfo(&deviceInfoPtr,1);
+    ret = sgsInitDataInfo(NULL, &dataInfoPtr, 1);
     if(ret == 0) return -1;
 
-    sgsShowDataInfo(deviceInfoPtr->dataInfoPtr);
+    msgid = ret;
 
-    sgsDeleteDataInfo(deviceInfoPtr->dataInfoPtr,ret);
+    sgsShowDeviceInfo(deviceInfoPtr);
+
+    source.valueType = STRING_VALUE;
+    sprintf(source.value.s,"hi I'm doing my job here");
+
+    sgsWriteSharedMemory(dataInfoPtr, &source);
+
+    sgsShowDataInfo(dataInfoPtr);
+
+    sgsDeleteDataInfo(dataInfoPtr,msgid);
 
     sgsDeleteDeviceInfo(deviceInfoPtr);
 

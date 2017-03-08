@@ -2,7 +2,7 @@
 
     Name: Xu Xi-Ping
     Date: March 3,2017
-    Last Update: March 3,2017
+    Last Update: March 8,2017
     Program statement: 
         we write the detail of the function here 
 
@@ -188,14 +188,14 @@ int sgsInitDeviceInfo(deviceInfo **deviceInfoPtr)
 
 }
 
-int sgsInitDataInfo(deviceInfo **deviceInfoPtr, int CreateShm)
+int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int CreateShm)
 {
     int line = 0, zero = 0, j, shmid, ret = 0;
     char buf[512], *sp1, *sp2;
     FILE *dataConfigFile = NULL;
     void *shm;
-    dataInfo *dataInfoPtrHead = (*deviceInfoPtr)->dataInfoPtr;
-    dataInfo *dataInfoPtrTail = (*deviceInfoPtr)->dataInfoPtr;
+    dataInfo *dataInfoPtrHead = (*dataInfoPtr);
+    dataInfo *dataInfoPtrTail = (*dataInfoPtr);
     dataInfo *dataInfoPtrTemp = NULL;
     dataInfo *dataInfoPtrTemp2 = NULL;
     dataInfo *dataInfoPtrFormer = NULL;
@@ -392,20 +392,24 @@ int sgsInitDataInfo(deviceInfo **deviceInfoPtr, int CreateShm)
     while(dataInfoPtrTemp != NULL)
     {
 
-        //put things into shared memory at here if needed
+        //Initialize the mutex attributes
 
         if(CreateShm)
         {
 
-            //stag->flag = FLAG_NOT_READY;
+            pthread_mutexattr_init(&mutex_attr);
+            pthread_mutexattr_setpshared(&mutex_attr, PTHREAD_PROCESS_SHARED);
+            pthread_condattr_init(&cond_attr);
+            pthread_condattr_setpshared(&cond_attr, PTHREAD_PROCESS_SHARED);
+
         }
 
         //skip the unecessary dataInfo with provided deviceInfo
 
-        else if((*deviceInfoPtr) != NULL)
+        else if((deviceInfoPtr) != NULL)
         {
 
-            if(strcmp(dataInfoPtrTemp->deviceName, (*deviceInfoPtr)->deviceName))
+            if(strcmp(dataInfoPtrTemp->deviceName, (deviceInfoPtr)->deviceName))
             {
 
                 if(dataInfoPtrFormer != NULL)
@@ -438,6 +442,12 @@ int sgsInitDataInfo(deviceInfo **deviceInfoPtr, int CreateShm)
         }
         if(CreateShm)
         {
+
+            
+            pthread_mutex_init(&(shareMemPtr->lock), &mutex_attr);
+            pthread_cond_init(&(shareMemPtr->lockCond), &cond_attr);
+
+
             ret = pthread_mutex_unlock( &(shareMemPtr->lock) );
             shareMemPtr->valueType = INITIAL_VALUE;
             if(ret != 0)
@@ -456,6 +466,7 @@ int sgsInitDataInfo(deviceInfo **deviceInfoPtr, int CreateShm)
         dataInfoPtrTemp = dataInfoPtrTemp->next;
 
     }
+    *dataInfoPtr = dataInfoPtrHead;
 
     return shmid;
 
@@ -476,9 +487,9 @@ void sgsShowDeviceInfo(deviceInfo *deviceInfoPtr)
     while(head != NULL)
     {
         printf("Device Name : %s\n",head->deviceName);
-        printf("Interface : %s\n",head->interface);
-        printf("Protocol Config : %s\n",head->protocolConfig);
-        printf("description : %s\n",head->description);
+        printf("\tInterface : %s\n",head->interface);
+        printf("\tProtocol Config : %s\n",head->protocolConfig);
+        printf("\tdescription : %s\n",head->description);
         printf("\n");
         head = head->next;
 
@@ -491,16 +502,63 @@ void sgsShowDeviceInfo(deviceInfo *deviceInfoPtr)
 void sgsShowDataInfo(dataInfo *dataInfoPtr)
 {
     dataInfo *head = dataInfoPtr;
+    dataLog dest;
+    int ret = 0;
     while(head != NULL)
     {
 
+        printf("\n");
         printf("Sensor ID : %d \n",head->ID);
         printf("Device Name : %s\n",head->deviceName);
         printf("Sensor Name : %s\n",head->sensorName);
         printf("Value Name : %s\n",head->valueName);
         printf("\tModbus ID %u\n",head->modbusInfo.ID);
         printf("\tModbus Address %u\n",head->modbusInfo.address);
-        printf("\tModbus read Length %d",head->modbusInfo.readLength);
+        printf("\tModbus read Length %d\n",head->modbusInfo.readLength);
+        ret = sgsReadSharedMemory(head,&dest);
+        if(ret != 0)
+        {
+
+            printf("Read %s shm value failed\n",head->valueName);
+
+        }
+        else
+        {
+
+            //printf("valueType %u\n",dest.valueType);
+            switch(dest.valueType)
+            {
+
+                case INITIAL_VALUE :
+                    printf("value : %s\n",dest.value.s);
+                    break;
+
+                case INTEGER_VALUE :
+                    printf("value : %d\n",dest.value.i);
+                    break;
+
+                case FLOAT_VALUE :
+                    printf("value : %f\n",dest.value.f);
+                    break;
+
+                case STRING_VALUE :
+                    printf("value : %s\n",dest.value.s);
+                    break;
+
+                case ERROR_VALUE :
+                    printf("value : %s\n",dest.value.s);
+                    break;
+
+                default:
+                    printf("value : %s\n",dest.value.s);
+                    printf("Unknown valueType %d\n",dest.valueType);
+                    break;
+ 
+
+            }
+
+        }
+        printf("\n");
         head = head->next;
 
     }
@@ -518,7 +576,9 @@ int sgsReadSharedMemory(dataInfo *dataInfoPtr, dataLog *dest)
 
     while(timeout-- > 0)
     {
-
+        
+        //printf("[%s,%d]running loop\n",__FUNCTION__,__LINE__);
+        
         if(pthread_mutex_trylock( &(shmPtr->lock) ) != 0)
         {
 
@@ -527,7 +587,7 @@ int sgsReadSharedMemory(dataInfo *dataInfoPtr, dataLog *dest)
             continue;
 
         }
-        else if( pthread_mutex_lock( &(shmPtr->lock) ) == 0 )
+        else
         {
             
             //We read shared memory at here
@@ -535,6 +595,10 @@ int sgsReadSharedMemory(dataInfo *dataInfoPtr, dataLog *dest)
             dest->valueType = shmPtr->valueType;
             switch(shmPtr->valueType)
             {
+
+                case INITIAL_VALUE :
+                    sprintf(dest->value.s,"Value is not ready yet");
+                    break;
 
                 case INTEGER_VALUE :
                     dest->value.i = shmPtr->value.i;
@@ -567,14 +631,7 @@ int sgsReadSharedMemory(dataInfo *dataInfoPtr, dataLog *dest)
             pthread_mutex_unlock( &(shmPtr->lock));
 
             return 0;
-        }
-        else
-        {
-
-            printf("[%s,%d]Fail to lock %s %s\n", __FUNCTION__, __LINE__, dataInfoPtr->sensorName, dataInfoPtr->valueName);
-            usleep(50000);
-            continue;
-
+            
         }
 
     }
@@ -592,6 +649,7 @@ int sgsWriteSharedMemory(dataInfo *dataInfoPtr, dataLog *source)
 
     while(timeout-- > 0)
     {
+
         if(pthread_mutex_trylock( &(shmPtr->lock) ) != 0)
         {
 
@@ -600,7 +658,7 @@ int sgsWriteSharedMemory(dataInfo *dataInfoPtr, dataLog *source)
             continue;
 
         }
-        else if( pthread_mutex_lock( &(shmPtr->lock) ) == 0 )
+        else 
         {
             
             //We write shared memory at here
@@ -608,6 +666,10 @@ int sgsWriteSharedMemory(dataInfo *dataInfoPtr, dataLog *source)
             shmPtr->valueType = source->valueType;
             switch(source->valueType)
             {
+
+                case INITIAL_VALUE :
+                    sprintf(shmPtr->value.s,"Value is not ready yet");
+                    break;
 
                 case INTEGER_VALUE :
                     shmPtr->value.i = source->value.i;
@@ -640,13 +702,6 @@ int sgsWriteSharedMemory(dataInfo *dataInfoPtr, dataLog *source)
             pthread_mutex_unlock( &(shmPtr->lock));
 
             return 0;
-        }
-        else
-        {
-
-            printf("[%s,%d]Fail to lock %s %s\n", __FUNCTION__, __LINE__, dataInfoPtr->sensorName, dataInfoPtr->valueName);
-            usleep(50000);
-            continue;
 
         }
 

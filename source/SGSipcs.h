@@ -2,7 +2,7 @@
 
     Name: Xu Xi-Ping
     Date: March 1,2017
-    Last Update: March 2,2017
+    Last Update: March 8,2017
     Program statement: 
         we wrap ipcs at here, including: 
         shared memory
@@ -18,6 +18,8 @@
 #include <pthread.h>
 #include <unistd.h>
 
+pthread_mutexattr_t mutex_attr;
+pthread_condattr_t cond_attr;
 // Intent : Free all allocated dataInfo
 // Pre : deviceInfo pointer, close type 
 //       if the shmid > 0 , it'll delete the shared memory, if == -1, it'll simply detach it
@@ -41,7 +43,7 @@ int sgsInitDeviceInfo(deviceInfo **deviceInfoPtr);
 // Pre : deviceInfo pointer, open type (1 is new, 0 is open an exist one)
 // Post : On success, return 0. On error, -1 is returned
 
-int sgsInitDataInfo(deviceInfo **deviceInfoPtr, int CreateShm);
+int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int CreateShm);
 
 //Intent : Display the content of the DeviceInfo linked list
 //Pre : deviceInfo pointer
