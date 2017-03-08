@@ -19,7 +19,7 @@
 
 ##Compile
 
-  simply run gcc
+  simply run __gcc -o target target.c cJSON.c `-lm` `-pthread` `-lcurl`__
 
 ##Execute
 
