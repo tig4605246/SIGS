@@ -5,15 +5,18 @@
 -------------------------
 ###Purpose
 -------------------------
-* Clean Code, easy to update.
+* Wrap on some Open source libraries to make a simple IoT Gateway Software
 			
 -------------------------
 ###Include
 -------------------------
-* libmodbus 3.0.6 (sensor agent)
-* libcurl (mongo agent)
-* sendmail (mailing script)
-* ssh (reverse tunnel)
+* External Libraries
+  * libmodbus 3.0.6 [Link to original wirter](https://github.com/stephane/libmodbus)
+  * libcurl [Link to original writer](https://curl.haxx.se/)
+  * cJSON [Link to original writer](https://github.com/DaveGamble/cJSON)
+* Packages Needed
+  * sendmail 
+  * ssh (reverse tunnel)
 
 	
 -------------------------
