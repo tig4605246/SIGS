@@ -11,12 +11,12 @@
 ###Include
 -------------------------
 * External Libraries
-  * libmodbus 3.0.6 [Link to original wirter](https://github.com/stephane/libmodbus)
-  * libcurl [Link to original writer](https://curl.haxx.se/)
-  * cJSON [Link to original writer](https://github.com/DaveGamble/cJSON)
+  * [libmodbus 3.0.6](https://github.com/stephane/libmodbus)
+  * [libcurl](https://curl.haxx.se/)
+  * [cJSON](https://github.com/DaveGamble/cJSON)
 * Packages Needed
-  * sendmail 
-  * ssh (reverse tunnel)
+  * [sendmail](https://www.proofpoint.com/us/products/sendmail-sentrion) __Not in use right now__
+  * [OpenSSH](https://www.openssh.com/)
 
 	
 -------------------------
