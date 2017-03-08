@@ -41,7 +41,7 @@ int sgsInitDeviceInfo(deviceInfo **deviceInfoPtr);
 // Pre : deviceInfo pointer, open type (1 is new, 0 is open an exist one)
 // Post : On success, return 0. On error, -1 is returned
 
-int sgsInitDataInfo(deviceInfo *deviceInfoPtr, int CreateShm);
+int sgsInitDataInfo(deviceInfo **deviceInfoPtr, int CreateShm);
 
 //Intent : Display the content of the DeviceInfo linked list
 //Pre : deviceInfo pointer

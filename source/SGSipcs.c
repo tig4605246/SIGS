@@ -188,14 +188,14 @@ int sgsInitDeviceInfo(deviceInfo **deviceInfoPtr)
 
 }
 
-int sgsInitDataInfo(deviceInfo *deviceInfoPtr, int CreateShm)
+int sgsInitDataInfo(deviceInfo **deviceInfoPtr, int CreateShm)
 {
     int line = 0, zero = 0, j, shmid, ret = 0;
     char buf[512], *sp1, *sp2;
     FILE *dataConfigFile = NULL;
     void *shm;
-    dataInfo *dataInfoPtrHead = deviceInfoPtr->dataInfoPtr;
-    dataInfo *dataInfoPtrTail = deviceInfoPtr->dataInfoPtr;
+    dataInfo *dataInfoPtrHead = (*deviceInfoPtr)->dataInfoPtr;
+    dataInfo *dataInfoPtrTail = (*deviceInfoPtr)->dataInfoPtr;
     dataInfo *dataInfoPtrTemp = NULL;
     dataInfo *dataInfoPtrTemp2 = NULL;
     dataInfo *dataInfoPtrFormer = NULL;
@@ -212,17 +212,17 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, int CreateShm)
 
     while(!feof(dataConfigFile))
     {
-
+        memset(buf,'\0',sizeof(buf));
         if(fscanf(dataConfigFile, "%[^\n]\n", buf) < 0) 
             break;
         line++;
         //printf("[LINE %d]: %s\n", i, buf);
 
         //Skip the empty line
-
+        printf("[%s,%d]fscanf %s\n",__FUNCTION__,__LINE__,buf);
         if(!strlen(buf))
         { 
-            
+            printf("[%s,%d]buf == 0\n",__FUNCTION__,__LINE__);
             zero++; 
             continue;
             
@@ -232,7 +232,7 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, int CreateShm)
 
         if(buf[0] == '#')
         { 
-            
+            printf("[%s,%d]line is commented\n",__FUNCTION__,__LINE__);
             zero++; 
             continue;
         
@@ -268,6 +268,7 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, int CreateShm)
             {
 
                 sp2 = strchr(sp1, ',');
+                
                 if(sp2 == NULL)
                 {
 
@@ -282,6 +283,7 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, int CreateShm)
                 sp2++;
 
             }
+            printf("[%s,%d]sp1 = %s sp2 = %s\n",__FUNCTION__,__LINE__,sp1,sp2);
             switch(j)
             {
                 
@@ -400,10 +402,10 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, int CreateShm)
 
         //skip the unecessary dataInfo with provided deviceInfo
 
-        else if(deviceInfoPtr != NULL)
+        else if((*deviceInfoPtr) != NULL)
         {
 
-            if(strcmp(dataInfoPtrTemp->deviceName, deviceInfoPtr->deviceName))
+            if(strcmp(dataInfoPtrTemp->deviceName, (*deviceInfoPtr)->deviceName))
             {
 
                 if(dataInfoPtrFormer != NULL)

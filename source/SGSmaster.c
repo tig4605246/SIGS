@@ -50,12 +50,23 @@ int main()
 
     int i, ret = 0;
     deviceInfo *deviceInfoPtr = NULL;
+    dataInfo *dataInfoPtr = NULL;
 
     ret = sgsInitDeviceInfo(&deviceInfoPtr);
+    if(ret != 0) return -1;
 
     sgsShowDeviceInfo(deviceInfoPtr);
 
+    ret = sgsInitDataInfo(&deviceInfoPtr,1);
+    if(ret == 0) return -1;
+
+    sgsShowDataInfo(deviceInfoPtr->dataInfoPtr);
+
+    sgsDeleteDataInfo(deviceInfoPtr->dataInfoPtr,ret);
+
     sgsDeleteDeviceInfo(deviceInfoPtr);
+
+    
 
 
 
