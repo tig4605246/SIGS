@@ -8,30 +8,82 @@
 
 */
 
-int sgsInitDeviceInfo(deviceInfo *deviceInfoPtr)
+#include "SGSipcs.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+
+void sgsDeleteDataInfo(dataInfo *dataInfoPtr, int shmid)
+{
+    dataInfo *head = dataInfoPtr;
+    dataInfo *last = dataInfoPtr;
+
+    while(head != NULL)
+    {
+
+        if(head->shareMemoryPtr != NULL)
+            shmdt(head->shareMemoryPtr);
+        last = head;
+        head = head->next;
+        free(head);
+
+    }
+    if(shmid >= 0)
+    {
+
+        if (shmctl(shmid, IPC_RMID, 0) == -1) {
+            perror("shmctl");
+        }
+
+    }
+
+    return;
+
+}
+
+void sgsDeleteDeviceInfo(deviceInfo *deviceInfoPtr)
+{
+
+    deviceInfo *head = deviceInfoPtr;
+    deviceInfo *last = deviceInfoPtr;
+
+    while(head != NULL)
+    {
+
+        last = head;
+        head = head->next;
+        free(last);
+
+    }
+    return;
+
+}
+
+
+int sgsInitDeviceInfo(deviceInfo **deviceInfoPtr)
 {
     FILE *deviceConfigFile = NULL;
     int line = 0;
     char buf[128] = "";
     char *sp1 = NULL, *sp2 = NULL, *sp3 = NULL;
     deviceInfo *tempPtr = NULL;
-    deviceInfo *tempPtr2 = NULL;
 
-    deviceInfoPtr = NULL;
+    *deviceInfoPtr = NULL;
 
-    deviceConfigFile = fopen("./device.conf","r");
+    deviceConfigFile = fopen(DEVICECONF,"r");
     if(deviceConfigFile == NULL)
     {
 
-        printf("[%s,%s] Can't find the device.conf file\n",__FUNCTION__,__LINE__);
+        printf("[%s,%d] Can't find the %s\n",__FUNCTION__,__LINE__,DEVICECONF);
         return -1;
 
     }
-    while(!feof(fd))
+    while(!feof(deviceConfigFile))
     {
 
         memset(buf,'\0',sizeof(buf));
-        if(fscanf(fd, "%[^\n]\n", buf) < 0) break;
+        if(fscanf(deviceConfigFile, "%[^\n]\n", buf) < 0) break;
+        printf("[%s,%d]fscanf in %s\n",__FUNCTION__,__LINE__,buf);
         if(!strlen(buf)) continue;
         if(buf[0] == '#') continue;
         line++;
@@ -45,8 +97,8 @@ int sgsInitDeviceInfo(deviceInfo *deviceInfoPtr)
         if(sp1 == NULL || sp2 == NULL || sp3 == NULL)
         {
 
-            printf("[ERR] Invalid bus config in line %d in device.conf \n",line);
-            sgsDeleteAll(deviceInfoPtr, -1);
+            printf("[ERR] Invalid bus config in line %d in %s \n",line ,DEVICECONF);
+            sgsDeleteDeviceInfo(*deviceInfoPtr);
             fclose(deviceConfigFile);
             return -1;
 
@@ -99,29 +151,34 @@ int sgsInitDeviceInfo(deviceInfo *deviceInfoPtr)
 
         tempPtr = (deviceInfo *)malloc(sizeof(deviceInfo));
         memset((void *)tempPtr, 0, sizeof(deviceInfo));
+        tempPtr->dataInfoPtr = NULL;
+        tempPtr->next = NULL;
         strncpy(tempPtr->deviceName, buf, 31); 
-        btag->deviceName[31] = 0;
+        tempPtr->deviceName[31] = 0;
         strncpy(tempPtr->interface, sp1, 31); 
-        btag->interface[31] = 0;
+        tempPtr->interface[31] = 0;
         strncpy(tempPtr->protocolConfig, sp2, 31); 
-        btag->protocolConfig[31] = 0;
+        tempPtr->protocolConfig[31] = 0;
+        strncpy(tempPtr->description, sp3, 63); 
+        tempPtr->description[63] = 0;
 
         //put tempPtr into linked-list which head is deviceInfoPtr;
 
-        if(deviceInfoPtr == NULL)
+        if(*deviceInfoPtr == NULL)
         {
 
-            deviceInfoPtr = tempPtr;
-            deviceInfoPtr->next == NULL;
+            printf("[%s,%d]deviceInfoPtr is NULL\n",__FUNCTION__,__LINE__);
+            *deviceInfoPtr = tempPtr;
+            (*deviceInfoPtr)->next == NULL;
 
         }
         else
         {
-            tempPtr2 = deviceInfoPtr;
-            while(tempPtr2->next != NULL)
-                tempPtr2 = tempPtr2->next;
-            tempPtr2->next = tempPtr;
-            tempPtr2->next->next = NULL;
+
+            printf("[%s,%d]deviceInfoPtr is not NULL\n",__FUNCTION__,__LINE__);
+            tempPtr->next = *deviceInfoPtr;
+            *deviceInfoPtr = tempPtr;
+            
 
         }
 
@@ -131,19 +188,21 @@ int sgsInitDeviceInfo(deviceInfo *deviceInfoPtr)
 
 }
 
-int load_tagconf(int CreateShm, struct bus_tag *btag);
-int sgsInitDataInfo(deviceInfo *deviceInfoPtr, int create)
+int sgsInitDataInfo(deviceInfo *deviceInfoPtr, int CreateShm)
 {
-    int line=0, zero=0, j, shmid;
+    int line = 0, zero = 0, j, shmid, ret = 0;
     char buf[512], *sp1, *sp2;
     FILE *dataConfigFile = NULL;
     void *shm;
-    struct conf_tag *ctag, *ctag2, *ctag_former=NULL;
-    struct shmem_tag *stag;
+    dataInfo *dataInfoPtrHead = deviceInfoPtr->dataInfoPtr;
+    dataInfo *dataInfoPtrTail = deviceInfoPtr->dataInfoPtr;
+    dataInfo *dataInfoPtrTemp = NULL;
+    dataInfo *dataInfoPtrTemp2 = NULL;
+    dataInfo *dataInfoPtrFormer = NULL;
 
-    dataInfo *temp = NULL;
+    shareMem *shareMemPtr = NULL;
 
-    if((dataConfigFile=fopen("data.conf", "r"))==NULL)
+    if((dataConfigFile=fopen(DATACONF, "r"))==NULL)
     {
 
         perror("sgsInitDataInfo");
@@ -151,13 +210,16 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, int create)
 
     }
 
-    while(!feof(fd))
+    while(!feof(dataConfigFile))
     {
 
-        if(fscanf(fd, "%[^\n]\n", buf) < 0) 
+        if(fscanf(dataConfigFile, "%[^\n]\n", buf) < 0) 
             break;
         line++;
         //printf("[LINE %d]: %s\n", i, buf);
+
+        //Skip the empty line
+
         if(!strlen(buf))
         { 
             
@@ -165,6 +227,9 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, int create)
             continue;
             
         }
+
+        //Skip commented line
+
         if(buf[0] == '#')
         { 
             
@@ -173,24 +238,29 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, int create)
         
         }
         
-        temp = (dataInfo *)malloc(sizeof(dataInfo));
-        memset((void *)temp, 0, sizeof(dataInfo));
-        ctag->next = NULL;
-        if(ctag_head == NULL)
+        //allocate new dataInfo
+
+        dataInfoPtrTemp = (dataInfo *)malloc(sizeof(dataInfo));
+        memset((void *)dataInfoPtrTemp, 0, sizeof(dataInfo));
+        dataInfoPtrTemp->next = NULL;
+        if(dataInfoPtrHead == NULL)
         {
 
-            ctag_head = ctag_tail = ctag;
+            dataInfoPtrHead = dataInfoPtrTail = dataInfoPtrTemp;
 
         }
         else
         {
 
-            ctag_tail->next = ctag;
-            ctag_tail = ctag;
-
+            dataInfoPtrTail->next = dataInfoPtrTemp;
+            dataInfoPtrTail = dataInfoPtrTemp;
+            
         }
+
+        //split the input string and put them into the dataInfo
+
         sp2 = buf;
-        for(j=0; j<7; j++)
+        for(j=0; j<6; j++)
         {
 
             sp1 = sp2;
@@ -202,9 +272,9 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, int create)
                 {
 
                     printf("[ERR] Invalid format in line %d in %s\n",
-                               line, TAGCONF_FILE);
-                    free_ctag();
-                    fclose(fd);
+                               line, DATACONF);
+                    sgsDeleteDataInfo(dataInfoPtrHead,-1);
+                    fclose(dataConfigFile);
                     return -1;
 
                 }
@@ -214,83 +284,65 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, int create)
             }
             switch(j)
             {
+                
+                //'ndeviceName[32]' field in string char formart
 
-              case 0: //'name[64]' field in string char formart
-                ctag2 = ctag_head;
-                while(ctag2 != NULL)
-                {
+                case 0: 
+                    strncpy(dataInfoPtrTemp->deviceName, sp1, 32); dataInfoPtrTemp->deviceName[32] = 0;
+                    break;
 
-                    if(!strcmp(ctag2->name, sp1))
-                    {
+                //'sensorName[32]' field in string char format
 
-                        printf("[ERR] duplicate tag name '%s' in line %d in %s\n", sp1, line, TAGCONF_FILE);
-                        free_ctag();
-                        fclose(fd);
-                        return -1;
+                case 1: 
+                    strncpy(dataInfoPtrTemp->sensorName, sp1, 31); dataInfoPtrTemp->sensorName[31] = 0;
+                    break;
 
-                    }
-                    ctag2 = ctag2->next;
+                //'valueName[32]' field in string char format
 
-                }
-                strncpy(ctag->name, sp1, 63); ctag->name[63] = 0;
-                break;
-              case 1: //'daemon[32]' field in string char format
-                strncpy(ctag->daemon, sp1, 31); ctag->daemon[31] = 0;
-                break;
-              case 2: //'bus_name[32]' field in string char format
-                strncpy(ctag->bus_name, sp1, 31); ctag->bus_name[31] = 0;
-                if(strcmp(ctag->bus_name, "SystemInfo"))
-                {
+                case 2: 
+                    strncpy(dataInfoPtrTemp->valueName, sp1, 31); dataInfoPtrTemp->valueName[31] = 0;
+                    break;
 
-                    ctag2 = ctag_head;
-                    while(ctag2 != NULL)
-                    {
+                //'id' field in integer format
 
-                        if(!strcmp(ctag2->bus_name, ctag->bus_name))
-                        {
+                case 3: 
+                    dataInfoPtrTemp->modbusInfo.ID = atoi(sp1);
+                    break;
+                
+                //'func' field in integer format
+                /*
+                case 4: 
+                    ctag->func = atoi(sp1);
+                    break;
+                */
 
-                            if(strcmp(ctag2->daemon, ctag->daemon))
-                            {
+                //'addr' field in integer format
+                
+                case 4: 
+                    dataInfoPtrTemp->modbusInfo.address = atoi(sp1);
+                    break;
 
-                                printf("[ERR] bus '%s' is assigned more than one kind of protocol in line %d in %s\n", ctag->bus_name, line, TAGCONF_FILE);
-                                free_ctag();
-                                fclose(fd);
-                                return -1;
+                //'readLength' field in string char format
 
-                            }
+                case 5: 
+                    dataInfoPtrTemp->modbusInfo.readLength = atoi(sp1);
+                    break;
 
-                        }
-                        ctag2 = ctag2->next;
+                //invalid field
 
-                    }
-
-                }
-                break;
-              case 3: //'id' field in integer format
-                ctag->id = atoi(sp1);
-                break;
-              case 4: //'func' field in integer format
-                ctag->func = atoi(sp1);
-                break;
-              case 5: //'addr' field in integer format
-                ctag->addr = atoi(sp1);
-                break;
-              case 6: //'cmd' field in string char format
-                strcpy(ctag->cmd, sp1);
-                break;
-              default: //invalid field
-                printf("[ERR] The format of tag configuration file is wrong!\n");
-                free_ctag();
-                fclose(fd);
-                return -1;
+                default: 
+                    printf("[ERR] The format of %s is wrong!\n",DATACONF);
+                    sgsDeleteDataInfo(dataInfoPtrHead,-1);
+                    fclose(dataConfigFile);
+                    return -1;
 
             }
 
         }
         //printf("  %d: name=%s, daemon=%s, bus=%s, id=%d, addr=%d, cmd=%s, rectime=%d\n", i, ctag->name, ctag->daemon, ctag->bus, ctag->id, ctag->addr, ctag->cmd, ctag->rectime_in_sec);
     }
-    fclose(fd);
-    if(ctag_head == NULL) return 0;
+    fclose(dataConfigFile);
+    if(dataInfoPtrHead == NULL) return 0;
     line -= (zero + 1);
 
     if(CreateShm)
@@ -299,9 +351,9 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, int create)
         /*
          * Create the segment.
          */
-        shmid = shmget(SHM_KEY, sizeof(struct conf_tag)*line,
+        shmid = shmget(SGSKEY, sizeof(struct dataInfo)*line,
                           IPC_EXCL | IPC_CREAT | 0666);
-        //shmid = shmget(SHM_KEY, sizeof(struct conf_tag)*i, IPC_CREAT | 0666);
+        //shmid = shmget(SGSKEY, sizeof(struct conf_tag)*i, IPC_CREAT | 0666);
 
     }
     else
@@ -310,13 +362,13 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, int create)
         /*
          * Locate the segment.
          */
-        shmid = shmget(SHM_KEY, sizeof(struct conf_tag)*line, 0666);
+        shmid = shmget(SGSKEY, sizeof(struct dataInfo)*line, 0666);
 
     }
     if(shmid < 0){
 
         perror("shmget");
-        free_ctag();
+        sgsDeleteDataInfo(dataInfoPtrHead,-1);
         return -2;
 
     }
@@ -327,73 +379,281 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, int create)
     {
 
         perror("shmat");
-        free_ctag();
+        sgsDeleteDataInfo(dataInfoPtrHead,-1);
         return -2;
 
     }
-    if(CreateShm) memset(shm, 0, sizeof(struct conf_tag)*line);
+    if(CreateShm) memset(shm, 0, sizeof(struct dataInfo)*line);
 
-    ctag = ctag_head;
-    stag = (struct shmem_tag *)shm;
-    while(ctag != NULL)
+    dataInfoPtrTemp = dataInfoPtrHead;
+    shareMemPtr = (struct shareMem *)shm;
+    while(dataInfoPtrTemp != NULL)
     {
+
+        //put things into shared memory at here if needed
 
         if(CreateShm)
         {
 
-            /*
-             * Now put some things into the memory for the
-             * other process to read.
-             */
-//            stag->id = ctag->id;
-//            stag->func = ctag->func;
-//            stag->addr = ctag->addr;
-//            strcpy(stag->cmd, ctag->cmd);
-            stag->flag = FLAG_NOT_READY;
+            //stag->flag = FLAG_NOT_READY;
         }
-        else if(btag != NULL)
+
+        //skip the unecessary dataInfo with provided deviceInfo
+
+        else if(deviceInfoPtr != NULL)
         {
 
-            if(strcmp(ctag->bus_name, btag->bus_name))
+            if(strcmp(dataInfoPtrTemp->deviceName, deviceInfoPtr->deviceName))
             {
 
-                if(ctag_former != NULL)
+                if(dataInfoPtrFormer != NULL)
                 {
 
-                    ctag_former->next = ctag->next;
-                    free(ctag);
-                    ctag = ctag_former->next;
+                    dataInfoPtrFormer->next = dataInfoPtrTemp->next;
+                    free(dataInfoPtrTemp);
+                    dataInfoPtrTemp = dataInfoPtrFormer->next;
 
                 }
                 else
                 {
 
-                    ctag_former = ctag;
-                    ctag = ctag->next;
+                    dataInfoPtrFormer = dataInfoPtrTemp;
+                    dataInfoPtrTemp = dataInfoPtrTemp->next;
 
                 }
-                stag++;
+                shareMemPtr++;
                 continue;
 
             }
-            if(ctag_head2 == NULL)
+            if(dataInfoPtrTemp2 == NULL)
             {
 
-                ctag_head2 = ctag;
+                dataInfoPtrTemp2 = dataInfoPtrTemp;
 
             }
-            ctag_former = ctag;
+            dataInfoPtrTemp2 = dataInfoPtrTemp;
 
         }
-        ctag->poll = stag;
-        stag++;
-        ctag = ctag->next;
+        if(CreateShm)
+        {
+            ret = pthread_mutex_unlock( &(shareMemPtr->lock) );
+            shareMemPtr->valueType = INITIAL_VALUE;
+            if(ret != 0)
+            {
+
+                perror("sgsInitDataInfo");
+                sgsDeleteDataInfo(dataInfoPtrHead, shmid);
+                return -3;
+
+            }
+                
+        
+        }
+        dataInfoPtrTemp->shareMemoryPtr = shareMemPtr;
+        shareMemPtr++;
+        dataInfoPtrTemp = dataInfoPtrTemp->next;
 
     }
+
     return shmid;
 
 }
 
+void sgsShowDeviceInfo(deviceInfo *deviceInfoPtr)
+{
+    deviceInfo *head = deviceInfoPtr;
+
+    printf("\n");
+    if(head == NULL)
+    {
+
+        printf("[%s,%d]input is NULL\n",__FUNCTION__,__LINE__);
+        return;
+
+    }
+    while(head != NULL)
+    {
+        printf("Device Name : %s\n",head->deviceName);
+        printf("Interface : %s\n",head->interface);
+        printf("Protocol Config : %s\n",head->protocolConfig);
+        printf("description : %s\n",head->description);
+        printf("\n");
+        head = head->next;
+
+    }
+
+    return;
+
+}
+
+void sgsShowDataInfo(dataInfo *dataInfoPtr)
+{
+    dataInfo *head = dataInfoPtr;
+    while(head != NULL)
+    {
+
+        printf("Sensor ID : %d \n",head->ID);
+        printf("Device Name : %s\n",head->deviceName);
+        printf("Sensor Name : %s\n",head->sensorName);
+        printf("Value Name : %s\n",head->valueName);
+        printf("\tModbus ID %u\n",head->modbusInfo.ID);
+        printf("\tModbus Address %u\n",head->modbusInfo.address);
+        printf("\tModbus read Length %d",head->modbusInfo.readLength);
+        head = head->next;
+
+    }
+    return ;
+
+}
+
+int sgsReadSharedMemory(dataInfo *dataInfoPtr, dataLog *dest)
+{
+
+    int timeout = 30;
+    struct shareMem *shmPtr = dataInfoPtr->shareMemoryPtr;
+
+    //we try 30 times when accessing the shared memory
+
+    while(timeout-- > 0)
+    {
+
+        if(pthread_mutex_trylock( &(shmPtr->lock) ) != 0)
+        {
+
+            printf("[%s,%d]%s %s is busy\n", __FUNCTION__, __LINE__, dataInfoPtr->sensorName, dataInfoPtr->valueName);
+            usleep(50000);
+            continue;
+
+        }
+        else if( pthread_mutex_lock( &(shmPtr->lock) ) == 0 )
+        {
+            
+            //We read shared memory at here
+
+            dest->valueType = shmPtr->valueType;
+            switch(shmPtr->valueType)
+            {
+
+                case INTEGER_VALUE :
+                    dest->value.i = shmPtr->value.i;
+                    break;
+
+                case FLOAT_VALUE :
+                    dest->value.f = shmPtr->value.f;
+                    break;
+
+                case STRING_VALUE :
+                    strncpy(dest->value.s, shmPtr->value.s, 128);
+                    dest->value.s[127] = '\0';
+                    break;
+
+                case ERROR_VALUE :
+                    strncpy(dest->value.s, shmPtr->value.s, 128);
+                    dest->value.s[127] = '\0';
+                    break;
+
+                default:
+                    strncpy(dest->value.s,shmPtr->value.s,128);
+                    dest->value.s[127] = '\0';
+                    printf("Unknown valueType %d\n",shmPtr->valueType);
+                    break;
+
+            }
+
+            //Remember to unlock it 
+
+            pthread_mutex_unlock( &(shmPtr->lock));
+
+            return 0;
+        }
+        else
+        {
+
+            printf("[%s,%d]Fail to lock %s %s\n", __FUNCTION__, __LINE__, dataInfoPtr->sensorName, dataInfoPtr->valueName);
+            usleep(50000);
+            continue;
+
+        }
+
+    }
+    printf("[%s,%d]Timeout!! lock %s %s is busy\n", __FUNCTION__, __LINE__, dataInfoPtr->sensorName, dataInfoPtr->valueName);
+    return -1;
+
+}
+
+int sgsWriteSharedMemory(dataInfo *dataInfoPtr, dataLog *source)
+{
+    int timeout = 30;
+    struct shareMem *shmPtr = dataInfoPtr->shareMemoryPtr;
+
+    //We try 30 times when accessing the shared memory
+
+    while(timeout-- > 0)
+    {
+        if(pthread_mutex_trylock( &(shmPtr->lock) ) != 0)
+        {
+
+            printf("[%s,%d]%s %s is busy\n", __FUNCTION__, __LINE__, dataInfoPtr->sensorName, dataInfoPtr->valueName);
+            usleep(50000);
+            continue;
+
+        }
+        else if( pthread_mutex_lock( &(shmPtr->lock) ) == 0 )
+        {
+            
+            //We write shared memory at here
+
+            shmPtr->valueType = source->valueType;
+            switch(source->valueType)
+            {
+
+                case INTEGER_VALUE :
+                    shmPtr->value.i = source->value.i;
+                    break;
+
+                case FLOAT_VALUE :
+                    source->value.f = shmPtr->value.f;
+                    break;
+
+                case STRING_VALUE :
+                    strncpy(shmPtr->value.s, source->value.s, 128);
+                    shmPtr->value.s[127] = '\0';
+                    break;
+
+                case ERROR_VALUE :
+                    strncpy(shmPtr->value.s, source->value.s, 128);
+                    shmPtr->value.s[127] = '\0';
+                    break;
+
+                default:
+                    strncpy(shmPtr->value.s, source->value.s, 128);
+                    shmPtr->value.s[127] = '\0';
+                    printf("Unknown valueType %d\n",source->valueType);
+                    break;
+
+            }
+
+            //Remember to unlock it 
+
+            pthread_mutex_unlock( &(shmPtr->lock));
+
+            return 0;
+        }
+        else
+        {
+
+            printf("[%s,%d]Fail to lock %s %s\n", __FUNCTION__, __LINE__, dataInfoPtr->sensorName, dataInfoPtr->valueName);
+            usleep(50000);
+            continue;
+
+        }
+
+    }
+
+    printf("[%s,%d]Timeout!! lock %s %s is busy\n", __FUNCTION__, __LINE__, dataInfoPtr->sensorName, dataInfoPtr->valueName);
+    return -1;
+
+}
 
 int sgsCreateMsgQueue(key_t key, int create)
 {

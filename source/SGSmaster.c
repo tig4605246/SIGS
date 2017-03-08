@@ -37,15 +37,27 @@
 
 */
 
-//restart all daemons or even master itself, depends on the input type
+#include <stdio.h>
+#include <stdlib.h>
 
-//void Restart(int type);
+//We declare own libraries at below
 
-//Parse 
+#include "SGSipcs.h"
 
-//int ParseConfig();
 
-void main(){
-    int i;
-    return ;
+int main()
+{
+
+    int i, ret = 0;
+    deviceInfo *deviceInfoPtr = NULL;
+
+    ret = sgsInitDeviceInfo(&deviceInfoPtr);
+
+    sgsShowDeviceInfo(deviceInfoPtr);
+
+    sgsDeleteDeviceInfo(deviceInfoPtr);
+
+
+
+    return 0;
 }

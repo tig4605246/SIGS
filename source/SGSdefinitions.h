@@ -20,6 +20,41 @@
 #define DATETIME uint64_t
 #endif
 
+//defining value type
+
+#define INITIAL_VALUE 0x00000000
+#define INTEGER_VALUE 0x00000010
+#define FLOAT_VALUE 0x00000011
+#define STRING_VALUE 0x00000100
+
+#define ERROR_VALUE 0x00001000
+#define UNKNOWN_VALUE 0x00001001
+
+//define max data union size
+
+#define DATAVALUEMAX 128
+
+//define a max length of the datalogs, make it to be a standard
+
+#define MAXDATALENGTH 250
+
+//define the log path of device.conf and data.conf
+
+#define DEVICECONF "./device.conf"
+#define DATACONF "./data.conf"
+
+// the key we use to generate ipcs
+
+#define SGSKEY 53595
+
+//the path we use to generate ipcs
+
+#define SGSPATH "./"
+
+#define OPENNEWSHM 1
+
+#define OPENEXISTSHM 0 
+
 //this struct is for queue to use
 
 struct msgbuff
@@ -55,7 +90,7 @@ struct modbusInfo
 
     unsigned char cmd[64];
 
-}
+};
 
 typedef struct modbusInfo modbusInfo;
 
@@ -68,9 +103,9 @@ union dataValue
 
     float f;
 
-    char s[64];
+    char s[DATAVALUEMAX];
 
-}
+};
 
 typedef union dataValue dataValue;
 
@@ -83,23 +118,25 @@ struct shareMem
 
     DATETIME updatedTime;
 
+    //Status
+
+    int status;
+
     //value type
 
-    unsigned int valueType;
+    int valueType;
 
     //value 
 
-    union dataValue value;
+    dataValue value;
 
-    //inter-rpocess mutex lock
+    //inter-process mutex lock
 
-    pthread_mutex_t shmMutex;
+    pthread_mutex_t lock;
 
-    //pointer to the certain place of the shared memory
+    pthread_cond_t  lockCond;
 
-    void *shmPtr;
-
-}
+};
 
 typedef struct shareMem shareMem;
 
@@ -124,9 +161,9 @@ struct dataInfo
 
     char valueName[32];
 
-    //pointer to struct that stores modbus info 
+    //struct that stores modbus info 
 
-    struct modbusInfo *modbusInfoPtr;
+    struct modbusInfo modbusInfo;
 
     //pointer to the struct that store shared memory's info 
 
@@ -137,7 +174,7 @@ struct dataInfo
     struct dataInfo *next;
 
 
-}
+};
 
 typedef struct dataInfo dataInfo;
 
@@ -156,22 +193,28 @@ struct deviceInfo
 
         device's protocol info
         For example,
-            Modbus config: 19200,8n1
-            TCP config: 140.118.70.136,9876
+            Modbus config: 19200-8n1
+            TCP config: 140.118.70.136-9876
 
     */
 
     char protocolConfig[32];
 
+    char description[64];
+
     //points to the data related to this device
 
-    char dataInfo *next;
+    dataInfo *dataInfoPtr;
+
+    //point to next deviceInfo structure
+
+    struct deviceInfo *next;
 
     //pointer to whole shared memory
 
     void *sharedMemPtr;
 
-}
+};
 
 typedef struct deviceInfo deviceInfo;
 
@@ -180,12 +223,6 @@ typedef struct deviceInfo deviceInfo;
     this area is for datalogs
 
 */
-
-//default a max length of the datalogs, make it to be a standard
-
-#define MAXDATALENGTH 250
-
-
 
 struct dataLog
 {
@@ -200,13 +237,13 @@ struct dataLog
 
     //value type
 
-    unsigned int type;
+    unsigned int valueType;
 
     //data value
 
-    union value;
+    dataValue value;
 
-}
+};
 
 typedef struct dataLog dataLog;
 

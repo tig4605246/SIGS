@@ -11,37 +11,61 @@
 */
 
 #include "SGSdefinitions.h"
+#include <sys/types.h>
+#include <sys/msg.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <pthread.h>
+#include <unistd.h>
 
-// the key we use to generate ipcs
+// Intent : Free all allocated dataInfo
+// Pre : deviceInfo pointer, close type 
+//       if the shmid > 0 , it'll delete the shared memory, if == -1, it'll simply detach it
+// Post : On success, return. On error, -1 is returned
 
-#define SGSKEY 53595
+void sgsDeleteDataInfo(dataInfo *dataInfoPtr, int shmid);
 
-//the path we use to generate ipcs
+// Intent : Free all allocated resources 
+// Pre : deviceInfo pointer,
+// Post : On success, return. On error, -1 is returned
 
-#define SGSPATH "./"
-
-#define OPENNEWSHM 1
-
-#define OPENEXISTSHM 0
+void sgsDeleteDeviceInfo(deviceInfo *deviceInfoPtr);
 
 // Intent : Create and initialize the deviceInfo with device.conf file 
 // Pre : deviceInfo pointer
 // Post : On success, return 0. On error, -1 is returned
 
-int sgsInitDeviceInfo(deviceInfo *deviceInfoPtr);
+int sgsInitDeviceInfo(deviceInfo **deviceInfoPtr);
 
 // Intent : Create and initialize the dataInfo with data.conf file. After that, create a new shared memory or open an existed one
 // Pre : deviceInfo pointer, open type (1 is new, 0 is open an exist one)
 // Post : On success, return 0. On error, -1 is returned
 
-int sgsInitDataInfo(deviceInfo *deviceInfoPtr, int create);
+int sgsInitDataInfo(deviceInfo *deviceInfoPtr, int CreateShm);
 
-// Intent : Free all allocated resources 
-// Pre : deviceInfo pointer, close type 
-//       (if create == 1, it'll delete the shared memory, if create == 0, it'll simply detach the shared memory, if create == -1, it won't do anything with shared memory )
-// Post : On success, return. On error, -1 is returned
+//Intent : Display the content of the DeviceInfo linked list
+//Pre : deviceInfo pointer
+//Post : nothing
 
-int sgsDeleteAll(deviceInfo *deviceInfoPtr, int create);
+void sgsShowDeviceInfo(deviceInfo *deviceInfoPtr);
+
+//Intent : Display the content of the dataInfo linked list
+//Pre : dataInfo pointer
+//Post : nothing
+
+void sgsShowDataInfo(dataInfo *dataInfoPtr);
+
+// Intent : Get data from shared memory
+// Pre : dataInfoPtr pointer
+// Post : On success, return 0. On error, -1 is returned
+
+int sgsReadSharedMemory(dataInfo *dataInfoPtr, dataLog *dest);
+
+// Intent : Write data to shared memory
+// Pre : dataInfoPtr pointer
+// Post : On success, return 0. On error, -1 is returned
+
+int sgsWriteSharedMemory(dataInfo *dataInfoPtr, dataLog *source);
 
 // Intent : Create (or open if it's already exist) a message queue 
 // Pre : key and open type
