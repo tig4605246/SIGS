@@ -1,36 +1,40 @@
-Simple Gateway Software
+#Simple Gateway Software
 
-Last edited by Kevin ---2017/03/01
+####Last edited by Kevin ---2017/03/01
 
 -------------------------
-**Purpose**
+###Purpose
 -------------------------
-	Clean Code, easy to update.
+* Clean Code, easy to update.
 			
 -------------------------
-**Include**
+###Include
 -------------------------
-	libmodbus 3.0.6 (sensor agent)
-	libcurl (mongo agent)
-	sendmail (mailing script)
-	ssh (reverse tunnel)
+* libmodbus 3.0.6 (sensor agent)
+* libcurl (mongo agent)
+* sendmail (mailing script)
+* ssh (reverse tunnel)
 
 	
 -------------------------
-**compile**
+###compile
 -------------------------
-	simply run gcc
+* simply run gcc
 	
 
 ------------------------------ 
-**Execute**
+###Execute
 ------------------------------
-	run sgsMaster 
+* Run sgsMaster 
 	
 
 
 ------------------------------ 
-**Structure**
+###Structure
 ------------------------------
+* __sgsMaster__ (Parent Progress)
+  * init the ipcs and exec the processes that the name is mentioned in the device.conf
 
+* __sgsBacker__ (Log data maker)
+  * record log every 30 seconds (store at ./datalogs/)
 	
