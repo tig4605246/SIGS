@@ -2,14 +2,17 @@
 
 ####Last edited by Kevin ---2017/03/01
 
--------------------------
+
 ###Purpose
 -------------------------
+
 * Wrap on some Open source libraries to make a simple IoT Gateway Software
 			
 -------------------------
+
 ###Include
 -------------------------
+
 * External Libraries
   * [libmodbus 3.0.6](https://github.com/stephane/libmodbus)
   * [libcurl](https://curl.haxx.se/)
@@ -20,8 +23,10 @@
 
 	
 -------------------------
-###compile
+
+###Compile
 -------------------------
+
 * simply run gcc
 	
 
