@@ -48,6 +48,6 @@
 * __SGScollector.c__ (system infomation)
   * Gets system info and stores to the shared memory
 
-* __SGSuploader.c__ (upload data to mongo server)
+* __SGSuploader.c__ (upload data to mongo server )
   * Gets data from shared memory and uploads to server
 	
