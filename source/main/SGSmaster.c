@@ -42,19 +42,36 @@
 
 //We declare own libraries at below
 
-#include "ipcs/SGSipcs.h"
+#include "../ipcs/SGSipcs.h"
 
-int msgid = 0;
+//Store shared memory id
+
+int shmID = 0;
+
+dataInfo *dataInfoPtr = NULL;
+deviceInfo *deviceInfoPtr = NULL;
+
+//Intent : Modulize starting function
+//Pre : dataInfoPtr, deviceInfoPtr 
+//Post : Nothing
+
+int initializeInfo();
+
+//Intent : free deviceInfoPtr, dataInforPtr and free the shared memory
+
+int releaseResource();
 
 int main()
 {
 
     int i, ret = 0;
     FILE *daemonFp = NULL;
-    
-    dataInfo *dataInfoPtr = NULL;
-    deviceInfo *deviceInfoPtr = NULL;
     dataLog source;
+
+    printf("Starting SGSmaster...\n");
+    showVersion();
+
+
 
     ret = sgsInitDeviceInfo(&deviceInfoPtr);
     if(ret != 0) return -1;
@@ -62,7 +79,9 @@ int main()
     ret = sgsInitDataInfo(NULL, &dataInfoPtr, 1);
     if(ret == 0) return -1;
 
-    msgid = ret;
+    shmID = ret;
+
+
 
     sgsShowDeviceInfo(deviceInfoPtr);
 
@@ -73,7 +92,7 @@ int main()
 
     sgsShowDataInfo(dataInfoPtr);
 
-    sgsDeleteDataInfo(dataInfoPtr,msgid);
+    sgsDeleteDataInfo(dataInfoPtr,shmID);
 
     sgsDeleteDeviceInfo(deviceInfoPtr);
 

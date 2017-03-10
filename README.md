@@ -6,6 +6,7 @@
 ##Purpose
 
   Wrap on some Open source libraries to make a simple IoT Gateway Software
+  The final goal is to provide SDK for others to develop their own data collector.
 
 ##Include
 
@@ -39,7 +40,7 @@
 
 ###Daemons
 
-* __SGSmaster.c__ (Parent Progress)
+* __SGSmaster.c__ (Main Progress)
   * Initializes the ipcs and exec the processes that the name is mentioned in the device.conf.
 
 * __SGSbacker.c__ (Log data maker)
@@ -50,4 +51,5 @@
 
 * __SGSuploader.c__ (upload data to mongo server )
   * Gets data from shared memory and uploads to server
+
 	

@@ -1,10 +1,11 @@
 PROG1=SGSmaster
+PROG2=SGSdebugger
 
 
 
 all:
 
-	$(CC) -o ../bin/$(PROG1) $(PROG1).c ipcs/SGSipcs.c -pthread -lm
+	$(CC) -o ../../bin/$(PROG1) $(PROG1).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c -pthread -lm
 
 
 clean:

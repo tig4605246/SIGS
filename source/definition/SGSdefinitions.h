@@ -14,6 +14,9 @@
 #include <stdint.h>
 #include <pthread.h>
 
+#define PROJECTSTATUS "Underdevelopment"
+#define PROJECTVERSION "0.01"
+
 //defining time variable
 
 #ifndef DATETIME
@@ -40,10 +43,10 @@
 
 //define the log path of device.conf and data.conf
 
-#define CONFIGURECONF "./configure.conf"
+#define CONFIGURECONF "../conf/configure.conf"
 
-#define DEVICECONF "./device.conf"
-#define DATACONF "./data.conf"
+#define DEVICECONF "../conf/device.conf"
+#define DATACONF "../conf/data.conf"
 
 // the key we use to generate ipcs
 
@@ -212,10 +215,6 @@ struct deviceInfo
 
     struct deviceInfo *next;
 
-    //pointer to whole shared memory
-
-    void *sharedMemPtr;
-
 };
 
 typedef struct deviceInfo deviceInfo;
@@ -251,3 +250,9 @@ struct dataLog
 
 typedef struct dataLog dataLog;
 
+
+//Intetnt : show current version
+//Pre : Nothing
+//Post : Nothing
+
+void showVersion();
