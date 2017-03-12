@@ -1,6 +1,6 @@
 #Simple Gateway Software
 
-####Last edited by Kevin ---2017/03/08
+####Last edited by Kevin ---2017/03/12
 ---------------------------------------
 
 ##Purpose
@@ -20,7 +20,7 @@
 
 ##Compile
 
-  simply run __gcc -o target target.c cJSON.c `-lm` `-pthread` `-lcurl`__
+  use the __MAKEFILE__ in the source file
 
 ##Execute
 
