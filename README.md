@@ -24,7 +24,7 @@
 
 ##Execute
 
-  Run __sgsMaster `-a`__ in auto mode, or simply __SGSmaster__ in manual mode 
+  Run __sgsMaster__  
 	 
 ##Structure
 

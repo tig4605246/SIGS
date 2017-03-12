@@ -162,6 +162,10 @@ int sgsInitDeviceInfo(deviceInfo **deviceInfoPtr)
         strncpy(tempPtr->description, sp3, 63); 
         tempPtr->description[63] = 0;
 
+        //Initialize pid in deviceInfoPtr
+
+        tempPtr->subProcessPid = 0;
+
         //put tempPtr into linked-list which head is deviceInfoPtr;
 
         if(*deviceInfoPtr == NULL)

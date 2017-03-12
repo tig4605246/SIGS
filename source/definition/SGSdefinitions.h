@@ -207,6 +207,8 @@ struct deviceInfo
 
     char description[64];
 
+    int subProcessPid;
+
     //points to the data related to this device
 
     dataInfo *dataInfoPtr;
