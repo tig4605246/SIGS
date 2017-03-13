@@ -6,35 +6,6 @@
         This program will manage all other sub processes it creates.
         Also, it's responsible for opening and closing all sub processes.
 
-
-    Program Flow:
-
-        Read in config file about protocol
-        Parse config file
-        if(file is not ok)
-            print "bad file"
-            exit(0)
-        close config file
-        read daemon file (contains the names of agents)
-        create linked list to store daemon message
-        for (linked list is not the end)
-            pid = fork()
-            if(pid == 0)
-                execlp daemon
-            else if (pid == -1)
-                print"open failed"
-                mail(open "that" daemon failed)
-            else
-                print"open "that" daemon successfully"
-                store pid in linked list
-        
-        while(1)
-            if(input == 0)
-                close all daemon
-                exit(0)
-            else if(input == 1)
-                restart all deamon
-
 */
 
 #include <stdio.h>
@@ -95,13 +66,15 @@ int main()
     showVersion();
 
 
-
-
     //sgsShowDeviceInfo(deviceInfoPtr);
 
     act.sa_handler = (__sighandler_t)stopAllSubProcesses;
     act.sa_flags = SA_ONESHOT|SA_NOMASK;
     sigaction(SIGINT, &act, &oldact);
+
+    printf("[%s,%d] Initializing IPCs...\n",__FUNCTION__,__LINE__);
+
+    initializeInfo();
 
     printf("Starting sub processes...\n");
     //startAllProcesses();
@@ -121,11 +94,8 @@ int main()
                 break;
 
             case 'k' :
-                stopAllSubProcesses(NULL);
-                break;
-            
-            case 'f' :
                 releaseResource();
+                stopAllSubProcesses(NULL);
                 break;
 
             case 'r' :
@@ -144,8 +114,8 @@ int main()
                 printf("commands : \n");
                 printf("l - list contents of the device conf and data conf\n");
                 printf("k - kill all sub processes\n");
-                printf("f - free all allocated resources and frees shared memory (do this after killing sub processes)\n");
                 printf("r - Restart \n");
+                printf("x - Leave the program\n");
                 printf("\n");
                 break;
 
@@ -274,14 +244,20 @@ void stopAllSubProcesses(struct sigaction *act)
     while(ptr != NULL)
     {
 
-        printf("[%s,%d] Stopping %s now (stored pid is %d) \n",__FUNCTION__,__LINE__,ptr->deviceName,ptr->subProcessPid);
-        ret = kill(ptr->subProcessPid,SIGKILL);
-        if(ret < 0)
+        if(ptr->subProcessPid > 0)
         {
 
-            printf("[%s,%d] kill failed %s\n",__FUNCTION__, __LINE__, strerror(ret));
-            
+            printf("[%s,%d] Stopping %s now (stored pid is %d) \n",__FUNCTION__,__LINE__,ptr->deviceName,ptr->subProcessPid);
+            ret = kill(ptr->subProcessPid,SIGKILL);
+            if(ret < 0)
+            {
+
+                printf("[%s,%d] kill failed %s\n",__FUNCTION__, __LINE__, strerror(ret));
+                
+            }
+
         }
+        
         ptr = ptr->next;
 
     }

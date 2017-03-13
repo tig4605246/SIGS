@@ -162,9 +162,9 @@ int sgsInitDeviceInfo(deviceInfo **deviceInfoPtr)
         strncpy(tempPtr->description, sp3, 63); 
         tempPtr->description[63] = 0;
 
-        //Initialize pid in deviceInfoPtr
+        //Initialize pid in deviceInfoPtr, default we put in -1
 
-        tempPtr->subProcessPid = 0;
+        tempPtr->subProcessPid = -1;
 
         //put tempPtr into linked-list which head is deviceInfoPtr;
 
@@ -490,10 +490,10 @@ void sgsShowDeviceInfo(deviceInfo *deviceInfoPtr)
     }
     while(head != NULL)
     {
-        printf("Device Name : %s\n",head->deviceName);
-        printf("\tInterface : %s\n",head->interface);
+        printf("Device Name       : %s\n",head->deviceName);
+        printf("\tInterface       : %s\n",head->interface);
         printf("\tProtocol Config : %s\n",head->protocolConfig);
-        printf("\tdescription : %s\n",head->description);
+        printf("\tDescription     : %s\n",head->description);
         printf("\n");
         head = head->next;
 
@@ -512,12 +512,12 @@ void sgsShowDataInfo(dataInfo *dataInfoPtr)
     {
 
         printf("\n");
-        printf("Sensor ID : %d \n",head->ID);
+        printf("Sensor ID   : %d \n",head->ID);
         printf("Device Name : %s\n",head->deviceName);
         printf("Sensor Name : %s\n",head->sensorName);
-        printf("Value Name : %s\n",head->valueName);
-        printf("\tModbus ID %u\n",head->modbusInfo.ID);
-        printf("\tModbus Address %u\n",head->modbusInfo.address);
+        printf("Value  Name : %s\n",head->valueName);
+        printf("\tModbus ID          %u\n",head->modbusInfo.ID);
+        printf("\tModbus Address     %u\n",head->modbusInfo.address);
         printf("\tModbus read Length %d\n",head->modbusInfo.readLength);
         ret = sgsReadSharedMemory(head,&dest);
         if(ret != 0)
@@ -534,27 +534,27 @@ void sgsShowDataInfo(dataInfo *dataInfoPtr)
             {
 
                 case INITIAL_VALUE :
-                    printf("value : %s\n",dest.value.s);
+                    printf("\t\tvalue : %s\n",dest.value.s);
                     break;
 
                 case INTEGER_VALUE :
-                    printf("value : %d\n",dest.value.i);
+                    printf("\t\tvalue : %d\n",dest.value.i);
                     break;
 
                 case FLOAT_VALUE :
-                    printf("value : %f\n",dest.value.f);
+                    printf("\t\tvalue : %f\n",dest.value.f);
                     break;
 
                 case STRING_VALUE :
-                    printf("value : %s\n",dest.value.s);
+                    printf("\t\tvalue : %s\n",dest.value.s);
                     break;
 
                 case ERROR_VALUE :
-                    printf("value : %s\n",dest.value.s);
+                    printf("\t\tvalue : %s\n",dest.value.s);
                     break;
 
                 default:
-                    printf("value : %s\n",dest.value.s);
+                    printf("\t\tvalue : %s\n",dest.value.s);
                     printf("Unknown valueType %d\n",dest.valueType);
                     break;
  
