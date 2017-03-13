@@ -28,28 +28,31 @@
 	 
 ##Structure
 
-###Headers
-* __SGSdefinitions.h__
+###Files
+
+* __definition__
   * Defining parameters and structs.
 
-* __SGScontrol.h__
+* __controlling__
   * Functions for controlling the sub processes
 
-* __SGSipcs.h__
-  * Wrap up funtions for handling shared memory and message queue at here
+* __ipcs__
+  * Wrap up funtions for handling shared memory and message queue
 
-###Daemons
+* __protocol__
+  * Build-in libraries that support certain protocols
+
+* __thirdparty__
+  * All external resources are located at here
+
+###Programs
+
+the basic programs that runs the system
 
 * __SGSmaster.c__ (Main Progress)
   * Initializes the ipcs and exec the processes that the name is mentioned in the device.conf.
 
 * __SGSbacker.c__ (Log data maker)
   * Records log every 30 seconds. (store at ./datalogs/)
-
-* __SGScollector.c__ (system infomation)
-  * Gets system info and stores to the shared memory
-
-* __SGSuploader.c__ (upload data to mongo server )
-  * Gets data from shared memory and uploads to server
 
 	
