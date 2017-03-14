@@ -24,7 +24,7 @@
 
 ##Execute
 
-  Run __sgsMaster__  
+  Run __sgsMaster__  to start everything
 	 
 ##Structure
 
