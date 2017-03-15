@@ -49,23 +49,98 @@ typedef struct df_filesystem_space_t
 
 int data[3] = {0};
 
-//Intent : get CPU HDD MEM usage
+int shmID = 0;
+
+dataInfo *dataInfoPtr = NULL;
+deviceInfo *deviceInfoPtr = NULL;
+
+//Intent : get CPU usage
 //Pre : Nothing
 //Post : Nothing
 
 
-void collectSystemInfo();
+void collectCpuUsage();
+
+//Intent : get Memory usage
+//Pre : Nothing
+//Post : Nothing
+
+
+void collectMemoryUsage();
+
+//Intent : get DISK usage
+//Pre : Nothing
+//Post : Nothing
+
+
+void collectDiskUsage();
+
+//Intent : set up dataInfo and deviceInfo (get pointers from global parameters)
+//Pre : Nothing
+//Post : On success, return 0. On error, return -1 and shows the error message
+
+int initializeInfo();
 
 
 int main(int argc, char argv[])
 {
 
 
+    initializeInfo();
+
+    collectSystemInfo();
+
+    printf("\nWhatever SG INFO HERE\n")
+    //sgsShowDeviceInfo(deviceInfoPtr);
+    //sgsShowDataInfo(dataInfoPtr);
+
     return 0;
 
 }
 
+void collectCpuUsage(dataInfoPtr *target) 
+{
 
+    printf("[%s:%d] Function started\n",__FUNCTION__, __LINE__);
+
+    //Try to get CPU usage by reading cpu status in twice with small delay
+    //Try to open up the cpu file
+
+    fp = fopen(CPUFILE, "r");
+    fgets(buf, 4096, fp);
+    fclose(fp);
+    sscanf(buf, fmt, 
+                &p_jif.usr, &p_jif.nic, &p_jif.sys, &p_jif.idle,
+                &p_jif.iowait, &p_jif.irq, &p_jif.softirq,
+                &p_jif.steal);
+
+    p_jif.total = p_jif.usr + p_jif.nic + p_jif.sys + p_jif.idle;
+
+    sleep(5);
+
+    fp = fopen(CPUFILE, "r");
+    fgets(buf, 4096, fp);
+    fclose(fp);
+
+    sscanf(buf, fmt, 
+                &c_jif.usr, &c_jif.nic, &c_jif.sys, &c_jif.idle,
+                &c_jif.iowait, &c_jif.irq, &c_jif.softirq,
+                &c_jif.steal);
+    c_jif.total = c_jif.usr + c_jif.nic + c_jif.sys + c_jif.idle;
+
+    //Caculate the cpu usage
+
+    cpu_use = c_jif.total - p_jif.total;
+    cpu_use = (float)((cpu_use - (c_jif.idle - p_jif.idle)) / cpu_use);
+
+    if(cpu_use > 1) cpu_use = 1;
+    else if(cpu_use < 0) cpu_use = 0;
+
+    data[0] = (100 * cpu_use);
+    
+    return;
+
+}
 
 void collectSystemInfo() 
 {
@@ -74,6 +149,7 @@ void collectSystemInfo()
     FILE *fp;
     DATETIME tw_time;
     float cpu_use,mem_use;
+    dataInfoPtr temp = NULL;
     df_filesystem_space_t df;
     jiffy_counts_t p_jif, c_jif;
     unsigned char buf[4096], buf2[32];
@@ -214,8 +290,41 @@ void collectSystemInfo()
 
     ftime(&tp);
 	tw_time = tp.time*1000 + tp.millitm;
+
+    // insert data to shared memory
+
+    temp = dataInfoPtr;
+
 	
     
     return;
+
+}
+
+int initializeInfo()
+{
+
+    int ret = 0;
+    ret = sgsInitDeviceInfo(&deviceInfoPtr);
+    if(ret != 0)
+    {
+
+        printf("[%s,%d] init device conf failed ret = %d\n",__FUNCTION__,__LINE__,ret);
+        return -1;
+
+    } 
+
+    ret = sgsInitDataInfo(NULL, &dataInfoPtr, 0);
+    if(ret == 0) 
+    {
+
+        printf("[%s,%d] init data conf failed ret = %d\n",__FUNCTION__,__LINE__,ret);
+        return -1;
+
+    }
+
+    shmID = ret;
+
+    return 0;
 
 }

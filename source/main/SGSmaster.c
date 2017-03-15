@@ -62,6 +62,7 @@ int main()
     FILE *daemonFp = NULL;
     struct sigaction act, oldact;
     
+    
     printf("Starting SGSmaster...\n");
     showVersion();
 
@@ -77,7 +78,7 @@ int main()
     initializeInfo();
 
     printf("Starting sub processes...\n");
-    //startAllProcesses();
+    startAllProcesses();
 
     while(1)
     {
@@ -94,18 +95,22 @@ int main()
                 break;
 
             case 'k' :
-                releaseResource();
                 stopAllSubProcesses(NULL);
+                if(deviceInfoPtr != NULL)
+                    releaseResource();
                 break;
 
             case 'r' :
                 stopAllSubProcesses(NULL);
-                releaseResource();
+                if(deviceInfoPtr != NULL)
+                    releaseResource();
                 initializeInfo();
                 startAllProcesses();
                 break;
 
             case 'x' :
+                if(deviceInfoPtr != NULL)
+                    releaseResource();
                 printf("bye\n");
                 exit(0);
                 break;
@@ -187,38 +192,43 @@ void startAllProcesses()
 
         //fork sub process
 
-        pid = fork();
-
-        //decide what to do by pid
-
-        if(pid == 0)
+        if(1)
         {
 
-            //opening sub process
+            pid = fork();
 
-            memset(buf,'\0',sizeof(buf));
-            sprintf(buf,"./%s",ptr->deviceName);
-            printf("starting %s with pid %d\n\n",buf,pid);
-            execlp(buf,buf,ptr->deviceName,NULL);
+            //decide what to do by pid
 
-            //Only get here when execlp fails
+            if(pid == 0)
+            {
 
-            perror("execlp");
-            exit(-1);
+                //opening sub process
 
-        }
-        else if(pid > 0)
-        {
+                memset(buf,'\0',sizeof(buf));
+                sprintf(buf,"./%s",ptr->deviceName);
+                printf("starting %s with pid %d\n\n",buf,getpid());
+                execlp(buf,buf,ptr->deviceName,NULL);
 
-            ptr->subProcessPid = pid;
+                //Only get here when execlp fails
 
-        }
-        else
-        {
+                perror("execlp");
+                exit(-1);
 
-            //pid < 0, forking failed
+            }
+            else if(pid > 0)
+            {
 
-            printf("[%s,%d] fork() return %d, forking %s failed, %s\n",__FUNCTION__, __LINE__, pid, ptr->deviceName, strerror(pid));
+                ptr->subProcessPid = pid;
+
+            }
+            else
+            {
+
+                //pid < 0, forking failed
+
+                printf("[%s,%d] fork() return %d, forking %s failed, %s\n",__FUNCTION__, __LINE__, pid, ptr->deviceName, strerror(pid));
+
+            }
 
         }
 
@@ -244,6 +254,7 @@ void stopAllSubProcesses(struct sigaction *act)
     while(ptr != NULL)
     {
 
+        
         if(ptr->subProcessPid > 0)
         {
 
@@ -255,6 +266,12 @@ void stopAllSubProcesses(struct sigaction *act)
                 printf("[%s,%d] kill failed %s\n",__FUNCTION__, __LINE__, strerror(ret));
                 
             }
+
+        }
+        else
+        {
+
+            printf("[%s,%d] Skipping %s , pid %d\n",__FUNCTION__,__LINE__,ptr->deviceName,ptr->subProcessPid);
 
         }
         
