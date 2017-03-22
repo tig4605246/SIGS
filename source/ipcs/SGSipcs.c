@@ -85,7 +85,13 @@ int sgsInitDeviceInfo(deviceInfo **deviceInfoPtr)
         if(fscanf(deviceConfigFile, "%[^\n]\n", buf) < 0) break;
         printf("[%s,%d]fscanf in %s\n",__FUNCTION__,__LINE__,buf);
         if(!strlen(buf)) continue;
-        if(buf[0] == '#') continue;
+        if(buf[0] == '#')
+        {
+
+            printf("Skipping %s\n",buf);
+            continue;
+
+        } 
         line++;
 
         //split the config  buf is deviceName, sp1 is interface, sp2 is protocolConfig

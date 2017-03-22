@@ -1,7 +1,9 @@
 PROG1=SGSmaster
-PROG2=SGSGwInfo
+PROG2=GWInfo
+PROG3=testCallFunc
+PROG4=MQTTAsync_sub
 
-
+# flag for paho mqtt  -rdynamic -lpaho-mqtt3a 
 
 all:
 
@@ -9,6 +11,9 @@ all:
 
 	$(CC) -o ../../bin/$(PROG2) ../collector/$(PROG2).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../protocol/SGSmodbus.c -pthread -lm `pkg-config --cflags --libs libmodbus`
 
+	$(CC) -o ../../bin/$(PROG3) $(PROG3).c
+
+	$(CC) -o ../../bin/$(PROG4) ../collector/$(PROG4).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c  -pthread -rdynamic -lpaho-mqtt3a  
 
 clean:
 	rm -rf *.o

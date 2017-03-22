@@ -40,19 +40,32 @@ void releaseResource();
 //Pre : Nothing
 //Post : On success, return 0. On error, return -1 and shows the error messages
 
-void startAllProcesses();
+void startCollectingProcesses();
 
 //Intent : Stop sub processes by using the pid stored in the deviceInfo struct
 //Pre : Nothing
 //Post : On success, return 0. On error, return -1 and shows the error messages
 
-void stopAllSubProcesses(struct sigaction *act);
+void stopAllCollectingProcesses(int sigNum);
 
 //Intent : write data to shared memory
 //Pre : Nothing
 //Post : Nothing
 
 void testWriteSharedMemory();
+
+//Intent : start GW-to-Server processes
+//Pre : Nothing
+//Post : Nothing
+
+void stratUploadingProcesses();
+
+//Intent : stop GW-to-Server processes
+//Pre : Nothing
+//Post : Nothing
+
+void stopUploadingProcesses();
+
 
 int main()
 {
@@ -69,7 +82,7 @@ int main()
 
     //sgsShowDeviceInfo(deviceInfoPtr);
 
-    act.sa_handler = (__sighandler_t)stopAllSubProcesses;
+    act.sa_handler = (__sighandler_t)stopAllCollectingProcesses;
     act.sa_flags = SA_ONESHOT|SA_NOMASK;
     sigaction(SIGINT, &act, &oldact);
 
@@ -78,7 +91,7 @@ int main()
     initializeInfo();
 
     printf("Starting sub processes...\n");
-    startAllProcesses();
+    startCollectingProcesses();
 
     while(1)
     {
@@ -94,33 +107,30 @@ int main()
                 sgsShowDataInfo(dataInfoPtr);
                 break;
 
-            case 'k' :
-                stopAllSubProcesses(NULL);
-                if(deviceInfoPtr != NULL)
-                    releaseResource();
-                break;
-
             case 'r' :
-                stopAllSubProcesses(NULL);
+                stopAllCollectingProcesses(-1);
                 if(deviceInfoPtr != NULL)
                     releaseResource();
                 initializeInfo();
-                startAllProcesses();
+                startCollectingProcesses();
                 break;
 
             case 'x' :
+                stopAllCollectingProcesses(-1);
                 if(deviceInfoPtr != NULL)
                     releaseResource();
                 printf("bye\n");
                 exit(0);
                 break;
+            case 'u' :
+                break;
 
             default :
                 printf("commands : \n");
                 printf("l - list contents of the device conf and data conf\n");
-                printf("k - kill all sub processes\n");
                 printf("r - Restart \n");
-                printf("x - Leave the program\n");
+                printf("u - start uploading program \n");
+                printf("x - close the program\n");
                 printf("\n");
                 break;
 
@@ -178,7 +188,7 @@ void releaseResource()
 
 }
 
-void startAllProcesses()
+void startCollectingProcesses()
 {
 
     pid_t pid = 0;
@@ -241,25 +251,41 @@ void startAllProcesses()
 
 }
 
-void stopAllSubProcesses(struct sigaction *act)
+void stopAllCollectingProcesses(int sigNum)
 {
 
     int ret = 0;
     pid_t pid = 0;
     char buf[128];
     deviceInfo *ptr = deviceInfoPtr;
+    FILE *pidFile = NULL;
 
     printf("[%s,%d] Stopping sub processes...\n\n",__FUNCTION__,__LINE__);
 
     while(ptr != NULL)
     {
 
-        
+        sprintf(buf,"./pid/%s",ptr->deviceName);
+        pidFile = fopen(buf,"r");
+
         if(ptr->subProcessPid > 0)
         {
 
             printf("[%s,%d] Stopping %s now (stored pid is %d) \n",__FUNCTION__,__LINE__,ptr->deviceName,ptr->subProcessPid);
-            ret = kill(ptr->subProcessPid,SIGKILL);
+            ret = kill(ptr->subProcessPid,SIGUSR1);
+            if(ret < 0)
+            {
+
+                printf("[%s,%d] kill failed %s\n",__FUNCTION__, __LINE__, strerror(ret));
+                
+            }
+
+        }
+        else if(pidFile != NULL)
+        {
+
+            printf("[%s,%d] %s stored pid is %d \n",__FUNCTION__,__LINE__,buf,ptr->subProcessPid);
+            ret = kill(ptr->subProcessPid,SIGUSR1);
             if(ret < 0)
             {
 
@@ -270,12 +296,13 @@ void stopAllSubProcesses(struct sigaction *act)
         }
         else
         {
-
-            printf("[%s,%d] Skipping %s , pid %d\n",__FUNCTION__,__LINE__,ptr->deviceName,ptr->subProcessPid);
-
+            printf("[%s,%d] skipping %s , pid is %d \n",__FUNCTION__,__LINE__,ptr->deviceName,ptr->subProcessPid);
         }
         
         ptr = ptr->next;
+
+        if(pidFile != NULL)
+            fclose(pidFile);
 
     }
     return;
