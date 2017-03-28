@@ -15,7 +15,7 @@ all:
 	$(CC) -o ../../bin/$(PROG3) $(PROG3).c
 
 	$(CC) -o ../../bin/$(PROG4) ../collector/$(PROG4).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c  -pthread -rdynamic -lpaho-mqtt3a  
-	$(CC) -o ../../bin/$(PROG4) ../collector/$(PROG4).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../thirdparty/cJSON.c  -pthread -lm -lcurl -rdynamic -lpaho-mqtt3a
+	$(CC) -o ../../bin/$(PROG5) ../uploader/$(PROG5).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../thirdparty/cJSON.c  -pthread -lm -lcurl -rdynamic -lpaho-mqtt3a
 
 clean:
 	rm -rf *.o

@@ -32,6 +32,7 @@ while(1)
             re-upload at next while loop
 */
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/syslog.h>
@@ -46,7 +47,6 @@ while(1)
 #include <errno.h>
 
 #include <curl/curl.h> //`pkg-config --cflags --libs ` or -lcurl
-#include "../definition/SGSdefinitions.h"
 #include "../ipcs/SGSipcs.h"
 #include "../thirdparty/cJSON.h" // cJSON.c -lm
 
@@ -84,6 +84,8 @@ int main(int argc, char** argv)
     int i = 0, j = 0;
     int ret = 0;
     int upload_interval = 30;
+    int IndexNum;
+    char dcode[32];
     FILE *fd;
 
     openlog("mongo", LOG_PID, LOG_USER);
@@ -128,7 +130,7 @@ int main(int argc, char** argv)
             for(j=0; j<3; j++)
             {
 
-                ret = UploadDataProcess();
+                ret = CreateJSONAndRunHTTPCommand(IndexNum,dcode);
                 syslog(LOG_ERR, "[%s:%d] upload_data() = %d", __FUNCTION__, __LINE__,ret);
                 if( ret == 0)
                 {
@@ -249,7 +251,7 @@ int CreateJSONAndRunHTTPCommand(int IndexNum, char *dcode)
     
     // Adding curl http options
 
-    sprintf(Content_Length,"Content-Length: %o",tag_num);
+    sprintf(Content_Length,"Content-Length: %o",50);
     printf("%s\n",Content_Length);
 
     curl_global_init(CURL_GLOBAL_ALL);
