@@ -46,7 +46,7 @@ while(1)
 #include <errno.h>
 
 #include <curl/curl.h> //`pkg-config --cflags --libs ` or -lcurl
-#include "../definition/SGSdefinition.h"
+#include "../definition/SGSdefinitions.h"
 #include "../ipcs/SGSipcs.h"
 #include "../thirdparty/cJSON.h" // cJSON.c -lm
 
@@ -264,7 +264,7 @@ int CreateJSONAndRunHTTPCommand(int IndexNum, char *dcode)
     n_time = tp.time*1000 + tp.millitm;
     cap_time = iven.store[0].read_time.time*1000 + iven.store[0].read_time.millitm;
 
-    //Initialize curl headers
+    // Initialize curl headers
     syslog(LOG_INFO, "[%s:%d] Initialize curl headers ", __FUNCTION__, __LINE__);
     chunk = curl_slist_append(chunk, "Accept: text/plain");
 	chunk = curl_slist_append(chunk, "Accept-Encoding: gzip, deflate");
@@ -272,11 +272,11 @@ int CreateJSONAndRunHTTPCommand(int IndexNum, char *dcode)
 	chunk = curl_slist_append(chunk, "Content_Length");
 	chunk = curl_slist_append(chunk, "User-Agent: Kelier/0.1");
 
-    // initialize JSON
+    // Initialize JSON
     syslog(LOG_INFO, "[%s:%d] initialize JSON ", __FUNCTION__, __LINE__);
     root = cJSON_CreateObject();
 
-    //we insert id at here
+    // We insert id at here 
 
     cJSON_AddItemToObject(root, "id",cJSON_CreateString("2") );
 
