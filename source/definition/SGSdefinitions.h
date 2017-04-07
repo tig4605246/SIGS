@@ -16,8 +16,8 @@
 #include <stdint.h>
 #include <pthread.h>
 
-#define PROJECTSTATUS "Underdevelopment"
-#define PROJECTVERSION "0.01"
+#define PROJECTSTATUS "Alpha Build"
+#define PROJECTVERSION "0.3"
 
 //defining time variable
 
@@ -192,9 +192,9 @@ struct deviceInfo
 
     //name of the device
     
-    char deviceName[32];
+    char deviceName[128];
 
-    char interface[32];
+    char interface[128];
 
     /*
 
@@ -205,9 +205,9 @@ struct deviceInfo
 
     */
 
-    char protocolConfig[32];
+    char protocolConfig[128];
 
-    char description[64];
+    char description[128];
 
     pid_t subProcessPid;
 
@@ -269,6 +269,26 @@ struct dataLog
 
 typedef struct dataLog dataLog;
 
+
+/*
+
+    Planing to use SQLite for log file storage
+    This will help me coupling with it
+
+*/
+
+struct logFile_DataType
+{
+
+    int amountOfDataLogs;
+
+    DATETIME recordTime;
+
+    dataLog *dataLogs;
+
+};
+
+typedef struct logFile_DataType logFile_DataType;
 
 //Intetnt : show current version
 //Pre : Nothing

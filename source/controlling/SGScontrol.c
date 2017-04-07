@@ -8,15 +8,41 @@
         
 */
 
+
+#include <stdlib.h>
+#include <error.h>
+#include <errno.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/syslog.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 #include "SGScontrol.h"
 
-
-void stopSubProcess(struct sigaction *act)
+int sgsInitControl(char *processName)
 {
 
-    int ret;
+    char buf[128];
+    FILE *fd = NULL;
 
+    memset(buf,'\0',sizeof(buf));
+
+    sprintf(buf, "./pid/%s.pid",processName);
+
+    if((fd=fopen(buf, "w")) == NULL)
+    {
+
+        printf( "[mongo:%d] failed in fopen(%s)! %s",__LINE__, buf, strerror(errno));
+        closelog();
+        return -1;
+
+    }
+
+    fprintf(fd, "%d\n", getpid());
+    fclose(fd);
+    printf("write done\n");
+    return 0;
 
 }
 
-void initializeSigaction(void);

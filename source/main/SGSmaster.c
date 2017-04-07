@@ -44,9 +44,9 @@ void startCollectingProcesses();
 
 //Intent : Stop sub processes by using the pid stored in the deviceInfo struct
 //Pre : Nothing
-//Post : On success, return 0. On error, return -1 and shows the error messages
+//Post : Nothing
 
-void stopAllCollectingProcesses(int sigNum);
+void stopAllCollectingProcesses();
 
 //Intent : write data to shared memory
 //Pre : Nothing
@@ -66,6 +66,12 @@ void stratUploadingProcesses();
 
 void stopUploadingProcesses();
 
+//Intent : shut down everything when SIGINT is catched
+//Pre : Nothing
+//Post : Nothing
+
+void forceQuit(int sigNum);
+
 
 int main()
 {
@@ -82,7 +88,7 @@ int main()
 
     //sgsShowDeviceInfo(deviceInfoPtr);
 
-    act.sa_handler = (__sighandler_t)stopAllCollectingProcesses;
+    act.sa_handler = (__sighandler_t)forceQuit;
     act.sa_flags = SA_ONESHOT|SA_NOMASK;
     sigaction(SIGINT, &act, &oldact);
 
@@ -103,12 +109,13 @@ int main()
         {
 
             case 'l' :
-                sgsShowDeviceInfo(deviceInfoPtr);
-                sgsShowDataInfo(dataInfoPtr);
+
+                sgsShowAll(deviceInfoPtr);
                 break;
 
             case 'r' :
-                stopAllCollectingProcesses(-1);
+
+                stopAllCollectingProcesses();
                 if(deviceInfoPtr != NULL)
                     releaseResource();
                 initializeInfo();
@@ -116,16 +123,26 @@ int main()
                 break;
 
             case 'x' :
-                stopAllCollectingProcesses(-1);
+
+                stopAllCollectingProcesses();
                 if(deviceInfoPtr != NULL)
                     releaseResource();
                 printf("bye\n");
                 exit(0);
                 break;
+
             case 'u' :
+
+                break;
+
+            case 't' :
+
+                testWriteSharedMemory();
+                
                 break;
 
             default :
+
                 printf("commands : \n");
                 printf("l - list contents of the device conf and data conf\n");
                 printf("r - Restart \n");
@@ -136,15 +153,8 @@ int main()
 
         }
 
-
-
     }
     
-
-    
-
-
-
     return 0;
 }
 
@@ -162,7 +172,7 @@ int initializeInfo()
 
     } 
 
-    ret = sgsInitDataInfo(NULL, &dataInfoPtr, 1);
+    ret = sgsInitDataInfo(deviceInfoPtr, &dataInfoPtr, 1);
     if(ret == 0) 
     {
 
@@ -180,9 +190,7 @@ int initializeInfo()
 void releaseResource()
 {
 
-    sgsDeleteDataInfo(dataInfoPtr,shmID);
-
-    sgsDeleteDeviceInfo(deviceInfoPtr);
+    sgsDeleteAll(deviceInfoPtr,shmID);
 
     return ;
 
@@ -251,7 +259,7 @@ void startCollectingProcesses()
 
 }
 
-void stopAllCollectingProcesses(int sigNum)
+void stopAllCollectingProcesses()
 {
 
     int ret = 0;
@@ -309,6 +317,18 @@ void stopAllCollectingProcesses(int sigNum)
 
 }
 
+void forceQuit(int sigNum)
+{
+
+    stopAllCollectingProcesses();
+    if(deviceInfoPtr != NULL)
+        releaseResource();
+    printf("[Ctrl + C] Catched (signal number %d) , forceQuitting...\n",sigNum);
+    exit(0);
+
+}
+
+
 void testWriteSharedMemory()
 {
 
@@ -317,9 +337,7 @@ void testWriteSharedMemory()
     source.valueType = STRING_VALUE;
 
     sprintf(source.value.s,"hi I'm doing my job here");
-    sgsWriteSharedMemory(dataInfoPtr, &source);
-
-    sgsShowDataInfo(dataInfoPtr);
+    sgsWriteSharedMemory(deviceInfoPtr->dataInfoPtr, &source);
 
     return ;
 

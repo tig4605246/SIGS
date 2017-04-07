@@ -432,7 +432,7 @@ int sgsCaculateFloatWordswap(unsigned char *response, int *response_length, int 
 
     //find out real_integer
 
-    if((value[0] - 127)>0)
+    if( (value[0] - 127) > 0 )
     {
 
         exponent_count =  value[0] - 127;
@@ -450,6 +450,7 @@ int sgsCaculateFloatWordswap(unsigned char *response, int *response_length, int 
         real_integer = 1; //2^0 = 1
 
     }
+    
     printf("real_integer %d\n",real_integer);
 
     //flush the response for containing processed value

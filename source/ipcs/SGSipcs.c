@@ -2,9 +2,13 @@
 
     Name: Xu Xi-Ping
     Date: March 3,2017
-    Last Update: March 8,2017
+    Last Update: March 29,2017
     Program statement: 
         we write the detail of the function here 
+
+    Update log: 
+
+         2017/03/29 : Attach dataInfoPtr to deviceInfoPtr at sgsInitDataInfo
 
 */
 
@@ -15,24 +19,28 @@
 
 void sgsDeleteDataInfo(dataInfo *dataInfoPtr, int shmid)
 {
+
     dataInfo *head = dataInfoPtr;
-    dataInfo *last = dataInfoPtr;
 
     while(head != NULL)
     {
 
         if(head->shareMemoryPtr != NULL)
             shmdt(head->shareMemoryPtr);
-        last = head;
+
         head = head->next;
+
         free(head);
 
     }
     if(shmid >= 0)
     {
 
-        if (shmctl(shmid, IPC_RMID, 0) == -1) {
+        if (shmctl(shmid, IPC_RMID, 0) == -1)
+        {
+            
             perror("shmctl");
+
         }
 
     }
@@ -55,6 +63,46 @@ void sgsDeleteDeviceInfo(deviceInfo *deviceInfoPtr)
         free(last);
 
     }
+
+    return;
+
+}
+
+void sgsDeleteAll(deviceInfo *deviceInfoPtr, int shmid)
+{
+
+    deviceInfo *head = deviceInfoPtr;
+    deviceInfo *last = deviceInfoPtr;
+
+    //free allocated memory
+
+    while(head != NULL)
+    {
+
+        last = head;
+        head = head->next;
+
+        if(last->dataInfoPtr != NULL)
+            sgsDeleteDataInfo(last->dataInfoPtr, -1);
+
+        free(last);
+
+    }
+
+    //Free shared memory
+
+    if(shmid >= 0)
+    {
+
+        if (shmctl(shmid, IPC_RMID, 0) == -1)
+        {
+
+            perror("shmctl");
+
+        }
+
+    }
+
     return;
 
 }
@@ -62,9 +110,10 @@ void sgsDeleteDeviceInfo(deviceInfo *deviceInfoPtr)
 
 int sgsInitDeviceInfo(deviceInfo **deviceInfoPtr)
 {
+
     FILE *deviceConfigFile = NULL;
     int line = 0;
-    char buf[128] = "";
+    char buf[2048] = "";
     char *sp1 = NULL, *sp2 = NULL, *sp3 = NULL;
     deviceInfo *tempPtr = NULL;
 
@@ -159,14 +208,14 @@ int sgsInitDeviceInfo(deviceInfo **deviceInfoPtr)
         memset((void *)tempPtr, 0, sizeof(deviceInfo));
         tempPtr->dataInfoPtr = NULL;
         tempPtr->next = NULL;
-        strncpy(tempPtr->deviceName, buf, 31); 
-        tempPtr->deviceName[31] = 0;
-        strncpy(tempPtr->interface, sp1, 31); 
-        tempPtr->interface[31] = 0;
-        strncpy(tempPtr->protocolConfig, sp2, 31); 
-        tempPtr->protocolConfig[31] = 0;
-        strncpy(tempPtr->description, sp3, 63); 
-        tempPtr->description[63] = 0;
+        strncpy(tempPtr->deviceName, buf, strlen(buf)); 
+        tempPtr->deviceName[127] = 0;
+        strncpy(tempPtr->interface, sp1, strlen(sp1)); 
+        tempPtr->interface[127] = 0;
+        strncpy(tempPtr->protocolConfig, sp2, strlen(sp2)); 
+        tempPtr->protocolConfig[127] = 0;
+        strncpy(tempPtr->description, sp3, strlen(sp3)); 
+        tempPtr->description[127] = 0;
 
         //Initialize pid in deviceInfoPtr, default we put in -1
 
@@ -200,15 +249,15 @@ int sgsInitDeviceInfo(deviceInfo **deviceInfoPtr)
 
 int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int CreateShm)
 {
-    int line = 0, zero = 0, j, shmid, ret = 0;
+    int line = 0, zero = 0, j, shmid = 0, ret = 0;
     char buf[512], *sp1, *sp2;
     FILE *dataConfigFile = NULL;
     void *shm;
     dataInfo *dataInfoPtrHead = (*dataInfoPtr);
-    dataInfo *dataInfoPtrTail = (*dataInfoPtr);
     dataInfo *dataInfoPtrTemp = NULL;
-    dataInfo *dataInfoPtrTemp2 = NULL;
-    dataInfo *dataInfoPtrFormer = NULL;
+
+    dataInfo *dataInfoPtrTemp3 = NULL;
+    deviceInfo *deviceInfoHead = deviceInfoPtr;
 
     shareMem *shareMemPtr = NULL;
 
@@ -253,19 +302,6 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int Creat
         dataInfoPtrTemp = (dataInfo *)malloc(sizeof(dataInfo));
         memset((void *)dataInfoPtrTemp, 0, sizeof(dataInfo));
         dataInfoPtrTemp->next = NULL;
-        if(dataInfoPtrHead == NULL)
-        {
-
-            dataInfoPtrHead = dataInfoPtrTail = dataInfoPtrTemp;
-
-        }
-        else
-        {
-
-            dataInfoPtrTail->next = dataInfoPtrTemp;
-            dataInfoPtrTail = dataInfoPtrTemp;
-            
-        }
 
         //split the input string and put them into the dataInfo
 
@@ -300,19 +336,19 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int Creat
                 //'ndeviceName[32]' field in string char formart
 
                 case 0: 
-                    strncpy(dataInfoPtrTemp->deviceName, sp1, 32); dataInfoPtrTemp->deviceName[32] = 0;
+                    strncpy(dataInfoPtrTemp->deviceName, sp1, strlen(sp1)); dataInfoPtrTemp->deviceName[strlen(sp1)] = 0;
                     break;
 
                 //'sensorName[32]' field in string char format
 
                 case 1: 
-                    strncpy(dataInfoPtrTemp->sensorName, sp1, 31); dataInfoPtrTemp->sensorName[31] = 0;
+                    strncpy(dataInfoPtrTemp->sensorName, sp1, strlen(sp1)); dataInfoPtrTemp->sensorName[strlen(sp1)] = 0;
                     break;
 
                 //'valueName[32]' field in string char format
 
                 case 2: 
-                    strncpy(dataInfoPtrTemp->valueName, sp1, 31); dataInfoPtrTemp->valueName[31] = 0;
+                    strncpy(dataInfoPtrTemp->valueName, sp1, strlen(sp1)); dataInfoPtrTemp->valueName[strlen(sp1)] = 0;
                     break;
 
                 //'id' field in integer format
@@ -351,10 +387,52 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int Creat
             }
 
         }
+
+        //I attach dataInfo to its belonged deviceInfo at here
+
+        deviceInfoHead = deviceInfoPtr;
+        if(deviceInfoHead != NULL)
+        {
+
+            while(deviceInfoHead != NULL)
+            {
+
+                if(strcmp(deviceInfoHead->deviceName,dataInfoPtrTemp->deviceName))
+                    deviceInfoHead = deviceInfoHead->next;
+
+                else break;
+
+
+            }
+            if(deviceInfoHead != NULL)
+            {
+
+                if(deviceInfoHead-> dataInfoPtr == NULL)
+                {
+
+                    deviceInfoHead-> dataInfoPtr = dataInfoPtrTemp;
+
+                }
+                else
+                {
+
+                    dataInfoPtrTemp3 =  deviceInfoHead-> dataInfoPtr;
+
+                    //printf("POI\n");
+                    while(dataInfoPtrTemp3->next != NULL)
+                        dataInfoPtrTemp3 = dataInfoPtrTemp3->next;
+
+                    //printf("hi\n");
+                    dataInfoPtrTemp3->next = dataInfoPtrTemp;
+
+                }
+
+            }
+
+        }
         //printf("  %d: name=%s, daemon=%s, bus=%s, id=%d, addr=%d, cmd=%s, rectime=%d\n", i, ctag->name, ctag->daemon, ctag->bus, ctag->id, ctag->addr, ctag->cmd, ctag->rectime_in_sec);
     }
     fclose(dataConfigFile);
-    if(dataInfoPtrHead == NULL) return 0;
     line -= (zero + 1);
 
     if(CreateShm)
@@ -397,9 +475,10 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int Creat
     }
     if(CreateShm) memset(shm, 0, sizeof(struct dataInfo)*line);
 
-    dataInfoPtrTemp = dataInfoPtrHead;
+    deviceInfoHead = deviceInfoPtr;
+    dataInfoPtrTemp = deviceInfoHead->dataInfoPtr;
     shareMemPtr = (struct shareMem *)shm;
-    while(dataInfoPtrTemp != NULL)
+    while(deviceInfoHead != NULL)
     {
 
         //Initialize the mutex attributes
@@ -414,42 +493,6 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int Creat
 
         }
 
-        //skip the unecessary dataInfo with provided deviceInfo
-
-        else if((deviceInfoPtr) != NULL)
-        {
-
-            if(strcmp(dataInfoPtrTemp->deviceName, (deviceInfoPtr)->deviceName))
-            {
-
-                if(dataInfoPtrFormer != NULL)
-                {
-
-                    dataInfoPtrFormer->next = dataInfoPtrTemp->next;
-                    free(dataInfoPtrTemp);
-                    dataInfoPtrTemp = dataInfoPtrFormer->next;
-
-                }
-                else
-                {
-
-                    dataInfoPtrFormer = dataInfoPtrTemp;
-                    dataInfoPtrTemp = dataInfoPtrTemp->next;
-
-                }
-                shareMemPtr++;
-                continue;
-
-            }
-            if(dataInfoPtrTemp2 == NULL)
-            {
-
-                dataInfoPtrTemp2 = dataInfoPtrTemp;
-
-            }
-            dataInfoPtrTemp2 = dataInfoPtrTemp;
-
-        }
         if(CreateShm)
         {
 
@@ -471,9 +514,29 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int Creat
                 
         
         }
-        dataInfoPtrTemp->shareMemoryPtr = shareMemPtr;
-        shareMemPtr++;
-        dataInfoPtrTemp = dataInfoPtrTemp->next;
+
+        //locate shared memory address at here
+
+        while(dataInfoPtrTemp == NULL)
+        {
+
+            //printf("getchaaa\n");
+            deviceInfoHead = deviceInfoHead->next;
+            if(deviceInfoHead != NULL)
+                dataInfoPtrTemp = deviceInfoHead->dataInfoPtr;
+            else break;
+
+        }
+        if(dataInfoPtrTemp != NULL)
+        {
+
+            //printf("gecha\n");
+            dataInfoPtrTemp->shareMemoryPtr = shareMemPtr;
+            shareMemPtr++;
+            dataInfoPtrTemp = dataInfoPtrTemp->next;
+
+        }
+        
 
     }
     *dataInfoPtr = dataInfoPtrHead;
@@ -494,14 +557,13 @@ void sgsShowDeviceInfo(deviceInfo *deviceInfoPtr)
         return;
 
     }
-    while(head != NULL)
+    else
     {
-        printf("Device Name       : %s\n",head->deviceName);
-        printf("\tInterface       : %s\n",head->interface);
-        printf("\tProtocol Config : %s\n",head->protocolConfig);
-        printf("\tDescription     : %s\n",head->description);
+        printf("Device Name     : %s\n",head->deviceName);
+        printf("Interface       : %s\n",head->interface);
+        printf("Protocol Config : %s\n",head->protocolConfig);
+        printf("Description     : %s\n",head->description);
         printf("\n");
-        head = head->next;
 
     }
 
@@ -518,13 +580,13 @@ void sgsShowDataInfo(dataInfo *dataInfoPtr)
     {
 
         printf("\n");
-        printf("Sensor ID   : %d \n",head->ID);
-        printf("Device Name : %s\n",head->deviceName);
-        printf("Sensor Name : %s\n",head->sensorName);
-        printf("Value  Name : %s\n",head->valueName);
-        printf("\tModbus ID          %u\n",head->modbusInfo.ID);
-        printf("\tModbus Address     %u\n",head->modbusInfo.address);
-        printf("\tModbus read Length %d\n",head->modbusInfo.readLength);
+        printf("\tSensor ID   : %d \n",head->ID);
+        printf("\tDevice Name : %s\n",head->deviceName);
+        printf("\tSensor Name : %s\n",head->sensorName);
+        printf("\tValue  Name : %s\n",head->valueName);
+        printf("\t\tModbus ID          %u\n",head->modbusInfo.ID);
+        printf("\t\tModbus Address     %u\n",head->modbusInfo.address);
+        printf("\t\tModbus read Length %d\n",head->modbusInfo.readLength);
         ret = sgsReadSharedMemory(head,&dest);
         if(ret != 0)
         {
@@ -573,6 +635,26 @@ void sgsShowDataInfo(dataInfo *dataInfoPtr)
 
     }
     return ;
+
+}
+
+void sgsShowAll(deviceInfo *deviceInfoPtr)
+{
+
+    deviceInfo *temp = deviceInfoPtr;
+    while(temp != NULL)
+    {
+
+        sgsShowDeviceInfo(temp);
+        if(temp->dataInfoPtr != NULL)
+        {
+
+            sgsShowDataInfo(temp->dataInfoPtr);
+
+        }
+        temp = temp->next;
+
+    }
 
 }
 

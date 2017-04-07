@@ -23,7 +23,7 @@
 
 #define CPUFILE "/proc/stat"
 #define MEMFILE "cat /proc/meminfo"
-#define DISKFILE "df /dev/sda5"
+#define DISKFILE "df /dev/sda2"
 
 typedef struct jiffy_counts_t 
 {
@@ -92,7 +92,8 @@ int main(int argc, char argv[])
 {
 
     struct sigaction act, oldact;
-    dataInfo *temp = NULL;
+    deviceInfo *temp = NULL;
+    dataInfo *tmp = NULL;
     FILE *pidFile = NULL;
     int ret = 0;
 
@@ -116,29 +117,64 @@ int main(int argc, char argv[])
     act.sa_flags = SA_ONESHOT|SA_NOMASK;
     sigaction(SIGUSR1, &act, &oldact);
 
+    temp = deviceInfoPtr;
+    
+    //Get the dataInfoPtr we want
+
+    while(temp != NULL)
+    {
+
+        if(strcmp(temp->deviceName,"GWInfo"))
+            temp = temp->next;
+
+        else
+        {
+
+            tmp = temp->dataInfoPtr;
+            break;
+
+        }
+
+    }
+    if(temp == NULL)
+    {
+
+        printf("Can't find GWInfo deviceInfo\n");
+        return -1;
+
+    }
+    if(tmp == NULL)
+    {
+
+        printf("No dataInfo attached to the deviceInfo\n");
+        return -1;
+
+    }
+    //Main Loop
+
     while(1)
     {
 
-        temp = dataInfoPtr;
-        while(temp != NULL)
+        tmp = temp->dataInfoPtr;
+        while(tmp != NULL)
         {
 
-            if(!strcmp(temp->valueName,"CPU_Usage") )
+            if(!strcmp(tmp->valueName,"CPU_Usage") )
             {
                 printf("[%s,%d] Collect CPU USage\n",__FUNCTION__,__LINE__);
-                ret = collectCpuUsage(temp);
+                ret = collectCpuUsage(tmp);
             }
-            else if(!strcmp(temp->valueName,"Memory_Usage"))
+            else if(!strcmp(tmp->valueName,"Memory_Usage"))
             {
                 printf("[%s,%d] Collect Memory USage\n",__FUNCTION__,__LINE__);
-                ret = collectMemoryUsage(temp);
+                ret = collectMemoryUsage(tmp);
             }
-            else if(!strcmp(temp->valueName,"Disk_Usage"))
+            else if(!strcmp(tmp->valueName,"Disk_Usage"))
             {
                 printf("[%s,%d] Collect Disk USage\n",__FUNCTION__,__LINE__);
-                ret = collectDiskUsage(temp);
+                ret = collectDiskUsage(tmp);
             }
-            temp = temp->next;
+            tmp = tmp->next;
 
         }
         sleep(10);
@@ -358,7 +394,7 @@ int initializeInfo()
 
     } 
 
-    ret = sgsInitDataInfo(NULL, &dataInfoPtr, 0);
+    ret = sgsInitDataInfo(deviceInfoPtr, &dataInfoPtr, 0);
     if(ret == 0) 
     {
 
