@@ -3,7 +3,7 @@
 #### Last edited by Kevin ---2017/04/20
 ---------------------------------------
 
-###Update list
+###Updates
   2017/04/20 : log system structure & functions
 
 
@@ -14,18 +14,22 @@
 
 ## Milestones
 
+### First Stage
+
 * Core functions : Things that make the system can start & stop and run properly
   * definitions : structs and MACROS
   * ipcs : how processes communicate with each other
   * controlling : start & stop Uploaders or Collectors
 
-* Event-Handler : Dealing with real-time events. 
-  * log : save data files for a certain period of time. (Default is 7 days)
-  * error log : 
+### Second Stage
+
+* Event-Handler & logs : Dealing with real-time events. 
+  * log : Save data files for a certain period of time. (Default is 7 days)
+  * Event : 
 
 * Wrapping up : API interface and documents and test programs
 
-## Structure
+## Current Structure
 
               | Uploaders |
   ---------------------------------------
@@ -42,6 +46,7 @@
   * [libmodbus 3.0.6](https://github.com/stephane/libmodbus)
   * [libcurl](https://curl.haxx.se/)
   * [cJSON](https://github.com/DaveGamble/cJSON)
+  * [sqlite3](https://www.sqlite.org/download.html)
 * Packages Needed
   * [sendmail](https://www.proofpoint.com/us/products/sendmail-sentrion) __Not in use right now__
   * [OpenSSH](https://www.openssh.com/)
@@ -72,7 +77,8 @@
   * All external resources are located at here
 
 * __log__
-  * All external resources are located at here
+  * Functions do data records and managing them
 
-* __
+* __Event__
+  * Definitions of errors, events and formatted output functions
 	
