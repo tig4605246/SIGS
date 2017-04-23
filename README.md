@@ -3,7 +3,7 @@
 #### Last edited by Kevin ---2017/04/20
 ---------------------------------------
 
-###Updates
+### Updates
   2017/04/20 : log system structure & functions
 
 
@@ -25,19 +25,21 @@
 
 * Event-Handler & logs : Dealing with real-time events. 
   * log : Save data files for a certain period of time. (Default is 7 days)
-  * Event : 
+  * Event :
+
+### Third Stage 
 
 * Wrapping up : API interface and documents and test programs
 
 ## Current Structure
 
               | Uploaders |
-  ---------------------------------------
-  | ipcs | controlling | protocol | log |
-  ---------------------------------------
+    ---------------------------------------
+    | ipcs | controlling | protocol | log |
+    ---------------------------------------
               | Collectors |
 
-    We can change uploaders and Collectors without revising anything in the middle.
+  We can change uploaders and Collectors without revising anything in the middle.
   It can ease the pain while developing new programs for new servers and sensors.
 
 ## Include
