@@ -4,13 +4,13 @@
 ---------------------------------------
 
 ### Updates
-  2017/04/20 : log system structure & functions
+  2017/04/20 : log function (Open database, Create data table, Write back to databese, Retreive from database)
 
 
 ## Purpose
 
     Wrap on some Open source libraries to make a simple IoT Gateway Software
-  The final goal is to provide SDK for others to develop their own data collector.
+  The goal is to ease the pain during the development in the future.
 
 ## Milestones
 
@@ -21,23 +21,36 @@
   * ipcs : how processes communicate with each other
   * controlling : start & stop Uploaders or Collectors
 
-### Second Stage
+### Second Stage __Current State__
 
-* Event-Handler & logs : Dealing with real-time events. 
-  * log : Save data files for a certain period of time. (Default is 7 days)
-  * Event :
+* Event-Handler : Dealing with real-time events. 
+  * Event : Including definitions of events , errors and the handling functions
+
+* logs & info : The backup of our data
+  * data log : Save data files for a certain period of time. (Default is 7 days)
+  * Info log : Save the events and errors happened during runtime
 
 ### Third Stage 
 
-* Wrapping up : API interface and documents and test programs
+* Protocols : Providing functions that supports interacting with protocols 
+  * Modbus :
+  * Https  :
+  * MQTT   :
+
+* Remote Management : backdoors and APIs for remote management.
+  * Reverse SSH Tunnel :
+
+### Final Stage
+
+* Wrapping up : SDK, documents and example programs
 
 ## Current Structure
 
-              | Uploaders |
-    ---------------------------------------
-    | ipcs | controlling | protocol | log |
-    ---------------------------------------
-              | Collectors |
+                 |-- Uploaders  : Upload data to target places
+                 |
+    SGSmaster--- |--   Logger   : Create formatted logs with sqlite3 db
+                 |
+                 |-- Collectors : Collect and parse data
 
   We can change uploaders and Collectors without revising anything in the middle.
   It can ease the pain while developing new programs for new servers and sensors.
@@ -63,24 +76,33 @@
 
 ## Files
 
-* __definition__
-  * Defining parameters and structs.
+* source
 
-* __controlling__
-  * Functions for controlling the sub processes
+  * __definition__
+    * Defining parameters and structs.
 
-* __ipcs__
-  * Wrap up funtions for handling shared memory and message queue
+  * __controlling__
+    * Functions for controlling the sub processes
 
-* __protocol__
-  * Build-in libraries that support certain protocols
+  * __ipcs__
+    * Wrap up funtions for handling shared memory and message queue
 
-* __thirdparty__
-  * All external resources are located at here
+  * __protocol__
+    * Build-in libraries that support certain protocols
 
-* __log__
-  * Functions do data records and managing them
+  * __thirdparty__
+    * All external resources are located at here
 
-* __Event__
-  * Definitions of errors, events and formatted output functions
-	
+  * __log__
+    * Functions do data records and managing them
+
+  * __Event__
+    * Definitions of errors, events and formatted output functions
+  
+* bin
+
+  * Executable files are here
+
+* conf
+
+  * The configurations of SGS are here
