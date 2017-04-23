@@ -23,7 +23,7 @@
 
 #define CPUFILE "/proc/stat"
 #define MEMFILE "cat /proc/meminfo"
-#define DISKFILE "df /dev/sda2"
+#define DISKFILE "df /dev/sda5"
 
 typedef struct jiffy_counts_t 
 {
@@ -163,7 +163,10 @@ int main(int argc, char argv[])
             {
                 printf("[%s,%d] Collect CPU USage\n",__FUNCTION__,__LINE__);
                 ret = collectCpuUsage(tmp);
+                if(ret < 0)
+                    printf("collect CPU Usage failed\n");
             }
+            
             else if(!strcmp(tmp->valueName,"Memory_Usage"))
             {
                 printf("[%s,%d] Collect Memory USage\n",__FUNCTION__,__LINE__);
@@ -174,6 +177,7 @@ int main(int argc, char argv[])
                 printf("[%s,%d] Collect Disk USage\n",__FUNCTION__,__LINE__);
                 ret = collectDiskUsage(tmp);
             }
+            
             tmp = tmp->next;
 
         }
@@ -237,6 +241,7 @@ int collectCpuUsage(dataInfo *target)
     if(cpu_use > 1) cpu_use = 1;
     else if(cpu_use < 0) cpu_use = 0;
 
+    memset(&data,0,sizeof(data));
     data.value.i = (100 * cpu_use);
     data.valueType = INTEGER_VALUE;
     
@@ -249,7 +254,7 @@ int collectDiskUsage(dataInfo *target)
 
     int i = 0;
     dataLog data;
-    DATETIME tw_time;
+
     struct timeb tp;
     FILE *fp = NULL;
     dataInfo *temp = NULL;
@@ -284,14 +289,11 @@ int collectDiskUsage(dataInfo *target)
     pclose(fp);
 
     // Store disk usage
-
-    data.value.i = (df.Use);
+    memset(&data,0,sizeof(data));
+    data.value.i = (int )(df.Use);
     data.valueType = INTEGER_VALUE;
 
-    // Get current time
-
-    ftime(&tp);
-	tw_time = tp.time*1000 + tp.millitm;
+   
 
     // insert data to shared memory
 
@@ -305,7 +307,7 @@ int collectMemoryUsage(dataInfo *target)
 	int i;
     FILE *fp;
     dataLog data;
-    DATETIME tw_time;
+    
     float mem_use;
     dataInfo *temp = NULL;
     unsigned char buf[4096], buf2[32];
@@ -370,7 +372,7 @@ int collectMemoryUsage(dataInfo *target)
     mem_use = (float)((memtotal - memfree - membuffer - memcached )) / (float)memtotal;
 
     //store memory usage in % type
-
+    memset(&data,0,sizeof(data));
     data.value.i = (100 * mem_use);
     data.valueType = INTEGER_VALUE;
 
@@ -412,8 +414,7 @@ int initializeInfo()
 void stopAndAbort()
 {
 
-    sgsDeleteDataInfo(dataInfoPtr, -1);
-    sgsDeleteDeviceInfo(deviceInfoPtr);
+    sgsDeleteAll(deviceInfoPtr, -1);
     printf("[%s,%d] Catched SIGUSR1 successfully\n",__FUNCTION__,__LINE__);
     exit(0);
 

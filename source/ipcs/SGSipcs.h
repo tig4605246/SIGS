@@ -14,7 +14,12 @@
 
 */
 
+#ifndef DEFINITIONS
+#define DEFINITIONS
+
 #include "../definition/SGSdefinitions.h"
+#endif
+
 #include <sys/types.h>
 #include <sys/msg.h>
 #include <sys/ipc.h>

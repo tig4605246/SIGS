@@ -16,58 +16,67 @@
 #include <stdint.h>
 #include <pthread.h>
 
-#define PROJECTSTATUS "Alpha Build"
-#define PROJECTVERSION "0.3"
 
-//defining time variable
+
+//Build version of the SIGS
+
+#define PROJECTSTATUS  "Alpha Build"
+#define PROJECTVERSION "0.5"
+
+//defines the log system type
+
+#define SQLITE3
+#define BUFFERPERIOD 7
+
+//defines the time variable
 
 #ifndef DATETIME
-#define DATETIME uint64_t
+
+typedef struct tm tm;
+
+typedef time_t epochTime;
+
+#define DATETIME tm
+
 #endif
 
 //defining value type
 
 #define INITIAL_VALUE 0x00000000
 #define INTEGER_VALUE 0x00000010
-#define FLOAT_VALUE 0x00000011
-#define STRING_VALUE 0x00000100
-
-#define ERROR_VALUE 0x00001000
+#define FLOAT_VALUE   0x00000011
+#define STRING_VALUE  0x00000100
+#define ERROR_VALUE   0x00001000
 #define UNKNOWN_VALUE 0x00001001
 
-//define max data union size
+//define Data size
 
 #define DATAVALUEMAX 128
 
-//define a max length of the datalogs, make it to be a standard
-
-#define MAXDATALENGTH 250
+#define MSGBUFFSIZE 512
 
 //define the log path of device.conf and data.conf
 
 #define CONFIGURECONF "../conf/configure.conf"
+#define DEVICECONF    "../conf/device.conf"
+#define DATACONF      "../conf/data.conf"
 
-#define DEVICECONF "../conf/device.conf"
-#define DATACONF "../conf/data.conf"
+// Master key for generating ipcs
 
-// the key we use to generate ipcs
+#define SGSKEY 53595123
 
-#define SGSKEY 53595
-
-//the path we use to generate ipcs
+// General definitions
 
 #define SGSPATH "./"
-
 #define OPENNEWSHM 1
-
 #define OPENEXISTSHM 0 
 
-//this struct is for queue to use
+//this struct is used by queue message 
 
 struct msgbuff
 {
 	long mtype;
-	char mtext[512];
+	char mtext[MSGBUFFSIZE];
 };
 
 typedef struct msgbuff msgbuff;
@@ -89,13 +98,17 @@ struct modbusInfo
 
     int readLength;
 
+    //a char for optional selection. For example, taida's deltarpi-m15 and m30 series
+
+    int option;
+
     //Modbus response 
 
-    unsigned char response[64];
+    unsigned char response[DATAVALUEMAX];
 
     //formatted command
 
-    unsigned char cmd[64];
+    unsigned char cmd[DATAVALUEMAX];
 
 };
 
@@ -158,15 +171,15 @@ struct dataInfo
 
     //name of the device which this data comes from
 
-    char deviceName[32];
+    char deviceName[DATAVALUEMAX];
 
     //name of the sensor where data came from 
 
-    char sensorName[32];
+    char sensorName[DATAVALUEMAX];
 
     //value name
 
-    char valueName[32];
+    char valueName[DATAVALUEMAX];
 
     //struct that stores modbus info 
 
@@ -192,9 +205,9 @@ struct deviceInfo
 
     //name of the device
     
-    char deviceName[128];
+    char deviceName[DATAVALUEMAX];
 
-    char interface[128];
+    char interface[DATAVALUEMAX];
 
     /*
 
@@ -205,9 +218,9 @@ struct deviceInfo
 
     */
 
-    char protocolConfig[128];
+    char protocolConfig[DATAVALUEMAX];
 
-    char description[128];
+    char description[DATAVALUEMAX];
 
     pid_t subProcessPid;
 
@@ -230,7 +243,7 @@ struct uploadInfo
 
     pid_t uploadProcessPid;
 
-    char uploadProcessName[32];
+    char uploadProcessName[DATAVALUEMAX];
 
     struct uploadInfo *next;
 
@@ -249,13 +262,21 @@ typedef struct uploadInfo uploadInfo;
 struct dataLog
 {
 
+    //update time
+
+    DATETIME updatedTime;
+
+    //data status 1 is valid, 0 is invalid
+
+    int status;
+
     //name of the sensor where data came from 
 
-    char sensorName[32];
+    char sensorName[DATAVALUEMAX];
 
     //value name
 
-    char valueName[32];
+    char valueName[DATAVALUEMAX];
 
     //value type
 
@@ -268,27 +289,6 @@ struct dataLog
 };
 
 typedef struct dataLog dataLog;
-
-
-/*
-
-    Planing to use SQLite for log file storage
-    This will help me coupling with it
-
-*/
-
-struct logFile_DataType
-{
-
-    int amountOfDataLogs;
-
-    DATETIME recordTime;
-
-    dataLog *dataLogs;
-
-};
-
-typedef struct logFile_DataType logFile_DataType;
 
 //Intetnt : show current version
 //Pre : Nothing

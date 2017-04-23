@@ -323,6 +323,7 @@ void forceQuit(int sigNum)
     stopAllCollectingProcesses();
     if(deviceInfoPtr != NULL)
         releaseResource();
+        
     printf("[Ctrl + C] Catched (signal number %d) , forceQuitting...\n",sigNum);
     exit(0);
 
@@ -333,11 +334,21 @@ void testWriteSharedMemory()
 {
 
     dataLog source;
+    dataInfo *ptr = deviceInfoPtr->dataInfoPtr;
+    int i = 0;
 
-    source.valueType = STRING_VALUE;
 
-    sprintf(source.value.s,"hi I'm doing my job here");
-    sgsWriteSharedMemory(deviceInfoPtr->dataInfoPtr, &source);
+    while(ptr != NULL)
+    {
+
+        source.valueType = INTEGER_VALUE;
+        source.value.i = i;
+        sgsWriteSharedMemory(ptr, &source);
+        ptr = ptr->next;
+        i++;
+
+    }
+    
 
     return ;
 

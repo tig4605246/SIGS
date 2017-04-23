@@ -13,14 +13,17 @@
 */
 
 #include "SGSipcs.h"
+#include "../events/SGSEvent.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 void sgsDeleteDataInfo(dataInfo *dataInfoPtr, int shmid)
 {
 
     dataInfo *head = dataInfoPtr;
+    dataInfo *last = NULL;
 
     while(head != NULL)
     {
@@ -28,9 +31,9 @@ void sgsDeleteDataInfo(dataInfo *dataInfoPtr, int shmid)
         if(head->shareMemoryPtr != NULL)
             shmdt(head->shareMemoryPtr);
 
+        last = head;
         head = head->next;
-
-        free(head);
+        free(last);
 
     }
     if(shmid >= 0)
@@ -88,7 +91,7 @@ void sgsDeleteAll(deviceInfo *deviceInfoPtr, int shmid)
         free(last);
 
     }
-
+    printf("[%s,%d] delete complete...\n",__FUNCTION__,__LINE__);
     //Free shared memory
 
     if(shmid >= 0)
@@ -123,7 +126,7 @@ int sgsInitDeviceInfo(deviceInfo **deviceInfoPtr)
     if(deviceConfigFile == NULL)
     {
 
-        printf("[%s,%d] Can't find the %s\n",__FUNCTION__,__LINE__,DEVICECONF);
+        printf(LIGHT_RED"[%s,%d] Can't find the %s\n"NONE,__FUNCTION__,__LINE__,DEVICECONF);
         return -1;
 
     }
@@ -152,7 +155,7 @@ int sgsInitDeviceInfo(deviceInfo **deviceInfoPtr)
         if(sp1 == NULL || sp2 == NULL || sp3 == NULL)
         {
 
-            printf("[ERR] Invalid bus config in line %d in %s \n",line ,DEVICECONF);
+            printf(LIGHT_RED"[ERR] Invalid bus config in line %d in %s \n"NONE,line ,DEVICECONF);
             sgsDeleteDeviceInfo(*deviceInfoPtr);
             fclose(deviceConfigFile);
             return -1;
@@ -162,45 +165,6 @@ int sgsInitDeviceInfo(deviceInfo **deviceInfoPtr)
         *sp2 = 0; sp2 += 1;
         *sp3 = 0; sp3 += 1;
 
-        //uncomment this if you want some config checking things
-
-        /*
-        if(deviceInfoPtr != NULL)
-        {
-
-            tempPtr = deviceInfoPtr;
-            do{
-
-                if(!strcmp(buf, tempPtr->deviceName))
-                {
-
-                    printf("[ERR] duplicate interface '%s' in line %d in %s\n",
-                              sp1, line, BOARDCONF_FILE);
-                    break;
-
-                }
-                if(!strcmp(sp1, tempPtr->interface))
-                {
-
-                    printf("[ERR] duplicate device node '%s' in line %d in %s\n",
-                              sp1, line, BOARDCONF_FILE);
-                    break;
-
-                }
-                tempPtr = tempPtr->next;
-
-            }while(tempPtr != NULL);
-            
-            if(tempPtr != NULL)
-            {
-
-                sgsDeleteAll(deviceInfoPtr, -1);
-                fclose(fd);
-                return -1;
-
-            }
-        }
-        */
 
         //Put device data into deviceInfo
 
@@ -318,7 +282,7 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int Creat
                 if(sp2 == NULL)
                 {
 
-                    printf("[ERR] Invalid format in line %d in %s\n",
+                    printf(LIGHT_RED"[ERR] Invalid format in line %d in %s\n"NONE,
                                line, DATACONF);
                     sgsDeleteDataInfo(dataInfoPtrHead,-1);
                     fclose(dataConfigFile);
@@ -370,16 +334,22 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int Creat
                     dataInfoPtrTemp->modbusInfo.address = atoi(sp1);
                     break;
 
-                //'readLength' field in string char format
+                //'readLength' field in integer format
 
                 case 5: 
                     dataInfoPtrTemp->modbusInfo.readLength = atoi(sp1);
                     break;
 
+                //'option' field in integer format
+
+                case 6:
+                    dataInfoPtrTemp->modbusInfo.option = atoi(sp1);
+                    break;
+
                 //invalid field
 
                 default: 
-                    printf("[ERR] The format of %s is wrong!\n",DATACONF);
+                    printf(LIGHT_RED"[ERR] The format of %s is wrong!\n"NONE,DATACONF);
                     sgsDeleteDataInfo(dataInfoPtrHead,-1);
                     fclose(dataConfigFile);
                     return -1;
@@ -428,13 +398,19 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int Creat
                 }
 
             }
+            else
+            {
+                printf("No matched device, freeing data\n");
+                free(dataInfoPtrTemp);
+            }
 
         }
         //printf("  %d: name=%s, daemon=%s, bus=%s, id=%d, addr=%d, cmd=%s, rectime=%d\n", i, ctag->name, ctag->daemon, ctag->bus, ctag->id, ctag->addr, ctag->cmd, ctag->rectime_in_sec);
     }
     fclose(dataConfigFile);
-    line -= (zero + 1);
-
+    printf("[Debug] line is %d, zero is %d\n",line,zero);
+    line -= (zero );
+    printf("[Debug] line is %d, zero is %d\n",line,zero);
     if(CreateShm)
     {
 
@@ -541,6 +517,8 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int Creat
     }
     *dataInfoPtr = dataInfoPtrHead;
 
+    //printf("Complete~~~~~~~~~~~~~~~\n\n");
+
     return shmid;
 
 }
@@ -559,10 +537,10 @@ void sgsShowDeviceInfo(deviceInfo *deviceInfoPtr)
     }
     else
     {
-        printf("Device Name     : %s\n",head->deviceName);
+        printf(BROWN"Device Name     : %s\n",head->deviceName);
         printf("Interface       : %s\n",head->interface);
         printf("Protocol Config : %s\n",head->protocolConfig);
-        printf("Description     : %s\n",head->description);
+        printf("Description     : %s\n"NONE,head->description);
         printf("\n");
 
     }
@@ -576,6 +554,8 @@ void sgsShowDataInfo(dataInfo *dataInfoPtr)
     dataInfo *head = dataInfoPtr;
     dataLog dest;
     int ret = 0;
+    char buf[128];
+
     while(head != NULL)
     {
 
@@ -584,10 +564,12 @@ void sgsShowDataInfo(dataInfo *dataInfoPtr)
         printf("\tDevice Name : %s\n",head->deviceName);
         printf("\tSensor Name : %s\n",head->sensorName);
         printf("\tValue  Name : %s\n",head->valueName);
-        printf("\t\tModbus ID          %u\n",head->modbusInfo.ID);
+        printf(LIGHT_GRAY"\t\tModbus ID          %u\n",head->modbusInfo.ID);
         printf("\t\tModbus Address     %u\n",head->modbusInfo.address);
-        printf("\t\tModbus read Length %d\n",head->modbusInfo.readLength);
+        printf("\t\tModbus read Length %d\n"NONE,head->modbusInfo.readLength);
+#if 1
         ret = sgsReadSharedMemory(head,&dest);
+        //printf("[%s,%d] ret is %d\n",__FUNCTION__,__LINE__,ret);
         if(ret != 0)
         {
 
@@ -596,40 +578,47 @@ void sgsShowDataInfo(dataInfo *dataInfoPtr)
         }
         else
         {
-
+            
+            memset(buf,'\0',sizeof(buf));
+            //printf("[%s,%d] memset done\n",__FUNCTION__,__LINE__);
+            strftime(buf, sizeof(buf), "%a %Y-%m-%d %H:%M:%S %Z", &(dest.updatedTime));
+            //printf("[%s,%d] strftime done\n",__FUNCTION__,__LINE__);
+            printf(YELLOW"\t\t\tupdated time : %s\n"NONE,buf);
             //printf("valueType %u\n",dest.valueType);
+            printf(LIGHT_RED"\t\t\tstatus = %d\n"NONE,dest.status);
             switch(dest.valueType)
             {
 
                 case INITIAL_VALUE :
-                    printf("\t\tvalue : %s\n",dest.value.s);
+                    printf(LIGHT_GREEN"\t\t\tvalue : %s\n"NONE,dest.value.s);
                     break;
 
                 case INTEGER_VALUE :
-                    printf("\t\tvalue : %d\n",dest.value.i);
+                    printf(LIGHT_GREEN"\t\t\tvalue : %d\n"NONE,dest.value.i);
                     break;
 
                 case FLOAT_VALUE :
-                    printf("\t\tvalue : %f\n",dest.value.f);
+                    printf(LIGHT_GREEN"\t\t\tvalue : %f\n"NONE,dest.value.f);
                     break;
 
                 case STRING_VALUE :
-                    printf("\t\tvalue : %s\n",dest.value.s);
+                    printf(LIGHT_GREEN"\t\t\tvalue : %s\n"NONE,dest.value.s);
                     break;
 
                 case ERROR_VALUE :
-                    printf("\t\tvalue : %s\n",dest.value.s);
+                    printf(LIGHT_GREEN"\t\t\tvalue : %s\n"NONE,dest.value.s);
                     break;
 
                 default:
-                    printf("\t\tvalue : %s\n",dest.value.s);
-                    printf("Unknown valueType %d\n",dest.valueType);
+                    printf("\t\t\tvalue : %s\n",dest.value.s);
+                    printf("\t\t\t[Error] Unknown valueType %d\n",dest.valueType);
                     break;
  
 
             }
 
         }
+#endif
         printf("\n");
         head = head->next;
 
@@ -652,6 +641,7 @@ void sgsShowAll(deviceInfo *deviceInfoPtr)
             sgsShowDataInfo(temp->dataInfoPtr);
 
         }
+        //printf("[%s,%d] getting next dataInfoPtr\n",__FUNCTION__,__LINE__);
         temp = temp->next;
 
     }
@@ -681,10 +671,31 @@ int sgsReadSharedMemory(dataInfo *dataInfoPtr, dataLog *dest)
         }
         else
         {
-            
-            //We read shared memory at here
 
+            //printf("[%s,%d] else\n",__FUNCTION__,__LINE__);
+
+            //copy time struct
+
+            dest->updatedTime.tm_sec = shmPtr->updatedTime.tm_sec;
+            dest->updatedTime.tm_min = shmPtr->updatedTime.tm_min;
+            dest->updatedTime.tm_hour = shmPtr->updatedTime.tm_hour;
+            dest->updatedTime.tm_mday = shmPtr->updatedTime.tm_mday;
+            dest->updatedTime.tm_mon = shmPtr->updatedTime.tm_mon;
+            dest->updatedTime.tm_year = shmPtr->updatedTime.tm_year;
+            dest->updatedTime.tm_wday = shmPtr->updatedTime.tm_wday;
+            dest->updatedTime.tm_yday = shmPtr->updatedTime.tm_yday;
+            dest->updatedTime.tm_isdst = shmPtr->updatedTime.tm_isdst;
+
+            //Set status
+
+            dest->status = shmPtr->status;
+
+            //Set valueType
+            
             dest->valueType = shmPtr->valueType;
+
+            //printf("[%s,%d] shmPtr->valueType is %d \n",__FUNCTION__,__LINE__,shmPtr->valueType);
+
             switch(shmPtr->valueType)
             {
 
@@ -719,8 +730,9 @@ int sgsReadSharedMemory(dataInfo *dataInfoPtr, dataLog *dest)
             }
 
             //Remember to unlock it 
-
+            //printf("[%s,%d] switch done\n",__FUNCTION__,__LINE__);
             pthread_mutex_unlock( &(shmPtr->lock));
+            //printf("[%s,%d] unlock\n",__FUNCTION__,__LINE__);
 
             return 0;
             
@@ -736,7 +748,8 @@ int sgsWriteSharedMemory(dataInfo *dataInfoPtr, dataLog *source)
 {
     int timeout = 30;
     struct shareMem *shmPtr = dataInfoPtr->shareMemoryPtr;
-
+    time_t now;
+    DATETIME tmp_tm ;
     //We try 30 times when accessing the shared memory
 
     while(timeout-- > 0)
@@ -752,9 +765,30 @@ int sgsWriteSharedMemory(dataInfo *dataInfoPtr, dataLog *source)
         }
         else 
         {
-            
-            //We write shared memory at here
 
+            //Get current time and get struct tm type of the local time
+
+            time(&now);
+            tmp_tm = *localtime(&now);
+
+            //Update our struct tm in shared memory
+
+            shmPtr->updatedTime.tm_sec = tmp_tm.tm_sec;
+            shmPtr->updatedTime.tm_min = tmp_tm.tm_min;
+            shmPtr->updatedTime.tm_hour = tmp_tm.tm_hour;
+            shmPtr->updatedTime.tm_mday = tmp_tm.tm_mday;
+            shmPtr->updatedTime.tm_mon = tmp_tm.tm_mon;
+            shmPtr->updatedTime.tm_year = tmp_tm.tm_year;
+            shmPtr->updatedTime.tm_wday = tmp_tm.tm_wday;
+            shmPtr->updatedTime.tm_yday = tmp_tm.tm_yday;
+            shmPtr->updatedTime.tm_isdst = tmp_tm.tm_isdst;
+
+            //Set status
+
+            shmPtr->status = source->status;
+
+            //Set value
+            
             shmPtr->valueType = source->valueType;
             switch(source->valueType)
             {

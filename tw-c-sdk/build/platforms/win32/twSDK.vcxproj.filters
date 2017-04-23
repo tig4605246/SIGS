@@ -1,0 +1,252 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\..\..\src\utils\list.c">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\utils\stringUtils.c">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\api\twApi.c">
+      <Filter>api</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\messaging\twBaseTypes.c">
+      <Filter>primitives</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\messaging\twInfoTable.c">
+      <Filter>primitives</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\utils\twLogger.c">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\messaging\twMessages.c">
+      <Filter>messaging</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\messaging\twMessaging.c">
+      <Filter>messaging</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\api\twProperties.c">
+      <Filter>api</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\api\twServices.c">
+      <Filter>api</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\utils\twTasker.c">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\websocket\twWebsocket.c">
+      <Filter>websocket</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\porting\twWindows.c">
+      <Filter>porting</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tls\twTls.c">
+      <Filter>tls</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\fileTransfer\twFileManager.c">
+      <Filter>fileTransfer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\fileTransfer\twFileTransferCallbacks.c">
+      <Filter>fileTransfer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\thirdParty\wildcard\wildcard.c">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\utils\twHttpProxy.c">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tunneling\twTunnelManager.c">
+      <Filter>tunneling</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\porting\twWin32Threads.c">
+      <Filter>porting</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\thirdParty\cJSON\cJSON.c">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\thirdParty\ntlm\ntlm.c">
+      <Filter>utils\ntlm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\utils\twNtlm.c">
+      <Filter>utils\ntlm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\thirdParty\tomcrypt\src\misc\base64\base64_encode.c">
+      <Filter>utils\libTomCrypt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\thirdParty\tomcrypt\src\misc\base64\base64_decode.c">
+      <Filter>utils\libTomCrypt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\utils\crypto_wrapper.c">
+      <Filter>utils\ntlm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\thirdParty\tomcrypt\src\ciphers\des.c">
+      <Filter>utils\libTomCrypt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\thirdParty\tomcrypt\src\misc\error_to_string.c">
+      <Filter>utils\libTomCrypt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\thirdParty\tomcrypt\src\misc\crypt\crypt_argchk.c">
+      <Filter>utils\libTomCrypt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\thirdParty\tomcrypt\src\hashes\md4.c">
+      <Filter>utils\libTomCrypt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\thirdParty\tomcrypt\src\hashes\md5.c">
+      <Filter>utils\libTomCrypt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\thirdParty\tomcrypt\src\hashes\sha1.c">
+      <Filter>utils\libTomCrypt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tls\twConnectionInfo.c">
+      <Filter>tls</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\subscribedProps\twSubscribedProps.c">
+      <Filter>subscribedProperties</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\src\utils\stringUtils.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\api\twApi.h">
+      <Filter>api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\tls\twAxTls.h">
+      <Filter>tls</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\messaging\twBaseTypes.h">
+      <Filter>primitives</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\api\twDefinitions.h">
+      <Filter>api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\api\twErrors.h">
+      <Filter>api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\messaging\twInfoTable.h">
+      <Filter>primitives</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\utils\twLogger.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\messaging\twMessaging.h">
+      <Filter>messaging</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\messaging\twMessages.h">
+      <Filter>messaging</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\tls\twNoTls.h">
+      <Filter>tls</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\porting\twOSPort.h">
+      <Filter>porting</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\api\twServices.h">
+      <Filter>api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\api\twProperties.h">
+      <Filter>api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\utils\twTasker.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\api\twVersion.h">
+      <Filter>api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\websocket\twWebsocket.h">
+      <Filter>websocket</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\porting\twWindows.h">
+      <Filter>porting</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\config\twDefaultSettings.h">
+      <Filter>config</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\tls\twTls.h">
+      <Filter>tls</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\fileTransfer\twFileManager.h">
+      <Filter>fileTransfer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\fileTransfer\twFileTransferCallbacks.h">
+      <Filter>fileTransfer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\thirdParty\wildcard\wildcard.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\utils\twHttpProxy.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\tunneling\twTunnelManager.h">
+      <Filter>tunneling</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\porting\twThreads.h">
+      <Filter>porting</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\thirdParty\cJSON\cJSON.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\thirdParty\ntlm\ntlm.h">
+      <Filter>utils\ntlm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\utils\twNtlm.h">
+      <Filter>utils\ntlm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\thirdParty\tomcrypt\src\headers\tomcrypt.h">
+      <Filter>utils\libTomCrypt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\tls\twConnectionInfo.h">
+      <Filter>tls</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\config\twConfig.h">
+      <Filter>config</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\subscribedProps\twSubscribedProps.h">
+      <Filter>subscribedProperties</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\utils\twList.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="api">
+      <UniqueIdentifier>{1fe5edd6-b3bc-4cb8-a213-a6f4899ab746}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="porting">
+      <UniqueIdentifier>{5cc142b4-4302-4059-9325-231f51083ded}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utils">
+      <UniqueIdentifier>{a2f4271f-5e37-4b99-b61f-49577e581ced}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="messaging">
+      <UniqueIdentifier>{b2c7134c-4c46-40bf-a23a-9de566457efd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="websocket">
+      <UniqueIdentifier>{edcba4cb-1df0-4ef3-96a3-6e6ffa2f23d0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tls">
+      <UniqueIdentifier>{3fa1a50d-f12c-4f81-866b-7340d64475bb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="primitives">
+      <UniqueIdentifier>{11fe4471-a379-4d29-9953-bc9ba8315933}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="config">
+      <UniqueIdentifier>{2e413cbd-e61d-44b0-87db-532cc8ac1bb1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="fileTransfer">
+      <UniqueIdentifier>{6966bfe6-4ead-4f9b-86ce-e7cb87f01b63}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tunneling">
+      <UniqueIdentifier>{f84d6c3d-036f-42f9-90b5-abdfc7029f58}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utils\ntlm">
+      <UniqueIdentifier>{4eace20d-e83d-412f-b14f-96359080dcb2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utils\libTomCrypt">
+      <UniqueIdentifier>{665a7e91-708d-4ff8-8b65-2937743ef3bb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="subscribedProperties">
+      <UniqueIdentifier>{74692ad0-07aa-4da8-9095-bec5a0d0f555}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

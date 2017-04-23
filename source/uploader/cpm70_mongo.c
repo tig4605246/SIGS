@@ -342,7 +342,7 @@ int CreateJSONAndRunHTTPCommand(deviceInfo *targetPtr)
         }
            
         else
-            ret = curl_easy_setopt(curl, CURLOPT_URL, "http://140.118.70.136:9000/solar_rowdata");
+            ret = curl_easy_setopt(curl, CURLOPT_URL, "140.118.121.61:8000/test");
         printf("%d\n",ret);
         //errstr = curl_easy_strerror(ret);
         //printf("%s\n",errstr);

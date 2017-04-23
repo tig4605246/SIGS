@@ -1,0 +1,32 @@
+# (c)2015 ThingWorx
+# C SDK Application Library Settings File
+
+############################################################
+# Change these settings to choose what features are included 
+############################################################
+# Enable/Disable the built-in tasker. Default is enabled.
+export ENABLE_TASKER = 0
+
+# Enable/Disable File Transfer. Default is enabled.
+export ENABLE_FILE_XFER = 1
+
+# Enable/Disable Tunneling. Default is enabled.
+export ENABLE_TUNNELING = 1
+
+# Set offline message store - 0 disabled, 1 memory resident, 2 persisted to a file
+export OFFLINE_MSG_STORE = 2
+
+# Enable/Disable support for connecting through HTTP Proxies. Default is enabled.
+export ENABLE_HTTP_PROXY_SUPPORT = 1
+
+# Enable/Disable support for NTLM Authenitcating HTTP Proxies. Default is enabled.
+export USE_NTLM_PROXY = 1
+
+# Turn off almost all options and logging for minimal footprint
+# overrides all settings above.  Default is disabled.
+export TW_LEAN_AND_MEAN = 0
+
+
+
+
+

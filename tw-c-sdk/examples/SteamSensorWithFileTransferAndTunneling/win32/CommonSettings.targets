@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <ItemDefinitionGroup>
+        <ClCompile>
+            <PreprocessorDefinitions>%(PreprocessorDefinitions);ENABLE_TASKER=1;ENABLE_FILE_XFER=1;ENABLE_TUNNELING=1;OFFLINE_MSG_STORE=2</PreprocessorDefinitions>
+        </ClCompile>
+    </ItemDefinitionGroup>
+</Project>

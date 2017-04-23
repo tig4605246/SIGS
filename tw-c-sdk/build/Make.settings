@@ -1,0 +1,62 @@
+# (c)2014 ThingWorx
+# C SDK Make file
+
+#####################################################
+# Should not need to Modify anything below this line
+#####################################################
+#Default configuration and overrides
+TASKR=-DENABLE_TASKER=1
+ifneq ($(ENABLE_TASKER), 1)
+TASKR=
+endif
+
+FXFER=-DENABLE_FILE_XFER=1
+ifneq ($(ENABLE_FILE_XFER),1) 
+FXFER=
+endif
+
+TUNNL=-DENABLE_TUNNELING=1
+ifneq ($(ENABLE_TUNNELING),1)
+TUNNL=
+endif
+
+ifeq ($(OFFLINE_MSG_STORE),)
+OFFLINE_MSG_STORE   = 2
+endif
+
+LEAN=
+ifneq ($(TW_LEAN_AND_MEAN),)
+LEAN=-DTW_LEAN_AND_MEAN=1
+endif
+ifeq ($(TW_LEAN_AND_MEAN),0)
+LEAN=
+endif
+
+NTLM=-DUSE_NTLM_PROXY=1
+ifeq ($(USE_NTLM_PROXY),0)
+NTLM=
+else
+USE_NTLM_PROXY=1
+endif
+
+PROXY=-DENABLE_HTTP_PROXY_SUPPORT=1
+ifeq ($(ENABLE_HTTP_PROXY_SUPPORT),0)
+PROXY=
+else
+ENABLE_HTTP_PROXY_SUPPORT=1
+endif
+
+SDK_CONFIG=$(TASKR) $(FXFER) $(TUNNL) $(LEAN) $(NTLM) -DOFFLINE_MSG_STORE=$(OFFLINE_MSG_STORE) $(PROXY)
+
+$(warning )
+$(warning ############ Configuration Settings ################)
+$(warning ENABLE_TASKER = $(ENABLE_TASKER))
+$(warning ENABLE_FILE_XFER = $(ENABLE_FILE_XFER))
+$(warning ENABLE TUNNELING = $(ENABLE_TUNNELING))
+$(warning OFFLINE_MSG_STORE = $(OFFLINE_MSG_STORE))
+$(warning ENABLE_HTTP_PROXY_SUPPORT = $(ENABLE_HTTP_PROXY_SUPPORT))
+$(warning USE_NTLM_PROXY = $(USE_NTLM_PROXY))
+$(warning TW_LEAN_AND_MEAN = $(TW_LEAN_AND_MEAN))
+$(warning ####################################################)
+$(warning )
+

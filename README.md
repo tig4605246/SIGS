@@ -1,12 +1,40 @@
 # Simple Gateway Software
 
-#### Last edited by Kevin ---2017/03/12
+#### Last edited by Kevin ---2017/04/20
 ---------------------------------------
+
+###Update list
+  2017/04/20 : log system structure & functions
+
 
 ## Purpose
 
-  Wrap on some Open source libraries to make a simple IoT Gateway Software
+    Wrap on some Open source libraries to make a simple IoT Gateway Software
   The final goal is to provide SDK for others to develop their own data collector.
+
+## Milestones
+
+* Core functions : Things that make the system can start & stop and run properly
+  * definitions : structs and MACROS
+  * ipcs : how processes communicate with each other
+  * controlling : start & stop Uploaders or Collectors
+
+* Event-Handler : Dealing with real-time events. 
+  * log : save data files for a certain period of time. (Default is 7 days)
+  * error log : 
+
+* Wrapping up : API interface and documents and test programs
+
+## Structure
+
+              | Uploaders |
+  ---------------------------------------
+  | ipcs | controlling | protocol | log |
+  ---------------------------------------
+              | Collectors |
+
+    We can change uploaders and Collectors without revising anything in the middle.
+  It can ease the pain while developing new programs for new servers and sensors.
 
 ## Include
 
@@ -24,11 +52,9 @@
 
 ## Execute
 
-  Run __sgsMaster__  to start everything
-	 
-## Structure
+  Run __sgsMaster__ in the bin folder to start everything
 
-### Files
+## Files
 
 * __definition__
   * Defining parameters and structs.
@@ -45,15 +71,8 @@
 * __thirdparty__
   * All external resources are located at here
 
-### Programs
+* __log__
+  * All external resources are located at here
 
-the basic programs that runs the system
-
-* __SGSmaster.c__ (Main Progress)
-  * Initializes the ipcs and exec the processes that the name is mentioned in the device.conf.
-
-* __SGSbacker.c__ (Log data maker)
-  * Records log every 30 seconds. (store at ./datalogs/)
-  asdfoajsfo;idasjf
-
+* __
 	

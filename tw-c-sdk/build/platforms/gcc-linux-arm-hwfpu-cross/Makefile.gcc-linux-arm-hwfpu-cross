@@ -1,0 +1,30 @@
+# (c)2014 ThingWorx
+# C SDK Example Platform Make file
+
+# Set up your compiler and link options here
+TOOLROOT = $(TW_SDK_ROOT)/../TOOLS/gcc-linux-arm-hwfpu-cross
+TOOL_PREFIX = arm-unknown-linux-gnueabi-
+CCDIR = ${TOOLROOT}/bin
+LIBDIR = ${TOOLROOT}/lib
+INCDIR = ${TOOLROOT}/include
+
+export LD_LIBRARY_PATH=$(TOOLROOT)/lib/gcc
+OS_INCLUDE		= "twLinux.h"
+
+CC              = ${CCDIR}/$(TOOL_PREFIX)gcc
+CC_OPTS         = -DTW_OS_INCLUDE='$(OS_INCLUDE)' -Wall -mstructure-size-boundary=32 -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -DCC_GNU  \
+                  -pthread -fPIC -ffunction-sections -fdata-sections $(SDK_CONFIG) \
+                  -mfloat-abi=hard -mfpu=vfp -ffast-math 
+LINKER          = $(CC)
+LIBOPTS         = -pthread -fPIC -Wl,--gc-sections -L${LIBDIR}
+STATIC_LIBS     =
+AR              = ${CCDIR}/$(TOOL_PREFIX)ar cru 
+RANLIB          = ${CCDIR}/$(TOOL_PREFIX)ranlib
+
+# OS FILES
+OS_INC_DIR   = 
+OS_SRCS      = $(TW_SDK_ROOT)/src/porting/twLinux.c $(TW_SDK_ROOT)/src/porting/twPThreads.c
+OS_DEFS      =
+OS_LIBS      =
+OS_LIB_DIR   =
+

@@ -224,7 +224,7 @@ void connlost(void *context, char *cause)
 
         }
 
-	    finished = 1;
+	    exit(EXIT_FAILURE);
 
 	}
 
@@ -322,7 +322,7 @@ void onSubscribeFailure(void* context, MQTTAsync_failureData* response)
         exit(-1);
 
     }
-	finished = 1;
+	exit(EXIT_FAILURE);
 
 }
 
@@ -342,7 +342,7 @@ void onConnectFailure(void* context, MQTTAsync_failureData* response)
         exit(-1);
 
     }
-	finished = 1;
+	exit(EXIT_FAILURE);
 
 }
 
