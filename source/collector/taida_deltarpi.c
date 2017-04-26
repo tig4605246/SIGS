@@ -8,7 +8,19 @@
 
 */
 
-#include "../prorocol/SGSmodbus.h"
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <signal.h>
+
+#include <sys/msg.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <sys/types.h>
+
+#include "../protocol/SGSmodbus.h"
 #include "../ipcs/SGSipcs.h"
 #include "../controlling/SGScontrol.h"
 
@@ -46,6 +58,7 @@ int main(int argc, char *argv[])
 {
 
     int ret = 0;
+    int devfd = -1;
     struct sigaction act, oldact;
     deviceInfo *deviceTemp = NULL;
     
@@ -78,7 +91,7 @@ int main(int argc, char *argv[])
     act.sa_flags = SA_ONESHOT|SA_NOMASK;
     sigaction(SIGUSR1, &act, &oldact);
 
-    devicetemp = deviceInfoPtr;
+    deviceTemp = deviceInfoPtr;
 
     //Get deviceInfoPtr which name is taida_deltarpi
 
@@ -89,24 +102,24 @@ int main(int argc, char *argv[])
     {
 
         printf("[%s][%s,%d] There's no data need to be written in the shm\n",argv[0],__FUNCTION__,__LINE__);
-        forceQuit();
+        forceQuit(-1);
 
     }
 
     //Open up the serial port
 
-    devfd = sgsSetupModbusRTU(deviceTemp->interface,deviceTemp->protocol);
+    devfd = sgsSetupModbusRTU(deviceTemp->interface,deviceTemp->protocolConfig);
     if(devfd < 0)
     {
 
         printf("[%s][%s,%d] Open port %s failed, bye bye.\n",argv[0],__FUNCTION__,__LINE__,deviceTemp->interface);
-        forceQuit();
+        forceQuit(-1);
 
     }
     else
     {
 
-        printf("[%s][%s,%d] Open port %s successfully, configuration : %s , devfd = %d .\n",argv[0],__FUNCTION__,__LINE__,deviceTemp->interface,deviceTemp->protocol,devfd);
+        printf("[%s][%s,%d] Open port %s successfully, configuration : %s , devfd = %d .\n",argv[0],__FUNCTION__,__LINE__,deviceTemp->interface,deviceTemp->protocolConfig,devfd);
 
     }
 
@@ -162,7 +175,7 @@ void forceQuit(int sigNum)
     if(deviceInfoPtr != NULL)
         releaseResource();
 
-    printf("[%s][Ctrl + C] Catched (signal number %d) , forceQuitting...\n",argv[0],sigNum);
+    printf("[taida_deltarpi][SIGUSR1] Catched (signal number %d) , forceQuitting...\n",sigNum);
     exit(0);
 
 }
@@ -170,7 +183,7 @@ void forceQuit(int sigNum)
 void ReadyCmd(deviceInfo *deviceTemp)
 {
 
-    dataInfo *dataTemp = deviceInfo->dataInfoPtr;
+    dataInfo *dataTemp = deviceTemp->dataInfoPtr;
     unsigned short crcCheck = 0;
 
     if(dataTemp == NULL)
@@ -212,7 +225,7 @@ void ReadyCmd(deviceInfo *deviceTemp)
 
 }
 
-int CollectData(deviceInfo *deviceTemp, devfd)
+int CollectData(deviceInfo *deviceTemp, int devfd)
 {
 
     int i = 0, ret = 0;
@@ -236,7 +249,7 @@ int CollectData(deviceInfo *deviceTemp, devfd)
         if(dataTemp->modbusInfo.address < 1100 )
         {
 
-            ret = sgsSendModbusCommandRTU(dataTemp->modbusInfo.cmd[10],6,330000,dataTemp->modbusInfo.response);
+            ret = sgsSendModbusCommandRTU((dataTemp->modbusInfo.cmd + 10),6,330000,dataTemp->modbusInfo.response);
             if(ret < 0)
             {
 
@@ -270,7 +283,7 @@ int CollectData(deviceInfo *deviceTemp, devfd)
             memset(dLog.value.s,'\0',sizeof(dLog.value.s));
             snprintf(dLog.value.s,(sizeof(dLog.value.s) - 1),"%d",tmp1*256 + tmp2);
 
-            memset(dLog.sensorName,'\0',sizeof(dLog.sesorName));
+            memset(dLog.sensorName,'\0',sizeof(dLog.sensorName));
             strncpy(dLog.sensorName,dataTemp->sensorName,32);
 
             memset(dLog.valueName,'\0',sizeof(dLog.valueName));

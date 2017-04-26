@@ -19,6 +19,16 @@
 #include <string.h>
 #include <time.h>
 
+
+#include <sys/msg.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <pthread.h>
+#include <unistd.h>
+
+pthread_mutexattr_t mutex_attr;
+pthread_condattr_t cond_attr;
+
 void sgsDeleteDataInfo(dataInfo *dataInfoPtr, int shmid)
 {
 

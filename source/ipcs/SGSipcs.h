@@ -20,15 +20,7 @@
 #include "../definition/SGSdefinitions.h"
 #endif
 
-#include <sys/types.h>
-#include <sys/msg.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#include <pthread.h>
-#include <unistd.h>
 
-pthread_mutexattr_t mutex_attr;
-pthread_condattr_t cond_attr;
 
 // Intent : Free all allocated dataInfo at the pointer
 // Pre : deviceInfo pointer, close type 

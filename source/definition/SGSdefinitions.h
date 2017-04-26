@@ -13,10 +13,7 @@
 */
 
 
-#include <stdint.h>
-#include <pthread.h>
-
-
+#include "SGSheaders.h"
 
 //Build version of the SIGS
 

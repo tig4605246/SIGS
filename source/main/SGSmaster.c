@@ -13,6 +13,13 @@
 #include <signal.h>
 #include <string.h>
 
+#include <sys/msg.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <sys/types.h>
+
 //We declare own libraries at below
 
 #include "../ipcs/SGSipcs.h"

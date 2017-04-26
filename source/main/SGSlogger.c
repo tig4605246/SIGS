@@ -12,6 +12,13 @@
 #include <signal.h>
 #include <string.h>
 
+#include <sys/msg.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <sys/types.h>
+
 
 //We declare our own libraries at below
 
@@ -34,6 +41,12 @@ int initializeInfo();
 //Post : Nothing
 
 void forceQuit(int sigNum);
+
+//Intent : a sample callback function
+//Pre : parameters provided from sqlite3
+//Post : On success, return 0. On error, return -1
+
+static int sampleCallback(void *NotUsed, int argc, char **argv, char **azColName);
 
 
 int main()
@@ -92,25 +105,28 @@ int main()
     }
 
     //Delay some time before recording
-    while(1)
+    while(0)
     {
         sleep(10);
 
-        ret = sgsNewRecord(db, deviceInfoPtr);
+        ret = sgsNewRecord(db, deviceInfoPtr, NULL);
         if(ret != 0)
         {
             printf(LIGHT_RED"[%s,%d] sgsNewRecord failed\n"NONE,__FUNCTION__,__LINE__);
             return -1;
         }
     }
-    ret = sgsRetreiveRecordsByTime(db, deviceInfoPtr, time(NULL));
+    ret = sgsRetrieveRecordsByTime(db, deviceInfoPtr, time(NULL), sampleCallback);
+    printf(LIGHT_RED"[%s,%d] time(NULL) is %ld\n"NONE,__FUNCTION__,__LINE__,time(NULL));
     if(ret != 0)
     {
-        printf(LIGHT_RED"[%s,%d] sgsNewRecord failed\n"NONE,__FUNCTION__,__LINE__);
+        printf(LIGHT_RED"[%s,%d] sgsRetrieveRecordsByTime failed\n"NONE,__FUNCTION__,__LINE__);
         return -1;
     }
     
+    
 
+    sgsDeleteAll(deviceInfoPtr,0);
     return 0;
 }
 
@@ -149,4 +165,15 @@ void forceQuit(int sigNum)
     sgsDeleteAll(deviceInfoPtr,-1);
     exit(0);
 
+}
+
+static int sampleCallback(void *NotUsed, int argc, char **argv, char **azColName)
+{
+    int i;
+   for(i=0; i<argc; i++){
+      printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+   }
+   printf("\n");
+   printf(LIGHT_PURPLE"[%s,%d] this is a callback function from SGSlogger\n"NONE,__FUNCTION__,__LINE__);
+   return 0;
 }

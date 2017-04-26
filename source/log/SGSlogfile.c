@@ -15,9 +15,11 @@
 
 #include "SGSlogfile.h"
 
+
+
 //A default callback function
 
-static int callback(void *NotUsed, int argc, char **argv, char **azColName){
+static int sgsDefaultCallback(void *NotUsed, int argc, char **argv, char **azColName){
    int i;
    for(i=0; i<argc; i++){
       printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
@@ -162,7 +164,7 @@ int sgsCreateTable(sqlite3 *db, deviceInfo *target)
 
     printf("[%s,%d] i is %d (columnCount ) is %d\n",__FUNCTION__,__LINE__,i,(columnCount ));
 
-    ret = sqlite3_exec(db, table, callback, 0, &zErrMsg);
+    ret = sqlite3_exec(db, table, sgsDefaultCallback, 0, &zErrMsg);
     if( ret != SQLITE_OK )
     {
 
@@ -181,7 +183,7 @@ int sgsCreateTable(sqlite3 *db, deviceInfo *target)
 
 }
 
-int sgsNewRecord(sqlite3 *db, deviceInfo *target)
+int sgsNewRecord(sqlite3 *db, deviceInfo *target, cF callbackFunction)
 {
 
     deviceInfo *head = target;
@@ -406,7 +408,7 @@ int sgsNewRecord(sqlite3 *db, deviceInfo *target)
 
     //printf("[%s,%d] i is %d (rowCount ) is %d\n",__FUNCTION__,__LINE__,i,(rowCount ));
 
-    ret = sqlite3_exec(db, table, callback, 0, &zErrMsg);
+    ret = sqlite3_exec(db, table, sgsDefaultCallback, 0, &zErrMsg);
     if( ret != SQLITE_OK )
     {
 
@@ -427,7 +429,7 @@ int sgsNewRecord(sqlite3 *db, deviceInfo *target)
 
 }
 
-int sgsRetreiveRecordsByTime(sqlite3 *db, deviceInfo *target, epochTime selectedTime)
+int sgsRetrieveRecordsByTime(sqlite3 *db, deviceInfo *target, epochTime selectedTime, cF callbackFunction)
 {
 
     deviceInfo *head = target;
@@ -468,8 +470,15 @@ int sgsRetreiveRecordsByTime(sqlite3 *db, deviceInfo *target, epochTime selected
     
 
     snprintf(buf,DATAVALUEMAX,"SELECT * FROM %s WHERE Timestamp < %ld",head->deviceName,selectedTime);
-printf(LIGHT_RED"[%s,%d]buf %s \n"NONE,__FUNCTION__,__LINE__,buf);
-    ret = sqlite3_exec(db, buf, callback, 0, &zErrMsg);
+    printf(LIGHT_RED"[%s,%d]buf %s \n"NONE,__FUNCTION__,__LINE__,buf);
+
+    //If ther user doesn't give us a callback function, we'll use a default one
+
+    if(callbackFunction == NULL)
+        ret = sqlite3_exec(db, buf, sgsDefaultCallback, 0, &zErrMsg);
+    else
+        ret = sqlite3_exec(db, buf, callbackFunction, 0, &zErrMsg);
+
     if( ret != SQLITE_OK )
     {
 
@@ -479,7 +488,7 @@ printf(LIGHT_RED"[%s,%d]buf %s \n"NONE,__FUNCTION__,__LINE__,buf);
     }else
     {
 
-        fprintf(stdout, "New record successfully\n");
+        fprintf(stdout, "sgsRetrieveRecordsByTime done successfully\n");
 
     }
     return 0;

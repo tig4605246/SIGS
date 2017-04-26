@@ -1,9 +1,10 @@
 PROG1=SGSmaster
 PROG2=GWInfo
-PROG3=OrionServer
+PROG3=cpm70_agent
 PROG4=MQTTAsync_sub
-PROG5=Orion_mongo
+PROG5=cpm70_mongo
 PROG6=SGSlogger
+PROG7=taida_deltarpi
 
 TEST1=openSql
 TEST2=createSqlTable
@@ -24,13 +25,15 @@ all:
 
 	$(CC) -o ../../bin/$(PROG2) ../collector/$(PROG2).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../protocol/SGSmodbus.c -pthread -lm `pkg-config --cflags --libs libmodbus`
 
-	#$(CC) -o ../../bin/$(PROG3) ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../collector/$(PROG3).c -pthread -lm
+	$(CC) -o ../../bin/$(PROG3) ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../collector/$(PROG3).c -pthread -lm
 
 	#$(CC) -o ../../bin/$(PROG4) ../collector/$(PROG4).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c  -pthread -rdynamic -lpaho-mqtt3a  
 
-	#$(CC) -o ../../bin/$(PROG5) ../uploader/$(PROG5).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../thirdparty/cJSON.c  -pthread -lm -lcurl 
+	$(CC) -o ../../bin/$(PROG5) ../uploader/$(PROG5).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../thirdparty/cJSON.c  -pthread -lm -lcurl 
 
 	$(CC) -o ../../bin/$(PROG6) ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../log/SGSlogfile.c $(PROG6).c -pthread -lm -lsqlite3 -ldl
+
+	$(CC) -o ../../bin/$(PROG7) ../collector/$(PROG7).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../protocol/SGSmodbus.c -pthread -lm `pkg-config --cflags --libs libmodbus`
 
 #Below is testing functions
 

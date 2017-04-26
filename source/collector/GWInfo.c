@@ -16,6 +16,13 @@
 #include <string.h>
 #include <sys/timeb.h>
 
+#include <sys/msg.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <sys/types.h>
+
 //We declare our own libraries at below
 
 #include "../ipcs/SGSipcs.h"
