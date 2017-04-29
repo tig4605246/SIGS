@@ -3,7 +3,7 @@
 #### Last edited by Kevin ---2017/04/20
 ---------------------------------------
 
-### Updates
+#### Updates
   2017/04/20 : log function (Open database, Create data table, Write back to databese, Retreive from database)
 
 
@@ -14,7 +14,7 @@
 
 ## Milestones
 
-### First Stage
+#### First Stage
 
 * Core functions : Things that make the system can start & stop and run properly
 
@@ -22,7 +22,7 @@
   * ipcs : how processes communicate with each other
   * controlling : start & stop Uploaders or Collectors
 
-### Second Stage 
+#### Second Stage 
 
 * Event-Handler : Dealing with real-time events. 
 
@@ -33,7 +33,7 @@
   * data log : Save data files for a certain period of time. (Default is 7 days)
   * Info log : Save the events and errors happened during runtime
 
-### Third Stage 
+#### Third Stage 
 
 * Protocols : Providing functions that supports interacting with protocols 
 
@@ -45,7 +45,7 @@
 
   * Reverse SSH Tunnel :
 
-### Final Stage
+#### Final Stage
 
 * Wrapping up : SDK, documents and example programs
 
@@ -101,7 +101,7 @@
   * __log__
     * Functions do data records and managing them
 
-  * __Event__
+  * __events__
     * Definitions of errors, events and formatted output functions
 
 * __conf__
