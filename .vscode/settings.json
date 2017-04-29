@@ -3,6 +3,8 @@
         "fstream": "cpp",
         "initializer_list": "cpp",
         "utility": "cpp",
-        "ostream": "cpp"
+        "ostream": "cpp",
+        "type_traits": "cpp",
+        "*.tcc": "cpp"
     }
 }
