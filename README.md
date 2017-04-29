@@ -1,6 +1,6 @@
 # Simple Gateway Software
 
-#### Last edited by Kevin ---2017/04/20
+#### Last edited by VaultBoy ---2017/04/20
 ---------------------------------------
 
 #### Updates
