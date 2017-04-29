@@ -103,10 +103,6 @@
 
   * __Event__
     * Definitions of errors, events and formatted output functions
-  
-* __bin__
-
-  * Executable files are here
 
 * __conf__
 
