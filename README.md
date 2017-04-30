@@ -9,6 +9,7 @@
   Wrap on some Open source libraries to make a simple IoT Gateway Software.
   The goal is to ease the pain during the development in the future.
 
+<<<<<<< HEAD
 
 ## Current Structure
 
@@ -20,6 +21,8 @@
 
   We can change uploaders and Collectors without revising anything in the middle.
   It can ease the pain while developing new programs for new servers and sensors.
+=======
+>>>>>>> 8d91a7117c2dfc7c0e2d8c39c243151133d8093d
 
 ## Include
 
