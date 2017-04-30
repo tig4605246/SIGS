@@ -1,10 +1,7 @@
 # Simple Gateway Software
 
-#### Last edited by VaultBoy ---2017/04/20
+#### Last edited by tig4605246 ---2017/04/20
 ---------------------------------------
-
-#### Updates
-  2017/04/20 : log function (Open database, Create data table, Write back to databese, Retreive from database)
 
 
 ## Purpose
@@ -12,42 +9,6 @@
   Wrap on some Open source libraries to make a simple IoT Gateway Software.
   The goal is to ease the pain during the development in the future.
 
-## Milestones
-
-#### First Stage
-
-* Core functions : Things that make the system can start & stop and run properly
-
-  * definitions : structs and MACROS
-  * ipcs : how processes communicate with each other
-  * controlling : start & stop Uploaders or Collectors
-
-#### Second Stage 
-
-* Event-Handler : Dealing with real-time events. 
-
-  * Event : Including definitions of events , errors and the handling functions
-
-* logs & info : The backup of our data
-
-  * data log : Save data files for a certain period of time. (Default is 7 days)
-  * Info log : Save the events and errors happened during runtime
-
-#### Third Stage 
-
-* Protocols : Providing functions that supports interacting with protocols 
-
-  * Modbus :
-  * Https  :
-  * MQTT   :
-
-* Remote Management : backdoors and APIs for remote management.
-
-  * Reverse SSH Tunnel :
-
-#### Final Stage
-
-* Wrapping up : SDK, documents and example programs
 
 ## Current Structure
 
