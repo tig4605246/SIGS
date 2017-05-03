@@ -21,7 +21,6 @@
 #endif
 
 
-
 extern const unsigned char auchCRCHi[] ;
 
 extern const char auchCRCLo[] ;

@@ -368,6 +368,8 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int Creat
 
         }
 
+        dataInfoPtrTemp->modbusInfo.failCount = 0;
+
         //I attach dataInfo to its belonged deviceInfo at here
 
         deviceInfoHead = deviceInfoPtr;
@@ -576,8 +578,9 @@ void sgsShowDataInfo(dataInfo *dataInfoPtr)
         printf("\tValue  Name : %s\n",head->valueName);
         printf(LIGHT_GRAY"\t\tModbus ID          %u\n",head->modbusInfo.ID);
         printf("\t\tModbus Address     %u\n",head->modbusInfo.address);
-        printf("\t\tModbus read Length %d\n"NONE,head->modbusInfo.readLength);
-#if 1
+        printf("\t\tModbus read Length %d\n",head->modbusInfo.readLength);
+        printf("\t\tModbus failCount   %d\n"NONE,head->modbusInfo.failCount);
+ #if 1
         ret = sgsReadSharedMemory(head,&dest);
         //printf("[%s,%d] ret is %d\n",__FUNCTION__,__LINE__,ret);
         if(ret != 0)
@@ -591,7 +594,7 @@ void sgsShowDataInfo(dataInfo *dataInfoPtr)
             
             memset(buf,'\0',sizeof(buf));
             //printf("[%s,%d] memset done\n",__FUNCTION__,__LINE__);
-            strftime(buf, sizeof(buf), "%a %Y-%m-%d %H:%M:%S %Z", &(dest.updatedTime));
+            strftime(buf, sizeof(buf), "%a %Y-%m-%d %H:%M:%S", &(dest.updatedTime));
             //printf("[%s,%d] strftime done\n",__FUNCTION__,__LINE__);
             printf(YELLOW"\t\t\tupdated time : %s\n"NONE,buf);
             //printf("valueType %u\n",dest.valueType);
@@ -628,7 +631,7 @@ void sgsShowDataInfo(dataInfo *dataInfoPtr)
             }
 
         }
-#endif
+ #endif
         printf("\n");
         head = head->next;
 
@@ -674,7 +677,7 @@ int sgsReadSharedMemory(dataInfo *dataInfoPtr, dataLog *dest)
         if(pthread_mutex_trylock( &(shmPtr->lock) ) != 0)
         {
 
-            printf("[%s,%d]%s %s is busy\n", __FUNCTION__, __LINE__, dataInfoPtr->sensorName, dataInfoPtr->valueName);
+            printf(LIGHT_RED"[%s,%d]%s %s is busy\n"NONE, __FUNCTION__, __LINE__, dataInfoPtr->sensorName, dataInfoPtr->valueName);
             usleep(50000);
             continue;
 
@@ -749,7 +752,7 @@ int sgsReadSharedMemory(dataInfo *dataInfoPtr, dataLog *dest)
         }
 
     }
-    printf("[%s,%d]Timeout!! lock %s %s is busy\n", __FUNCTION__, __LINE__, dataInfoPtr->sensorName, dataInfoPtr->valueName);
+    printf(LIGHT_RED"[%s,%d]Timeout!! lock %s %s is busy\n"NONE, __FUNCTION__, __LINE__, dataInfoPtr->sensorName, dataInfoPtr->valueName);
     return -1;
 
 }
@@ -768,7 +771,7 @@ int sgsWriteSharedMemory(dataInfo *dataInfoPtr, dataLog *source)
         if(pthread_mutex_trylock( &(shmPtr->lock) ) != 0)
         {
 
-            printf("[%s,%d]%s %s is busy\n", __FUNCTION__, __LINE__, dataInfoPtr->sensorName, dataInfoPtr->valueName);
+            printf(LIGHT_RED"[%s,%d]%s %s is busy\n"NONE, __FUNCTION__, __LINE__, dataInfoPtr->sensorName, dataInfoPtr->valueName);
             usleep(50000);
             continue;
 
@@ -843,7 +846,7 @@ int sgsWriteSharedMemory(dataInfo *dataInfoPtr, dataLog *source)
 
     }
 
-    printf("[%s,%d]Timeout!! lock %s %s is busy\n", __FUNCTION__, __LINE__, dataInfoPtr->sensorName, dataInfoPtr->valueName);
+    printf(LIGHT_RED"[%s,%d]Timeout!! lock %s %s is busy\n"NONE, __FUNCTION__, __LINE__, dataInfoPtr->sensorName, dataInfoPtr->valueName);
     return -1;
 
 }
@@ -856,19 +859,23 @@ int sgsCreateMsgQueue(key_t key, int create)
 
 	if(msgid == -1)
     {
-		printf("Open queue failed, msgget return %d\n",msgid);
+
+		printf(LIGHT_RED"Open queue failed, msgget return %d\n"NONE,msgid);
 		return -1;
+
 	}
-	printf("Open queue successfully id is %d\n",msgid);
+
+	printf(LIGHT_GREEN"Open queue successfully id is %d\n"NONE,msgid);
 
 	return msgid;
+
 }
 
 int sgsDeleteMsgQueue(int msgid)
 {
 	if (msgid == -1) 
     {
-		printf("Message queue does not exist.\n");
+		printf(LIGHT_RED"Message queue does not exist.\n"NONE);
 		return 0;
 	}
 
@@ -878,31 +885,41 @@ int sgsDeleteMsgQueue(int msgid)
 		return -1;
 	}
 
-	printf("Message queue was deleted.\n");
+	printf(LIGHT_GREEN"Message queue was deleted.\n"NONE);
 
 	return 0;
 }
 
 int sgsSendQueueMsg(int msgid, char *message, int msgtype )
 {
+
 	struct msgbuff ptr ;
 	int result =0;
 
 	if(strlen(message) > 1024)
     {
+
 		printf("The message is too long\n");
 		return -1;
+
 	}
+
 	printf("Prepare to send a message to queue (type %d)\n",msgtype);
 	ptr.mtype=(long)msgtype;
 
-	strcpy(ptr.mtext,message);
+	strncpy(ptr.mtext, message, sizeof(ptr.mtype) - 1 );
 	printf("ptr %ld %s\n",ptr.mtype,ptr.mtext);
+
+    //Send the message to the queue
+
 	result = msgsnd(msgid,&ptr,sizeof(struct msgbuff)-sizeof(long),IPC_NOWAIT);
+
 	if(result == -1)
     {
+
 		perror("result");
 		return -1;
+
 	}
 	printf("msgsnd return: %d \n",result);
 	return result;
@@ -912,26 +929,34 @@ int sgsRecvQueueMsg(int msgid, char *buf, int msgtype )
 {
 	struct msgbuff ptr ;
 	int result = 0;
+
 	if(buf == NULL)
     {
+
 		printf("The buf is NULL\n");
 		return -1;
 	}
+
 	printf("Prepare to receive a message from queue\n");
 	ptr.mtype=(long)msgtype;
 	result = msgrcv(msgid,&ptr,sizeof(struct msgbuff) - sizeof(long),msgtype,IPC_NOWAIT);//IPC_NOWAIT);	//recv msg type=1
+
 	if(result == -1)
     {
+
 		printf("Currently no queue message available\n");
 		perror("msgrcv");
 		return -1;
+
 	}
 	else
     {
+
 		printf("Queue message received, length %d bytes, type is %ld\n",result,ptr.mtype);
-		printf("message:\n%s",ptr.mtext);
-		strcpy(buf,ptr.mtext);
+		printf(YELLOW"message:\n%s\n"NONE,ptr.mtext);
+		strncpy(buf, ptr.mtext, sizeof(buf) - 1);
 		return 0;
+
 	}
 
 }

@@ -99,6 +99,10 @@ struct modbusInfo
 
     int option;
 
+    //Counting how many times we failed on reading this value
+
+    int failCount;
+
     //Modbus response 
 
     unsigned char response[DATAVALUEMAX];

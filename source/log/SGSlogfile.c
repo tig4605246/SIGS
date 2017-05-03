@@ -19,15 +19,20 @@
 
 //A default callback function
 
-static int sgsDefaultCallback(void *NotUsed, int argc, char **argv, char **azColName){
+static int sgsDefaultCallback(void *NotUsed, int argc, char **argv, char **azColName)
+{
+
    int i;
-   for(i=0; i<argc; i++){
+   for(i=0; i<argc; i++)
+   {
+
       printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+
    }
    printf("\n");
    return 0;
-}
 
+}
 
 int sgsOpenSqlDB(char *fileName , sqlite3 **db)
 {
@@ -497,3 +502,9 @@ int sgsRetrieveRecordsByTime(sqlite3 *db, deviceInfo *target, epochTime selected
 
 }
 
+int sgsDeleteRecordsByTime(sqlite3 *db, deviceInfo *target, epochTime selectedTime)
+{
+
+
+
+}

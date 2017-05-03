@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <string.h>
+#include <time.h>
 
 #include <sys/msg.h>
 #include <sys/ipc.h>
@@ -55,6 +56,8 @@ int main()
     struct sigaction act, oldact;
     int ret = 0;
     sqlite3 *db = NULL;
+    deviceInfo *deviceTemp = NULL;
+    epochTime now;
 
 
     ret = sgsInitControl("SGSlogger");
@@ -81,12 +84,8 @@ int main()
         printf(LIGHT_RED"[%s,%d] deviceInfoPtr is NULL\n"NONE,__FUNCTION__,__LINE__);
         return -1;
     }
-    else
-    {
 
-        while(strcmp(deviceInfoPtr->deviceName,"GWInfo") && (deviceInfoPtr != NULL))
-            deviceInfoPtr = deviceInfoPtr->next;
-    }
+    deviceTemp = deviceInfoPtr;
 
     //test our logfile functions at here
 
@@ -97,34 +96,79 @@ int main()
         return -1;
     }
 
-    ret = sgsCreateTable(db, deviceInfoPtr);
-    if(ret != 0)
+    while(deviceTemp != NULL)
     {
-        printf(LIGHT_RED"[%s,%d] sgsCreateTable failed\n"NONE,__FUNCTION__,__LINE__);
-        return -1;
-    }
 
-    //Delay some time before recording
-    while(0)
-    {
-        sleep(10);
-
-        ret = sgsNewRecord(db, deviceInfoPtr, NULL);
-        if(ret != 0)
+        if(strcmp("SGSlogger",deviceTemp->deviceName))
         {
-            printf(LIGHT_RED"[%s,%d] sgsNewRecord failed\n"NONE,__FUNCTION__,__LINE__);
-            return -1;
+
+            //printf("deviceName : %s\n",deviceTemp->deviceName);
+            ret = sgsCreateTable(db, deviceTemp);
+            if(ret != 0)
+            {
+                printf(LIGHT_RED"[%s,%d] sgsCreateTable failed\n"NONE,__FUNCTION__,__LINE__);
+                return -1;
+            }
+
         }
+        deviceTemp = deviceTemp->next;
+         
     }
+
+    
+    //Delay some time before recording
+
+    while(1)
+    {
+
+        sleep(30);
+
+        //Loop every device and store their data
+
+        while(deviceTemp != NULL)
+        {
+
+            //Ignore itself
+
+            if(strcmp("SGSlogger",deviceTemp->deviceName))
+            {
+
+                ret = sgsNewRecord(db, deviceTemp, NULL);
+
+                if(ret != 0)
+                {
+
+                    printf(LIGHT_RED"[%s,%d] sgsNewRecord failed\n"NONE,__FUNCTION__,__LINE__);
+                
+                }
+
+            } 
+            deviceTemp = deviceTemp->next;
+
+        }
+
+        time(&now);
+
+
+        //Check if we got some outdated data logs need to be deleted (now - 86400*7 )
+
+        sgsDeleteRecordsByTime(db, deviceTemp, now - 60);
+
+        deviceTemp = deviceInfoPtr;
+        
+    }
+
+    /*
     ret = sgsRetrieveRecordsByTime(db, deviceInfoPtr, time(NULL), sampleCallback);
     printf(LIGHT_RED"[%s,%d] time(NULL) is %ld\n"NONE,__FUNCTION__,__LINE__,time(NULL));
+    
+
     if(ret != 0)
     {
         printf(LIGHT_RED"[%s,%d] sgsRetrieveRecordsByTime failed\n"NONE,__FUNCTION__,__LINE__);
         return -1;
     }
-    
-    
+    */
 
     sgsDeleteAll(deviceInfoPtr,0);
     return 0;

@@ -238,7 +238,7 @@ int sgsSetupModbusRTU(char *devname, char *parameter)
 
     //printf("Serial_Init:: success\n");
 
-    return(0);
+    return handle;
 }
 
 unsigned short sgsCaculateCRC(unsigned char *puchMsg, unsigned short usDataLen)

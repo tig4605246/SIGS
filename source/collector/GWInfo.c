@@ -30,7 +30,7 @@
 
 #define CPUFILE "/proc/stat"
 #define MEMFILE "cat /proc/meminfo"
-#define DISKFILE "df /dev/sda5"
+#define DISKFILE "df /dev/sda2"
 
 typedef struct jiffy_counts_t 
 {

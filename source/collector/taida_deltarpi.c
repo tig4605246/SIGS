@@ -95,8 +95,14 @@ int main(int argc, char *argv[])
 
     //Get deviceInfoPtr which name is taida_deltarpi
 
-    while((strcmp(deviceTemp->deviceName,"taida_deltarpi")) && (deviceTemp != NULL))
-        deviceTemp = deviceTemp->next;
+    while(deviceTemp != NULL)
+    {
+        if(strcmp(deviceTemp->deviceName,"taida_deltarpi")
+            deviceTemp = deviceTemp->next;
+        else
+            break;
+    }
+        
 
     if(deviceTemp == NULL)
     {
@@ -188,6 +194,7 @@ void ReadyCmd(deviceInfo *deviceTemp)
 
     if(dataTemp == NULL)
     {
+        printf("dataTemp is NULL\n");
         return;
     }
 
@@ -196,13 +203,13 @@ void ReadyCmd(deviceInfo *deviceTemp)
 
         dataTemp->modbusInfo.cmd[0x00] = dataTemp->modbusInfo.ID;
         dataTemp->modbusInfo.cmd[0x01] = 0x04;
-        dataTemp->modbusInfo.cmd[0x02] = dataTemp->modbusInfo.address * 0xf0 >> 8;
-        dataTemp->modbusInfo.cmd[0x03] = dataTemp->modbusInfo.address * 0x0f ;
-        dataTemp->modbusInfo.cmd[0x04] = dataTemp->modbusInfo.readLength * 0xf0 >> 8;
-        dataTemp->modbusInfo.cmd[0x05] = dataTemp->modbusInfo.readLength * 0x0f;
+        dataTemp->modbusInfo.cmd[0x02] = (dataTemp->modbusInfo.address & 0xff00) >> 8;
+        dataTemp->modbusInfo.cmd[0x03] = dataTemp->modbusInfo.address & 0x00ff ;
+        dataTemp->modbusInfo.cmd[0x04] = (dataTemp->modbusInfo.readLength & 0xff00) >> 8;
+        dataTemp->modbusInfo.cmd[0x05] = dataTemp->modbusInfo.readLength & 0x00ff;
         crcCheck = sgsCaculateCRC(dataTemp->modbusInfo.cmd, 6);
-        dataTemp->modbusInfo.cmd[0x06] = crcCheck * 0xf0 >> 8;
-        dataTemp->modbusInfo.cmd[0x07] = crcCheck * 0x0f;
+        dataTemp->modbusInfo.cmd[0x06] = (crcCheck & 0xff00) >> 8;
+        dataTemp->modbusInfo.cmd[0x07] = crcCheck & 0x00ff;
 
         if(dataTemp->modbusInfo.address < 1100)
         {
@@ -212,10 +219,10 @@ void ReadyCmd(deviceInfo *deviceTemp)
             dataTemp->modbusInfo.cmd[0x12] = 0x03;
             dataTemp->modbusInfo.cmd[0x13] = 0x1f;
             dataTemp->modbusInfo.cmd[0x14] = 0x00;
-            dataTemp->modbusInfo.cmd[0x15] = dataTemp->modbusInfo.option * 0x0f;
-            crcCheck = sgsCaculateCRC(dataTemp->modbusInfo.cmd, 6);
-            dataTemp->modbusInfo.cmd[0x16] = crcCheck * 0xf0 >> 8;
-            dataTemp->modbusInfo.cmd[0x17] = crcCheck * 0x0f;
+            dataTemp->modbusInfo.cmd[0x15] = dataTemp->modbusInfo.option & 0x00ff;
+            crcCheck = sgsCaculateCRC((dataTemp->modbusInfo.cmd + 10), 6);
+            dataTemp->modbusInfo.cmd[0x16] = (crcCheck & 0xff00) >> 8;
+            dataTemp->modbusInfo.cmd[0x17] = crcCheck & 0x00ff;
 
         }
         dataTemp = dataTemp->next;
@@ -291,9 +298,33 @@ int CollectData(deviceInfo *deviceTemp, int devfd)
 
             sgsWriteSharedMemory(dataTemp, &dLog);
 
-            dataTemp = dataTemp->next;
+            
+
+        }
+        else
+        {
+
+            //Caclate value
+
+            tmp1 = dataTemp->modbusInfo.response[3]*256 + dataTemp->modbusInfo.response[4] ;
+
+            //Store value to shared mem
+
+            dLog.valueType = STRING_VALUE;
+
+            memset(dLog.value.s,'\0',sizeof(dLog.value.s));
+            snprintf(dLog.value.s, (sizeof(dLog.value.s) - 1), "%d", tmp1);
+
+            memset(dLog.sensorName,'\0',sizeof(dLog.sensorName));
+            strncpy(dLog.sensorName, dataTemp->sensorName, DATAVALUEMAX - 1);
+
+            memset(dLog.valueName,'\0',sizeof(dLog.valueName));
+            strncpy(dLog.valueName, dataTemp->valueName, DATAVALUEMAX - 1);
+
+            sgsWriteSharedMemory(dataTemp, &dLog);
 
         }        
+        dataTemp = dataTemp->next;
 
     }
 

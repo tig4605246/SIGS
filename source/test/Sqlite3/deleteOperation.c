@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
    const char* data = "Callback function called";
 
    /* Open database */
-   rc = sqlite3_open("test.db", &db);
+   rc = sqlite3_open("logtest.db", &db);
    if( rc ){
       fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
       return(0);
@@ -30,7 +30,7 @@ int main(int argc, char* argv[])
    }
 
    /* Create merged SQL statement */
-   sql = "DELETE from GWINFO where Timestamp < strftime('%s','now'); " \
+   sql = "DELETE from GWInfo where Timestamp < strftime('%s','now' ,'-7 day'); " \
          "SELECT * from GWINFO";
 
    /* Execute SQL statement */
