@@ -19,6 +19,7 @@
 #include <unistd.h>
 
 #include "SGScontrol.h"
+#include "../ipcs/SGSipcs.h"
 
 int sgsInitControl(char *processName)
 {
@@ -43,6 +44,18 @@ int sgsInitControl(char *processName)
     fclose(fd);
     printf("write done\n");
     return 0;
+
+}
+
+void sgsChildAbort(int sigNum)
+{
+
+    //sgsDeleteDataInfo(dataInfoPtr, -1);
+    //sgsDeleteDeviceInfo(deviceInfoPtr);
+    printf("[%s,%d] Catched SIGUSR1 successfully\n",__FUNCTION__,__LINE__);
+    exit(0);
+
+    return;
 
 }
 

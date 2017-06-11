@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "SGSlogfile.h"
 
@@ -137,14 +138,13 @@ int sgsCreateTable(sqlite3 *db, deviceInfo *target)
 
     strcat(table,buf);
 
-    snprintf(buf,DATAVALUEMAX,"Timestamp NUMERIC     PRIMARY KEY     NOT NULL,");
+    snprintf(buf,DATAVALUEMAX,"Timestamp NUMERIC         NOT NULL,");
 
     strcat(table,buf);
 
     snprintf(buf,DATAVALUEMAX,"sensorName    CHAR(%d)    NOT NULL,",DATAVALUEMAX);
 
     strcat(table,buf);
-
 
 
     i = 0;
@@ -155,7 +155,7 @@ int sgsCreateTable(sqlite3 *db, deviceInfo *target)
     {
 
         if(i == (columnCount-1))
-            snprintf(buf,DATAVALUEMAX,"%s    CHAR(%d)    NOT NULL);",data->valueName,DATAVALUEMAX);
+            snprintf(buf,DATAVALUEMAX,"%s    CHAR(%d)    NOT NULL,",data->valueName,DATAVALUEMAX);
         else
             snprintf(buf,DATAVALUEMAX,"%s    CHAR(%d)    NOT NULL,",data->valueName,DATAVALUEMAX);
 
@@ -164,6 +164,11 @@ int sgsCreateTable(sqlite3 *db, deviceInfo *target)
         i++;
 
     }
+
+    snprintf(buf,DATAVALUEMAX,"PRIMARY KEY (Timestamp, sensorName));");
+
+    strcat(table,buf);
+
 
     printf("table is : \n%s\n\n",table);
 
@@ -200,11 +205,11 @@ int sgsNewRecord(sqlite3 *db, deviceInfo *target, cF callbackFunction)
     int ret = 0;
     char *table = NULL;
     char *zErrMsg = NULL;
-    char buf[DATAVALUEMAX];
+    char buf[256];
     char insertBuf[DATAVALUEMAX];
     char sensorName[DATAVALUEMAX];
 
-
+    printf("hi~~~\n");
 
     //Before doing anything, check the input first
 
@@ -238,16 +243,17 @@ int sgsNewRecord(sqlite3 *db, deviceInfo *target, cF callbackFunction)
 
     //Start to fill the command
 
-    snprintf(buf,DATAVALUEMAX,"INSERT INTO %s (",target->deviceName);
+    snprintf(buf,256,"INSERT INTO %s (",target->deviceName);
     strcat(insertBuf,buf);
 
-    snprintf(buf,DATAVALUEMAX,"Timestamp,");
+    snprintf(buf,256,"Timestamp,");
 
     strcat(insertBuf,buf);
 
-    snprintf(buf,DATAVALUEMAX,"sensorName,");
+    snprintf(buf,256,"sensorName,");
 
     strcat(insertBuf,buf);
+    //printf("first insertBuf %s\n",insertBuf);
 
     //Get the sensorName to help us count the columns
 
@@ -256,25 +262,34 @@ int sgsNewRecord(sqlite3 *db, deviceInfo *target, cF callbackFunction)
 
     //We count column and fill some commands at the same time
 
-    while((tmp != NULL) && !strcmp(sensorName,tmp->sensorName))
+    while((tmp != NULL) && (strcmp(sensorName,tmp->sensorName) == 0))
     {
-        if(tmp->next != NULL)
+        if(tmp != NULL)
         {
-            snprintf(buf,DATAVALUEMAX,"%s,",tmp->valueName);
-
+            //printf("valueName %s senserName %s tmpName %s\n",tmp->valueName,tmp->sensorName,sensorName);
+            snprintf(buf,256,"%s,",tmp->valueName);
+            //printf("valueName %s buf %s\n",tmp->valueName,buf);
             strcat(insertBuf,buf);
+            //printf("insertBuf %s\n",insertBuf);
         }
         else
         {
-            snprintf(buf,DATAVALUEMAX,"%s)",tmp->valueName);
-
-            strcat(insertBuf,buf);
             break;
         }
-            
+        
         tmp = tmp->next;
+
     }
+
+    insertBuf[strlen(insertBuf) - 1] = 0;
+
+    //Finished the INSERT table shape
+
+    snprintf(buf,256,")");
+
+    strcat(insertBuf,buf);
     
+    //printf("line 278,insertBuf:\n%s\n",insertBuf);
 
     //Get rowCount
 
@@ -317,6 +332,8 @@ int sgsNewRecord(sqlite3 *db, deviceInfo *target, cF callbackFunction)
 
     tmp = data;//Reset the tmp pointer
 
+    printf("go to while\n");
+
     while(tmp != NULL)
     {
 
@@ -331,18 +348,18 @@ int sgsNewRecord(sqlite3 *db, deviceInfo *target, cF callbackFunction)
 
         //Get record time
 
-        snprintf(buf,DATAVALUEMAX,"VALUES (strftime('%%s','now','localtime'),");
+        snprintf(buf,256,"VALUES (strftime('%%s','now','localtime'),");
 
         strcat(table,buf);
 
         //Get sensorName
 
-        snprintf(buf,DATAVALUEMAX," '%s',",sensorName);
+        snprintf(buf,256," '%s',",sensorName);
 
         strcat(table,buf);
 
         //Get sensor values
-
+        
         while(!strcmp(tmp->sensorName,sensorName))
         {
 
@@ -351,11 +368,13 @@ int sgsNewRecord(sqlite3 *db, deviceInfo *target, cF callbackFunction)
             memset(dLog.value.s,'\0',sizeof(dLog.value.s));
             memset(buf,'\0',sizeof(buf));
             sgsReadSharedMemory(tmp,&dLog);
+            //printf(LIGHT_RED"[%s,%d] shm read done\n"NONE,__FUNCTION__,__LINE__);
+
             switch(dLog.valueType)
             {
 
                 case INTEGER_VALUE :
-                    snprintf(buf,DATAVALUEMAX," '%d'",dLog.value.i);
+                    snprintf(buf,256," '%d'",dLog.value.i);
                     //printf(LIGHT_RED"[%s,%d] INTEGER \n"NONE,__FUNCTION__,__LINE__);
                     //printf(LIGHT_GREEN"[%s,%d] dLog.value.i %d \nbuf is :\n%s\n"NONE,__FUNCTION__,__LINE__,dLog.value.i,buf);
                     strcat(table,buf);
@@ -363,20 +382,20 @@ int sgsNewRecord(sqlite3 *db, deviceInfo *target, cF callbackFunction)
                     break;
 
                 case FLOAT_VALUE :
-                    snprintf(buf,DATAVALUEMAX," '%f'",dLog.value.f);
+                    snprintf(buf,256," '%f'",dLog.value.f);
                     //printf(LIGHT_RED"[%s,%d] FLOAT \n"NONE,__FUNCTION__,__LINE__);
                     strcat(table,buf);
                     break;
 
                 case STRING_VALUE :
-                    snprintf(buf,DATAVALUEMAX," '%s'",dLog.value.s);
+                    snprintf(buf,256," '%s'",dLog.value.s);
                     //printf(LIGHT_RED"[%s,%d] STRING \n"NONE,__FUNCTION__,__LINE__);
                     strcat(table,buf);
                     break;
 
                 default :
                     //printf(LIGHT_GREEN"[%s,%d] dLog.value.s %s \nbuf is :\n%s\n"NONE,__FUNCTION__,__LINE__,dLog.value.s,buf);
-                    snprintf(buf,DATAVALUEMAX," '%s'",dLog.value.s);
+                    snprintf(buf,256," '%s'",dLog.value.s);
                     //printf(LIGHT_RED"[%s,%d] NOT_READY \n"NONE,__FUNCTION__,__LINE__);
                     strcat(table,buf);
                     //printf(LIGHT_PURPLE"default : \ntable is : \n%s\n\n"NONE,table);
@@ -387,25 +406,27 @@ int sgsNewRecord(sqlite3 *db, deviceInfo *target, cF callbackFunction)
             tmp = tmp->next;
             if(tmp == NULL)
             {
-                //printf(LIGHT_RED"[%s,%d] strcmp \n"NONE,__FUNCTION__,__LINE__);
-                snprintf(buf,DATAVALUEMAX,");");
+                printf(LIGHT_RED"[%s,%d] strcmp \n"NONE,__FUNCTION__,__LINE__);
+                snprintf(buf,256,");");
                 strcat(table,buf);
                 break;
             }
             else if(strcmp(tmp->sensorName,sensorName))
             {
-                //printf(LIGHT_RED"[%s,%d] strcmp \n"NONE,__FUNCTION__,__LINE__);
-                snprintf(buf,DATAVALUEMAX,");");
+                printf(LIGHT_RED"[%s,%d] strcmp \n"NONE,__FUNCTION__,__LINE__);
+                snprintf(buf,256,");");
                 strcat(table,buf);
             }
             else
             {
                 memset(buf,'\0',sizeof(buf));
-                snprintf(buf,DATAVALUEMAX,", ");
+                snprintf(buf,256,", ");
                 strcat(table,buf);
             }
 
         }
+        usleep(100000);
+        
 
     }
     
@@ -505,6 +526,43 @@ int sgsRetrieveRecordsByTime(sqlite3 *db, deviceInfo *target, epochTime selected
 int sgsDeleteRecordsByTime(sqlite3 *db, deviceInfo *target, epochTime selectedTime)
 {
 
+    char buf[DATAVALUEMAX];
+    char *zErrMsg = 0;
+    int ret = 0;
 
+
+    if(target == NULL)
+    {
+
+        printf(LIGHT_RED"No target to delete the log\n"NONE);
+        return -1;
+
+    }
+
+    memset(buf,0,sizeof(buf));
+
+    snprintf(buf,DATAVALUEMAX,"DELETE from %s where Timestamp < strftime('%%s','now' ,'localtime' ,'-7 day');",target->deviceName);
+
+    //snprintf(buf,DATAVALUEMAX,"DELETE from %s where Timestamp < strftime('%%s','now' ,'localtime', '-60 seconds');",target->deviceName);
+
+
+    ret = sqlite3_exec(db, buf, sgsDefaultCallback, 0, &zErrMsg);
+    
+    if( ret != SQLITE_OK )
+    {
+
+        fprintf(stderr, "SQL error: %s\n", zErrMsg);
+        sqlite3_free(zErrMsg);
+        return -1;
+    
+    }
+    else
+    {
+
+        fprintf(stdout, "Delete: Operation done successfully\n");
+    
+    }
+
+    return 0;
 
 }

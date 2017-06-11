@@ -17,6 +17,8 @@
 
 #ifndef COLORS
 
+#define COLORS
+
 #define NONE "\033[m"
 #define RED "\033[0;32;31m"
 #define LIGHT_RED "\033[1;31m"

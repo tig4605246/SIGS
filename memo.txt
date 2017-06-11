@@ -1,0 +1,13 @@
+To-Do-List:
+
+1. set catching signal for script to control the programs
+
+2. update conf with SGSmaster file before initialize the shared memory
+
+3. MUST Run test tonight 
+
+optional:
+
+1. set deviceInfoPtr and dataInfoPtr to be Global variables 
+
+2. Implement log function (record & delete data that is recorded 7 days ago)

@@ -1,3 +1,8 @@
+//Name: Kevin & Oswin
+//Date: April 20,2017
+//Last updated: April 20,2017
+//Prupose: Serve as a server and upload datas to the mongodb
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -8,10 +13,37 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <sys/stat.h>
 
+#include <time.h>
+
+#include <sys/syslog.h>
+
+#include <curl/curl.h> //`pkg-config --cflags --libs ` or -lcurl
 #include "../ipcs/SGSipcs.h"
 #include "../controlling/SGScontrol.h"
 #include "../thirdparty/cJSON.h" // cJSON.c -lm
+
+#ifndef COLORS
+
+#define NONE "\033[m"
+#define RED "\033[0;32;31m"
+#define LIGHT_RED "\033[1;31m"
+#define GREEN "\033[0;32;32m"
+#define LIGHT_GREEN "\033[1;32m"
+#define BLUE "\033[0;32;34m"
+#define LIGHT_BLUE "\033[1;34m"
+#define DARY_GRAY "\033[1;30m"
+#define CYAN "\033[0;36m"
+#define LIGHT_CYAN "\033[1;36m"
+#define PURPLE "\033[0;35m"
+#define LIGHT_PURPLE "\033[1;35m"
+#define BROWN "\033[0;33m"
+#define YELLOW "\033[1;33m"
+#define LIGHT_GRAY "\033[0;37m"
+#define WHITE "\033[1;37m"
+
+#endif
 
 #define MAXBUF 1024
 
@@ -19,33 +51,20 @@
 
 #define MIN(x,y) (x < y ) ? x : y
 
-deviceInfo *deviceInfoPtr = NULL;
+//Where we store our logs
 
-dataInfo *dataInfoPtr = NULL;
-
-dataInfo *interface = NULL;
-
-
-//int shmID = 0;//test only
-
-//Intent : close and quit when catching SIGUSR2 signal (will call releaseResource() too)
-//Pre : sigNum
-//Post : Nothing
+#define LOGPATH "./log"
 
 void DisconnectAndQuit(int sigNum);
 
-//Intent : free deviceInfoPtr, dataInforPtr and free the shared memory (get pointers from global parameters)
-//Pre : Nothing
-//Post : On success, return 0. On error, return -1 and shows the error messages
+struct string{
+    char *ptr;
+    size_t len;
+};
 
-void releaseResource();
-
-static int initializeInfo();
-
-dataInfo* findTag(dataInfo * temp , char *valueName , char *gwid);
+size_t response_handler(void *ptr, size_t size, size_t nmemb, struct string *s);
 
 
-//
 
 char *UserLogEventId[] = { 
 							"LGTK" , "LMTK" , "LACN" , "LACF" , "LD2N" , "LD2F" , "LD3N" , "LD3F" , "LD4N" , "LD4F" ,
@@ -61,6 +80,7 @@ char *OBDInfo[] = {"DeviceID","MODEL","IMEI","Location","Heading","Speed","Odome
                     "FuelLevel","IntakeAirTemp","EngineRPM","MassAirFlow","IntakeManifoldAbsolutePressure","MalfunctionIndicatorLamp",
                     "ThrottlePosition","VIN","FuelUsed","MainVoltage","SN",
                     "PendingCodeStatus","ReportID","ReportTime", NULL};
+
 
 struct OBUData{
 	
@@ -95,7 +115,15 @@ struct OBUData{
 	float engineRPM;
 	
 } typedef OBUData;
-		
+
+//Puspose : Create log files
+//Pre : buffer data
+//Post : On success, return 0, otherwise return -1
+
+int CreateLog(unsigned char *buf, int len);
+
+int CreateJSONAndRunHTTPCommand(OBUData *data);		
+
 //typedef struct OBUData OBUData;
 
 int lenHelper(int x);
@@ -178,33 +206,26 @@ float getEngineLoad(unsigned char OptionData[]);
 
 OBUData *parseData(OBUData *OBUData , unsigned char TCP_ReceiveData[] , int size);
 
-//
-
 int main(int argc, char *argv[])
 {
 
-		int pid = -1;	
+		int pid = -1;
+        int log_pid = -1;	
 		int sockfd = -1, new_fd = -1;
 		int i = 0;
-		int loop = 0;//child process stopping criteria
 		int ret = 0;
 		socklen_t len;
 		struct sockaddr_in my_addr, their_addr;
 		unsigned int myport, lisnum;
 		unsigned char buf[MAXBUF + 1];//Receive packet
 		unsigned char packetAck[4];//return packet ACK
-		struct sigaction act, oldact;
-
-		deviceInfo *target = NULL;
-		deviceInfo *temp = NULL;
-
-		dataLog datalog;
-
-		OBUData *OBUData = NULL;		
+		struct sigaction act, oldact, oldact2;
+		
+		OBUData *OBUData = NULL;
 
 		myport = 9001;
 		
-		lisnum = 5;
+		lisnum = 30;
 
 		if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) 
 		{
@@ -217,94 +238,20 @@ int main(int argc, char *argv[])
 
 		act.sa_handler = (__sighandler_t)DisconnectAndQuit;
     	act.sa_flags = SA_ONESHOT|SA_NOMASK;
-    	sigaction(SIGUSR2, &act, &oldact);
+    	sigaction(SIGINT, &act, &oldact);
 
-		ret = sgsInitControl("OrionServer");
-		if(ret < 0)
-		{
+		//act.sa_handler = (__sighandler_t)DisconnectAndQuit;
+    	//act.sa_flags = SA_NOCLDSTOP|SA_NOCLDWAIT;
+    	//sigaction(SIGCHLD, &act, &oldact2);
 
-			printf("OrionServer aborting\n");
-			return -1;
-
-		}
-
-		ret = initializeInfo();
-		if(ret < 0)
-		{
-
-			printf("OrionServer aborting\n");
-			return -1;
-
-		}
-
-		//Find where cpm70_agent stores the data
-
-		target = deviceInfoPtr;
-
-		while(strcmp(target->deviceName,"Orion_mongo") && target != NULL)
-		{
-
-			target = target->next;
-
-		}
+		signal(SIGCHLD, SIG_IGN);
 		
-		if(target == NULL)
-		{
-
-			printf("No target, nothing to do at here, bye~\n");
-			exit(0);
-
-		}
-		else
-		{
-
-			printf("Orion Server target->deviceName is %s\n",target->deviceName);
-			sgsShowAll(target);
-			printf("show done\n");
-			
-
-		}
-		//printf("123W\n\n\n\n\n\n\n\n\n\n\n\n");
-	
-
-		interface = target->dataInfoPtr;
-
-		if(interface == NULL)
-		{
-			printf("interface is NULL\n");
-			releaseResource();
-		}
-
-		while(strcmp(interface->deviceName,"Orion_mongo") && interface != NULL)
-		{
-			//printf("cd\n");
-			interface = interface->next;
-			//printf("c\n");
-
-		}
-		printf("What the fuck ???\n");
-		if(interface == NULL)
-		{
-
-			printf("Warning : Orion_mongo is not defined in device.conf\n");
-			
-
-		}
-		else
-		{
-
-			printf("interface->deviceName is %s\n",interface->deviceName);				
-			dataInfoPtr = interface;
-
-		}
-
-		printf("Nothing bad here\n");
 		bzero(&my_addr, sizeof(my_addr));
 		my_addr.sin_family = AF_INET;
 		my_addr.sin_port = htons(myport);
 
 
-		my_addr.sin_addr.s_addr = inet_addr("140.118.121.63");
+		my_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
 		if (bind(sockfd, (struct sockaddr *) &my_addr, sizeof(struct sockaddr))== -1) 
 		{
@@ -392,16 +339,42 @@ int main(int argc, char *argv[])
 						{
 
 							printf("message recv successful , %dByte recv\n", len);
-							
-							/* */
-							
-							
-							OBUData = malloc(sizeof(struct OBUData));
-							OBUData = parseData(OBUData , buf , sizeof(buf));
-							printf("OBUData deviceID %s\n",OBUData->deviceID);
-							OBDWriteToSgs(OBUData);
+														
+							/* Here, We open a child process to help us create log files */
+							#if 1
 
+							log_pid = fork();
 
+							if(log_pid < 0)
+                            {
+
+                                printf(LIGHT_RED"fork failed, %s\n"NONE,strerror(errno));
+
+                            }
+							printf("mypid is %d log_pid is %d\n",getpid(),log_pid);
+                            if(log_pid == 0)
+                            {
+
+								printf("This is Child\n");
+								
+                                close(new_fd);
+									
+								ret = CreateLog(buf,len);
+
+								if(ret != 0)
+								{
+
+									printf(LIGHT_RED"Create Log failed\n"NONE);
+
+								}
+								
+
+                                exit(0);
+
+                            }
+
+							#endif
+							printf("This is parent pid is %d\n",getpid());
 							for(i = 0 ; i < len ; i++)
 							{
 
@@ -413,6 +386,11 @@ int main(int argc, char *argv[])
 								
 
 							}
+							printf("\n");
+							OBUData = malloc(sizeof(struct OBUData));
+							OBUData = parseData(OBUData , buf , len);
+							ret = CreateJSONAndRunHTTPCommand(OBUData);
+
 							printf("\n");
 
 							//Return last 3 bytes of the data
@@ -487,189 +465,10 @@ void DisconnectAndQuit(int sigNum)
 {
 
 	printf("[pid : %d]The other side disconnected, leaving\n",getpid());
-	releaseResource();
-	//close(new_fd);
+	//close(sockfd);
 	exit(0);
 
 }
-
-static int initializeInfo()
-{
-
-    int ret = 0;
-    ret = sgsInitDeviceInfo(&deviceInfoPtr);
-	printf("\n\n\ninitializeInfo\n\n\n");
-    if(ret != 0)
-    {
-
-        printf("[%s,%d] init device conf failed ret = %d\n",__FUNCTION__,__LINE__,ret);
-        return -1;
-
-    } 
-
-
-
-    ret = sgsInitDataInfo(deviceInfoPtr, &dataInfoPtr, 0);//Change to 0 if you want to use SGSmaster 
-	
-
-
-    if(ret == 0) 
-    {
-
-        printf("[%s,%d] init data conf failed ret = %d\n",__FUNCTION__,__LINE__,ret);
-        return -1;
-
-    }
-
-    
-
-    return 0;
-
-}
-
-void releaseResource()
-{
-
-    sgsDeleteAll(deviceInfoPtr,-1);
-
-    return ;
-
-}
-
-int OBDWriteToSgs(OBUData *input){
-	
-	OBUData *OBUData = input;
-	deviceInfo *temp = NULL;
-	dataLog datalog;
-	int ret;
-	int j = 0 ;
-	printf("OBDWriteToSgs\n");
-	while(OBDInfo[j] != NULL){
-		
-		printf("OBDInfo[%d] %s\n",j ,OBDInfo[j]);
-		printf("OBUData->deviceID %s\n",OBUData->deviceID);
-		memset(datalog.value.s,'\0',sizeof(datalog.value.s));           
-		temp = findTag(dataInfoPtr, OBDInfo[j] , OBUData->deviceID);
-		if(temp != NULL){                             
-			datalog.valueType = STRING_VALUE;
-			if(!strcmp(OBDInfo[j], "DeviceID")){
-			strncpy(datalog.value.s,OBUData->deviceID , MIN(strlen(OBUData->deviceID) , OBD_STRING_LENGTH));
-			datalog.value.s[MIN(strlen(OBUData->deviceID) , OBD_STRING_LENGTH)] = '\0';
-			}
-			else if(!strcmp(OBDInfo[j], "MODEL")){    
-			strncpy(datalog.value.s,OBUData->model,MIN(strlen(OBUData->model) , OBD_STRING_LENGTH));
-			datalog.value.s[MIN(strlen(OBUData->model) , OBD_STRING_LENGTH)] = '\0';
-			}
-			else if(!strcmp(OBDInfo[j], "IMEI")){    
-			strncpy(datalog.value.s,OBUData->IMEI,MIN(strlen(OBUData->IMEI) , OBD_STRING_LENGTH));
-			datalog.value.s[MIN(strlen(OBUData->IMEI) , OBD_STRING_LENGTH)] = '\0';
-			}
-			else if(!strcmp(OBDInfo[j], "Location")){    
-			strncpy(datalog.value.s,OBUData->location,MIN(strlen(OBUData->location) , OBD_STRING_LENGTH));
-			datalog.value.s[MIN(strlen(OBUData->location) , OBD_STRING_LENGTH)] = '\0';
-			}
-			else if(!strcmp(OBDInfo[j], "Heading")){
-			datalog.valueType = FLOAT_VALUE;		
-			datalog.value.f = OBUData->heading;
-			}
-			else if(!strcmp(OBDInfo[j], "Speed")){    
-			datalog.valueType = FLOAT_VALUE;		
-			datalog.value.f = OBUData->speed;      			    
-			}
-			else if(!strcmp(OBDInfo[j], "Odometer")){    
-			datalog.valueType = FLOAT_VALUE;		
-			datalog.value.f = OBUData->odometer;
-			}
-			else if(!strcmp(OBDInfo[j], "HDOP")){    
-			datalog.valueType = FLOAT_VALUE;		
-			datalog.value.f = OBUData->hdop;
-			}
-			else if(!strcmp(OBDInfo[j], "EngineLoad")){    
-			datalog.valueType = FLOAT_VALUE;		
-			datalog.value.f = OBUData->engineLoad;
-			}
-			else if(!strcmp(OBDInfo[j], "EngineCoolantTemp")){    
-			datalog.valueType = FLOAT_VALUE;		
-			datalog.value.f = OBUData->engineCoolantTemp;
-			}
-			else if(!strcmp(OBDInfo[j], "FuelLevel")){    
-			datalog.valueType = FLOAT_VALUE;		
-			datalog.value.f = OBUData->fuelLevel;
-			}
-			else if(!strcmp(OBDInfo[j], "IntakeAirTemp")){    
-			datalog.valueType = FLOAT_VALUE;		
-			datalog.value.f = OBUData->intakeAirTemp;
-			}
-			else if(!strcmp(OBDInfo[j], "EngineRPM")){    
-			datalog.valueType = FLOAT_VALUE;		
-			datalog.value.f = OBUData->engineRPM;
-			}
-			else if(!strcmp(OBDInfo[j], "MassAirFlow")){    
-			datalog.valueType = FLOAT_VALUE;		
-			datalog.value.f = OBUData->massAirFlow;
-			}
-			else if(!strcmp(OBDInfo[j], "IntakeManifoldAbsolutePressure")){    
-			datalog.valueType = FLOAT_VALUE;		
-			datalog.value.f = OBUData->intakeManifoldAbsolutePressure;
-			}
-			else if(!strcmp(OBDInfo[j], "ThrottlePosition")){    
-			datalog.valueType = FLOAT_VALUE;		
-			datalog.value.f = OBUData->throttlePosition;
-			}			
-			else if(!strcmp(OBDInfo[j], "VIN")){    
-			strncpy(datalog.value.s,OBUData->VIN,MIN(strlen(OBUData->VIN) , OBD_STRING_LENGTH));
-			datalog.value.s[MIN(strlen(OBUData->VIN) , OBD_STRING_LENGTH)] = '\0';
-			}
-			else if(!strcmp(OBDInfo[j], "FuelUsed")){    
-			datalog.valueType = FLOAT_VALUE;		
-			datalog.value.f = OBUData->fuelUsed;
-			}
-			else if(!strcmp(OBDInfo[j], "MainVoltage")){    
-			datalog.valueType = FLOAT_VALUE;		
-			datalog.value.f = OBUData->mainVoltage;
-			}
-			else if(!strcmp(OBDInfo[j], "PendingCodeStatus")){    
-			strncpy(datalog.value.s,OBUData->pendingCodeStatus,MIN(strlen(OBUData->pendingCodeStatus) , OBD_STRING_LENGTH));
-			datalog.value.s[MIN(strlen(OBUData->pendingCodeStatus) , OBD_STRING_LENGTH)] = '\0';
-			}
-			else if(!strcmp(OBDInfo[j], "ReportID")){    
-			strncpy(datalog.value.s,OBUData->reportID,MIN(strlen(OBUData->reportID) , OBD_STRING_LENGTH));
-			datalog.value.s[MIN(strlen(OBUData->reportID) , OBD_STRING_LENGTH)] = '\0';
-			}
-			else if(!strcmp(OBDInfo[j], "SN")){    
-			strncpy(datalog.value.s,OBUData->SN, MIN(strlen(OBUData->SN) , OBD_STRING_LENGTH));
-			datalog.value.s[MIN(strlen(OBUData->SN) , OBD_STRING_LENGTH)] = '\0';
-			}
-			else if(!strcmp(OBDInfo[j], "ReportTime")){    
-			strncpy(datalog.value.s,OBUData->utcTime,MIN(strlen(OBUData->utcTime) , OBD_STRING_LENGTH));
-			datalog.value.s[MIN(strlen(OBUData->utcTime) , OBD_STRING_LENGTH)] = '\0';
-			}			
-			else{
-				printf("Not found value:%s\n",OBUData[j]);
-			}
-					
-			//printf("sgsWriteSharedMemory:%s temp->valueName:%s valueName:%s datalog:%s \n",temp->sensorName ,temp->valueName, LoRaGWInfo[j] , datalog.value.s);  
-			//printf("%u\n",temp->modbusInfo.ID);
-			ret = sgsWriteSharedMemory(temp,&datalog);                  
-			if(ret){
-				printf("write fail! ret %d\n",ret);
-			}
-			else
-			{
-				printf("write s\n");
-			}
-			//printf("---------------------------------------\n");        
-		}
-		else{
-			printf("temp is NULL!\n");
-		}
-		j++;
-	}
-	
-
-	return 1;
-}
-
 
 OBUData *parseData(OBUData *z , unsigned char TCP_ReceiveData[] , int size){
 	
@@ -710,7 +509,7 @@ OBUData *parseData(OBUData *z , unsigned char TCP_ReceiveData[] , int size){
 	unsigned char USER_LOGS[size];	
 	unsigned char OptionData[size];
 	unsigned char parmData[size];
-	
+	printf(" sizeof %d : \n\n" ,size);
 	memset(parmData,'\0',sizeof(parmData));
 	
 	//memcpy(USER_LOGS, TCP_ReceiveData+8, sizeof(TCP_ReceiveData) - 3 - 8 + 1); 
@@ -730,7 +529,7 @@ OBUData *parseData(OBUData *z , unsigned char TCP_ReceiveData[] , int size){
 	int cutpoint = size - 3 - index;
 	
 	while(sizeof(parmData) != 0){
-		printf("parmData %x : \n\n" ,(parmData[0])); 
+		printf("\n--parmData-- %x : \n" ,(parmData[0])); 
 		 switch (parmData[0]) {
 			 
 			case 2: // OPT-RPM-TEMP
@@ -768,7 +567,7 @@ OBUData *parseData(OBUData *z , unsigned char TCP_ReceiveData[] , int size){
 			case 147:
 				// 2016-11-23 for FET
 				// ENGINE_LOAD_DATA = Common.ByteToHexString(OptionData[2]);
-				printf("\n*-------Find VIN--------*\n");
+				printf("\n*-------Find VIN--------*\n");				
 				printf("getVIN:%s\n",getVIN(parmData));
 				parm = getVIN(parmData);			
 				strncpy(a->VIN , parm , MIN(strlen(parm) , OBD_STRING_LENGTH));
@@ -794,15 +593,18 @@ OBUData *parseData(OBUData *z , unsigned char TCP_ReceiveData[] , int size){
 		 }
 		 
 		 printf("\n\nmove OptionData[1] : %x\n" ,parmData[1]); 
-		 printf("\n\n index : %d\n" ,index); 
+		 //printf("index : %d\n" ,index); 
 		 if(index >= size - 44 - 3)
 		 {
 			 printf("\n\n break index : %d\n" ,index); 
 			 break;
 		 }
-		 printf("OptionData sizeof %d : \n\n" ,sizeof(OptionData)); 
-		
-		 memcpy(parmData, OptionData + index ,  parmData[1]);	
+
+		 //printf("OptionData sizeof %d : \n\n" ,sizeof(OptionData)); 		 
+
+		 //memcpy(parmData, OptionData + index ,  parmData[1]);	
+		 memcpy(parmData, OptionData + index ,  OptionData[ index + 1 ]);	
+		  printf("copy len is  : %x\n" ,OptionData[ index + 1 ]);
 		 index = index + parmData[1];
 		
 	}
@@ -939,46 +741,55 @@ char *getLocation(unsigned char USER_LOG[]){
 	
 	int IMEI = 0;
 	int val;
+	double val_double;
 	double lat_tiny, lng_tiny;
 	char *result = malloc(64);
-	double X, Y;
+	long int X, Y;
 	double lat, lng;	
 	
 	// 2010-08-15 處理經緯度正負號問題
 	//Lat
 	X = USER_LOG[4] * pow(256, 0) + USER_LOG[5] * pow(256, 1) + USER_LOG[6] * pow(256, 2) + USER_LOG[7] * pow(256, 3);
-	X = (X > 2147483647 ? (4294967295 - X) * -1 : X) / 10000.0;
+	X = (X > 2147483647 ? (4294967295 - X) * -1 : X) ;
 	
+	lat= X/1000000; // no divion '.0'		// get degree part
+	val = (X%1000000);
+	val_double = val;
+	lat_tiny = (val_double/60.0)/10000.0;	// transfer minutes and seconds to degree 0.xxxx
+  	lat += lat_tiny;			// combine two part
+
+
 	//Lng
 	Y = USER_LOG[8] * pow(256, 0) + USER_LOG[9] * pow(256, 1) + USER_LOG[10] * pow(256, 2) + USER_LOG[11] * pow(256, 3);
-	Y = (Y > 2147483647 ? (4294967295 - Y) * -1 : Y) / 10000.0;	
+	Y = (Y > 2147483647 ? (4294967295 - Y) * -1 : Y) ;	
+	
 
+	lng= Y/1000000;		// get degree part
+	val = (Y%1000000);
+	val_double = val;
+	lng_tiny = (val_double/60.0)/10000.0;	// transfer minutes and seconds to degree 0.xxxx
+  	lng += lng_tiny;			// combine two part
 	
-	val = (X * 100000);	
-	val = val  % (100 * 100000);
-	lat_tiny = val ;
-	lat_tiny = lat_tiny / 100000 / 60;
-	
-	val = (Y * 100000);	
-	val = val  % (100 * 100000);
-	lng_tiny = val ;
-	lng_tiny = lng_tiny / 100000 / 60;
-	
-	
+	printf("Get Location\n");
+	printf("lat X : %lf\n",lat);
+	printf("lng Y : %lf\n",lng);
+
 	// OBUData.Latitude = System.Convert.ToDouble(Data[4]) / 100 + ((System.Convert.ToDouble(Data[4]) % 100) / 60);
     // OBUData.Longitude = System.Convert.ToDouble(Data[6]) / 100 + ((System.Convert.ToDouble(Data[6]) % 100) / 60);
-    lng = Y / 100 + lat_tiny;
-	lat = X / 100 + lng_tiny;
+    //lng = Y  + lat_tiny;
+	//lat = X  + lng_tiny;
 	
 	snprintf( result, 20, "%lf:%lf", lat , lng );  	
+	//snprintf( result, 20, "%lf:%lf", X/100 , Y/100 );  	
 	return result;
 }
+
 
 float getSpeed(unsigned char USER_LOG[]){
 	
 	float speed;	
 	//System.Convert.ToString((USER_LOG[16] * Math.Pow(256, 0) + USER_LOG[17] * Math.Pow(256, 1)) / 10.0);	// Speed
-	speed = USER_LOG[16] * pow(256, 0) + (USER_LOG[17] * pow(256, 1)) / 10.0;	
+	speed = (USER_LOG[16] * pow(256, 0) + (USER_LOG[17] * pow(256, 1)) ) / 10.0;	
 	return speed;
 }
 
@@ -987,7 +798,7 @@ char *getUTCDateTime(unsigned char USER_LOG[]){
 	char *strtime;
 	//Result[26] = USER_LOG[18].ToString("00") + USER_LOG[19].ToString("00") + USER_LOG[20].ToString("00") + USER_LOG[21].ToString("00") + USER_LOG[22].ToString("00") + USER_LOG[23].ToString("00");	// UTCDateTime 	
 	// 'yyyy-MM-dd HH:mm:ss'
-	snprintf( strtime, 19 , "20%d-%d-%d %d:%d:%d", USER_LOG[18] , USER_LOG[19]+1, USER_LOG[20] , USER_LOG[21] , USER_LOG[22] , USER_LOG[23]  );  
+	snprintf( strtime, 19 , "20%d-%d-%d %d:%d:%d", USER_LOG[18] , USER_LOG[19], USER_LOG[20] , USER_LOG[21] , USER_LOG[22] , USER_LOG[23]  );  
 	//sprintf(strtime ,  "%d-%d-%d %d:%d:%d", USER_LOG[18] , USER_LOG[19] , USER_LOG[20] , USER_LOG[21] , USER_LOG[22] , USER_LOG[23]  );  
 	printf("%s\n",strtime);
 	return strtime;
@@ -1131,11 +942,13 @@ float getThrottlePosition(unsigned char OptionData[]){
 	
 } 
 char *getVIN(unsigned char OptionData[]){
-	
+
 	char *VIN =  malloc(64);
+
 	snprintf( VIN, 18 , "%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\0", OptionData[3] , OptionData[4] , OptionData[5] , OptionData[6] , OptionData[7] , OptionData[8] ,
 							    	OptionData[9] , OptionData[10] , OptionData[11] , OptionData[12] , OptionData[13] , OptionData[14] ,
 							    	OptionData[15] , OptionData[16] , OptionData[17] , OptionData[18] , OptionData[19] );
+
 	return VIN;
 	
 } 
@@ -1150,23 +963,422 @@ char *getFuelUsed(unsigned char USER_LOG[]){
 	
 }  
 
-dataInfo* findTag(dataInfo *temp , char *valueName , char *gwid){
-    int i,j;
-	//printf("findTag called\n");
-    while(temp != NULL){
-        i=0;
-        //while(DeviceName[i] != NULL){            
-            //printf("\ntemp->valueName: %s temp->sensorName:%s  gwid: %s \n", valueName, temp->sensorName, gwid);
-            if(!strcmp(temp->sensorName,gwid)){        
-                  if(!strcmp(temp->valueName,valueName)){
-                    //printf("Match SensorName %s and valueName %s\n",temp->sensorName,valueName);                 
-                    //printf("break La\n");
-                    return temp;                        
-                }      
+int CreateJSONAndRunHTTPCommand(OBUData *data)
+{
+    
+    int i = 0;
+    //struct timeb tp;
+    DATETIME n_time;
+	
+    int irr_value = 0;
+    int temp_value = 0;
+    int ret=0;
+    char *output = NULL;
+    char *format = NULL;
+    cJSON *root; 
+    cJSON *fmt;
+    cJSON *array;
+    CURL *curl;
+	char *errstr;
+	char Content_Length[32];
+	struct curl_slist *chunk = NULL;
+    struct string s;
+	
+    //dataInfo *head = dataInfoPtr;
+    //dataInfo *head = interface;
+    //dataInfo *temp ;
+    //dataLog dest;
+    //dataLog datalog;
+
+    int j;
+    printf( "[%s:%d] CreateJSONAndRunHTTPCommand called", __FUNCTION__, __LINE__);
+    printf("\n");
+    
+
+    
+    //ftime(&tp);
+    //n_time = tp.time*1000 + tp.millitm;
+    // Initialize curl headers
+    syslog(LOG_INFO, "[%s:%d] Initialize curl headers ", __FUNCTION__, __LINE__);
+    chunk = curl_slist_append(chunk, "Accept: text/plain");
+	chunk = curl_slist_append(chunk, "Accept-Encoding: gzip, deflate");
+    chunk = curl_slist_append(chunk, "application/json; charset=UTF-8");
+	chunk = curl_slist_append(chunk, "Content_Length");
+	chunk = curl_slist_append(chunk, "User-Agent: Kelier/0.1");
+
+    // Initialize cJSON
+
+    ///*   
+        //---Stuff cJSON at here---
+    
+    j=0;
+    curl_global_init(CURL_GLOBAL_ALL);
+
+ 
+    curl = curl_easy_init();
+   
+   // while(DeviceName[j] != NULL){
+        init_string(&s);
+    //while(head != NULL){      
+    //while(DeviceName[j] != NULL){
+        //head = interface;
+        root = cJSON_CreateObject();
+		 cJSON_AddStringToObject(root, "DeviceId", data->deviceID);
+		 cJSON_AddStringToObject(root, "UnitID", data->deviceID);           
+		 cJSON_AddStringToObject(root, "Model", data->model); 
+		 cJSON_AddStringToObject(root, "IMEI", data->IMEI);
+		 cJSON_AddStringToObject(root, "Location", data->location);
+		 cJSON_AddNumberToObject(root, "Heading", data->heading);
+		 cJSON_AddNumberToObject(root, "Speed", data->speed);
+		 cJSON_AddNumberToObject(root, "Odometer", data->odometer);
+		 cJSON_AddNumberToObject(root, "EngineCoolantTemp", data->engineCoolantTemp);
+		 cJSON_AddNumberToObject(root, "EngineLoad", data->engineLoad);
+		 cJSON_AddNumberToObject(root, "FuelLevel", data->fuelLevel);
+		 cJSON_AddNumberToObject(root, "IntakeAirTemp", data->intakeAirTemp);
+		 cJSON_AddNumberToObject(root, "MassAirFlow", data->massAirFlow);
+		 cJSON_AddNumberToObject(root, "FuelUsed", data->fuelUsed);
+		 cJSON_AddNumberToObject(root, "EngineRPM", data->engineRPM);
+		 cJSON_AddNumberToObject(root, "ThrottlePosition", data->throttlePosition);
+		 cJSON_AddNumberToObject(root, "MalfunctionIndicatorLamp", data->malfunctionIndicatorLamp);
+		 cJSON_AddNumberToObject(root, "IntakeManifoldAbsolutePressure", data->intakeManifoldAbsolutePressure);
+		 cJSON_AddStringToObject(root, "SN", data->SN);
+		 cJSON_AddNumberToObject(root, "HDOP", data->hdop);
+		 cJSON_AddNumberToObject(root, "MainVoltage", data->mainVoltage);
+		 cJSON_AddStringToObject(root, "VIN", data->VIN);		 
+		 cJSON_AddStringToObject(root, "ReportTime", data->utcTime);
+		 cJSON_AddStringToObject(root, "ReportID", data->reportID);
+		 cJSON_AddStringToObject(root, "PendingCodeStatus", data->pendingCodeStatus);
+  		 cJSON_AddStringToObject(root, "PlateNumber", "0");
+         cJSON_AddStringToObject(root, "ProductModel", "0");  
+         cJSON_AddStringToObject(root, "EventCode", "0");
+        /*if(head == NULL)
+        {
+             printf("head is NULL \n");
+        }*/
+/*
+        while(head != NULL){
+            ret = sgsReadSharedMemory(head,&dest);
+
+            if(ret != 0){
+                printf("Read %s shm value failed\n",head->valueName);
+                printf("\n");        
+            }           
+            if(!strcmp(head->sensorName,DeviceName[j])){    
+                printf("*------------Get it!--------*\n");
+                printf("*--head->valueName %s *\n",head->valueName);
+                if(!strcmp(head->valueName, "DeviceID")){
+                    printf("*match DeviceID*\n");
+                    printf("*dest.value.s %s*\n",dest.value.s);
+                    cJSON_AddStringToObject(root, "DeviceId", dest.value.s);
+                    cJSON_AddStringToObject(root, "UnitID", dest.value.s);                
+                }              
+
+                else if(!strcmp(head->valueName, "MODEL")){
+                    cJSON_AddStringToObject(root, "Model", dest.value.s);
+                }
+                else if(!strcmp(head->valueName, "IMEI")){
+                    cJSON_AddStringToObject(root, "IMEI", dest.value.s);
+                }
+                else if(!strcmp(head->valueName, "Location")){
+                    cJSON_AddStringToObject(root, "Location", dest.value.s);
+                }
+                else if(!strcmp(head->valueName, "Heading")){
+                    cJSON_AddNumberToObject(root, "Heading", dest.value.f);
+                }
+                else if(!strcmp(head->valueName, "Speed")){
+                    cJSON_AddNumberToObject(root, "Speed", dest.value.f);
+                }
+                else if(!strcmp(head->valueName, "Odometer")){
+                    cJSON_AddNumberToObject(root, "Odometer", dest.value.f);
+                }           
+                else if(!strcmp(head->valueName, "EngineLoad")){
+                    cJSON_AddNumberToObject(root, "EngineLoad", dest.value.f);
+                }
+                else if(!strcmp(head->valueName, "EngineCoolantTemp")){
+                    cJSON_AddNumberToObject(root, "EngineCoolantTemp", dest.value.f);
+                }
+                else if(!strcmp(head->valueName, "FuelLevel")){
+                    cJSON_AddNumberToObject(root, "FuelLevel", dest.value.f);
+                }
+                else if(!strcmp(head->valueName, "IntakeAirTemp")){
+                    cJSON_AddNumberToObject(root, "IntakeAirTemp", dest.value.f);
+                }
+                else if(!strcmp(head->valueName, "EngineRPM")){
+                    cJSON_AddNumberToObject(root, "EngineRPM", dest.value.f);
+                }
+                else if(!strcmp(head->valueName, "FuelUsed")){
+                    cJSON_AddNumberToObject(root, "FuelUsed", dest.value.f);
+                }                
+                else if(!strcmp(head->valueName, "MassAirFlow")){
+                    cJSON_AddNumberToObject(root, "MassAirFlow", dest.value.f);
+                }
+                else if(!strcmp(head->valueName, "IntakeManifoldAbsolutePressure")){
+                    cJSON_AddNumberToObject(root, "IntakeManifoldAbsolutePressure", dest.value.f);
+                }
+                else if(!strcmp(head->valueName, "MalfunctionIndicatorLamp")){
+                    cJSON_AddNumberToObject(root, "MalfunctionIndicatorLamp", dest.value.f);
+                }
+                else if(!strcmp(head->valueName, "ThrottlePosition")){
+                    cJSON_AddNumberToObject(root, "ThrottlePosition", dest.value.f);
+                }
+                else if(!strcmp(head->valueName, "VIN")){
+                    cJSON_AddStringToObject(root, "VIN", dest.value.s);
+                }
+                else if(!strcmp(head->valueName, "MainVoltage")){
+                    cJSON_AddNumberToObject(root, "MainVoltage", dest.value.f);
+                } 
+                else if(!strcmp(head->valueName, "HDOP")){
+                    cJSON_AddNumberToObject(root, "HDOP", dest.value.f);
+                }             
+                else if(!strcmp(head->valueName, "SN")){
+                    cJSON_AddStringToObject(root, "SN", dest.value.s);
+                }
+                else if(!strcmp(head->valueName, "PendingCodeStatus")){
+                    cJSON_AddStringToObject(root, "PendingCodeStatus", dest.value.s);
+                }
+                else if(!strcmp(head->valueName, "ReportID")){
+                    cJSON_AddStringToObject(root, "ReportID", dest.value.s);
+                }
+                else if(!strcmp(head->valueName, "ReportTime")){
+                    cJSON_AddStringToObject(root, "ReportTime", dest.value.s);
+                }                              
+                else
+                    printf("Error value name %s!\n",head->valueName);
+                ;     
+
+                  
+                
+
+                if(!strcmp(dest.value.s, "Value is not ready yet")){
+                printf("dest.value.s : \n%s+\n",dest.value.s);
+                printf("HTTP Value is not ready yet\n");
+                cJSON_Delete(root); 
+                root = cJSON_CreateObject();
+
+                printf("Value is not ready yet %s\n", DeviceName[j]);
+                output = cJSON_PrintUnformatted(root);
+
+                format = cJSON_Print(root);
+         
+                break;
+                //return -1;
+                }
+                // Value of Sensor Type Ready and Do HTTP                
             }            
-            i++;
-        //}        
-        temp = temp->next;
-    }
-    return NULL;
+           
+            head = head->next;
+        }
+*/
+        ///*------*/------
+        //----------------------------------
+        // We check the JSON data at here
+     
+
+        printf("cJSON_PrintUnformatted \n");
+        output = cJSON_PrintUnformatted(root);
+
+        format = cJSON_Print(root);
+        
+        // Print the JSON data 
+        printf("-****-output-*****- \n%s\n\n",output);   
+
+        if(root == NULL){
+           printf("--------------root NULL--------------\n"); 
+        }
+        printf("--------------output > len--------------\n");         
+        if(strlen(output) > 40){
+            /*temp = findTag(interface, "DeviceID" , DeviceName[j]);
+            if(temp != NULL){                             
+                datalog.valueType = STRING_VALUE;
+                strncpy(datalog.value.s , "Value is not ready yet" , MIN(strlen("Value is not ready yet") , OBD_STRING_LENGTH));
+                datalog.value.s[MIN(strlen("Value is not ready yet") , OBD_STRING_LENGTH)] = '\0';
+                ret = sgsWriteSharedMemory(temp,&datalog);                  
+                if(ret){
+                    printf("write fail! ret %d\n",ret);
+                }
+                else
+                {
+                    printf("write DeviceID %s value to Value is not ready yet \n",DeviceName[j]);
+                }
+			}*/
+            
+            //----------------------------------
+            // Adding curl http options
+
+            sprintf(Content_Length,"Content-Length: %o",50);
+            printf("%s\n",Content_Length);
+ 
+            
+           
+            if(curl) 
+            {
+            printf("init\n");
+            //ret = curl_easy_setopt(curl, CURLOPT_URL, "http://140.118.121.61:8000/car_fet");
+            ret = curl_easy_setopt(curl, CURLOPT_URL, "http://140.118.121.61:8000/car_fet");
+            //ret = curl_easy_setopt(curl, CURLOPT_URL, "http://140.118.70.136:9001/car_fet");
+            printf("%d\n",ret);
+            //errstr = curl_easy_strerror(ret);
+            //printf("%s\n",errstr);
+
+            /* Now specify we want to POST data */
+            curl_easy_setopt(curl, CURLOPT_POST, 1L);
+
+
+            /* size of the POST data */
+            //ret = curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, sizeof(output));
+            printf("setopt FIELDSSIZE\n");
+            printf("%d\n",ret);
+            //errstr = curl_easy_strerror(ret);
+            //printf("%s\n",errstr);
+
+            /* pass in a pointer to the data - libcurl will not copy */
+            ret = curl_easy_setopt(curl, CURLOPT_POSTFIELDS, output);
+            printf("setopt FIELD\n");
+            printf("%d\n",ret);
+            //errstr = curl_easy_strerror(ret);
+            //printf("%s\n",errstr);
+            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, response_handler);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &s);
+            
+            ret = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+
+            ret = curl_easy_perform(curl);
+            printf("perform return %d\n",ret);
+            //errstr = curl_easy_strerror(ret);
+            //printf("%s\n",errstr);
+
+            }
+            else
+            {
+
+                printf("initialize curl failed\n");
+                return -1;
+
+            }
+            
+            if(ret != CURLE_OK)
+                fprintf(stderr, "curl_easy_perform() failed: %s\n",curl_easy_strerror(ret));
+
+           
+            
+            
+            // Clean JSON pointer
+
+            cJSON_Delete(root); 
+            
+
+            free(format);
+            free(output);
+            free(s.ptr);
+            
+            printf(  "[%s:%d] Finished\n", __FUNCTION__, __LINE__);
+            ///*------*/------
+        }      
+            
+        j++;
+ //   }    
+    
+ 
+    curl_global_cleanup();
+     curl_easy_cleanup(curl);
+    printf("return ret %d\n*-------------------*\n", ret);
+    return ret;
+}
+
+size_t response_handler(void *ptr, size_t size, size_t nmemb, struct string *s)
+{
+
+  size_t new_len = s->len + size*nmemb;
+  s->ptr = realloc(s->ptr, new_len+1);
+  if (s->ptr == NULL) 
+  {
+
+    fprintf(stderr, "realloc() failed\n");
+    exit(EXIT_FAILURE);
+
+  }
+  memcpy(s->ptr+s->len, ptr, size*nmemb);
+  s->ptr[new_len] = '\0';
+  s->len = new_len;
+
+  return size*nmemb;
+
+}
+
+void init_string(struct string *s) 
+{
+
+	s->len = 0;
+	s->ptr = malloc(s->len+1);
+
+	if (s->ptr == NULL) 
+	{
+
+	fprintf(stderr, "malloc() failed\n");
+	exit(EXIT_FAILURE);
+
+	}
+
+	s->ptr[0] = '\0';
+
+}
+
+int CreateLog(unsigned char *buf, int len)
+{
+
+	struct stat sb;
+	time_t nowTime;
+	struct tm nowTm;
+	char timeString[128];
+	char logFilePath[128];
+	FILE *fp = NULL;
+	int i = 0;
+
+	if(stat(LOGPATH, &sb) != 0) 
+    	mkdir(LOGPATH, 0755);
+	
+	if(buf == NULL)
+	{
+		printf(LIGHT_RED"[%s,%d] buf is empty\n"NONE,__FUNCTION__,__LINE__);
+		return -1;
+	}
+
+	time(&nowTime);
+	nowTm = *localtime(&nowTime);
+
+	memset(timeString,'\0',sizeof(timeString));
+	//printf("[%s,%d] memset done\n",__FUNCTION__,__LINE__);
+	strftime(timeString, sizeof(timeString), "%Y-%m-%d %H:%M:%S", &(nowTm));
+	//printf("[%s,%d] strftime done\n",__FUNCTION__,__LINE__);
+	printf(YELLOW"\t\t\tupdated time : %s\n"NONE,timeString);
+
+	memset(logFilePath,'\0',sizeof(logFilePath));
+
+	snprintf(logFilePath,sizeof(logFilePath),"%s/%s",LOGPATH,timeString);
+	printf(YELLOW"\t\t\tlogFilePath %s\n"NONE,logFilePath);
+
+	fp = fopen(logFilePath,"w");
+
+	if(fp == NULL)
+	{
+		printf(LIGHT_RED"[%s,%d] Open %s failed\n"NONE,__FUNCTION__,__LINE__,logFilePath);
+		return -1;
+	}
+
+
+	for(i = 0 ; i < len ; i++)
+	{
+
+		if(i%16==0)
+			fprintf(fp,"\n");
+		
+
+		fprintf(fp,"%2x ",buf[i]);
+		
+
+	}
+	fclose(fp);
+	return 0;
+
+
 }

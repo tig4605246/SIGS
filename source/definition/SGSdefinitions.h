@@ -48,9 +48,9 @@ typedef time_t epochTime;
 
 //define Data size
 
-#define DATAVALUEMAX 128
+#define DATAVALUEMAX 16324
 
-#define MSGBUFFSIZE 512
+#define MSGBUFFSIZE  512
 
 //define the log path of device.conf and data.conf
 
@@ -60,20 +60,28 @@ typedef time_t epochTime;
 
 // Master key for generating ipcs
 
-#define SGSKEY 53595123
+#define SGSKEY                  53595
+
+#define UPLOADER_SUBMASTER_KEY  51015
+
+#define COLLECTOR_SUBMASTER_KEY 64654
+
+#define LOGGER_SUBMASTER_KEY    87478
 
 // General definitions
 
-#define SGSPATH "./"
-#define OPENNEWSHM 1
+#define SGSPATH     "./"
+#define OPENNEWSHM   1
 #define OPENEXISTSHM 0 
 
 //this struct is used by queue message 
 
 struct msgbuff
 {
+
 	long mtype;
 	char mtext[MSGBUFFSIZE];
+
 };
 
 typedef struct msgbuff msgbuff;

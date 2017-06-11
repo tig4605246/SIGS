@@ -261,6 +261,7 @@ static void getInfo()
                     {
 
                         printf("Can't find matched sensorName\n");
+                        dataTemp = dataTemp->next;
 
                     }
 
@@ -272,7 +273,7 @@ static void getInfo()
         else
         {
 
-            printf("Read done\n");
+            //printf("Read done\n");
 
             break;
 

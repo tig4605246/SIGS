@@ -23,6 +23,12 @@
 //We declare own libraries at below
 
 #include "../ipcs/SGSipcs.h"
+#include "../events/SGSEvent.h"
+
+#define CMDLEN 128
+#define BUFLEN 2048
+
+#define TMP_PATH "./tmp.conf"
 
 //Store shared memory id
 
@@ -77,7 +83,15 @@ void stopUploadingProcesses();
 //Pre : Nothing
 //Post : Nothing
 
+//Intent : 
+
 void forceQuit(int sigNum);
+
+//Intent : This function will update the conf by cpm70-agent, if the process failed, it will call the backup conf file
+//Pre : Nothing
+//Post : Nothing
+
+void updateConf();
 
 
 int main()
@@ -161,7 +175,8 @@ int main()
         }
 
     }
-    
+    updateConf();
+
     return 0;
 }
 
@@ -336,7 +351,6 @@ void forceQuit(int sigNum)
 
 }
 
-
 void testWriteSharedMemory()
 {
 
@@ -358,5 +372,159 @@ void testWriteSharedMemory()
     
 
     return ;
+
+}
+
+void updateConf()
+{
+
+    FILE *fp = NULL;
+    FILE *fpRead = NULL;
+    char cmd[CMDLEN];
+    char buf[BUFLEN];
+    char *returnValue = NULL;
+    char agent_name[] = "cpm70-agent";
+    char grid_id[32];
+    int grid_number = 0, i = 0;
+    int ret = 0;
+
+    fp = fopen(TMP_PATH,"w");
+
+    if(fp == NULL)
+    {
+
+        printf(LIGHT_RED"[%s,%d] Error, can't open %s. This is probably caused by permission or incorrect path\n"NONE,__FUNCTION__,__LINE__,DATACONF);
+        return ;
+
+    }
+
+    fprintf(fp,
+        "#data info #deviceName, SensorName, valueName, ID, read address, read length, (optional)\n"
+        "GWInfo,System_Info,CPU_Usage,01,02,03,\n"
+        "GWInfo,System_Info,Memory_Usage,01,02,03,\n"
+        "GWInfo,System_Info,Disk_Usage,01,02,03,\n"
+    );
+
+    
+    //Ready the command at here
+
+    memset(cmd,0,sizeof(sizeof(cmd)));
+
+    snprintf(cmd,CMDLEN,"./cpm70-agent --list-all");
+
+    printf("%s\n",cmd);
+
+    //execute command
+
+    fpRead = popen(cmd,"r");
+
+    //Read result to buf
+
+    if(fpRead != NULL)
+        fgets(buf, BUFLEN , fpRead);
+    else
+    {
+
+        printf("[%s,%d]execute command : %s failed\n",__FUNCTION__,__LINE__,cmd);
+        fclose(fp);
+        return;
+
+    }
+
+    printf("buf is %s",buf);
+
+    //if ok, we update the data.conf
+
+    returnValue = strstr(buf,"ok");
+
+    if(returnValue == NULL)
+    {
+
+        printf(LIGHT_RED"[%s,%d]Reply of the command : %s\nFailed to get power grids' IDs\n"NONE,__FUNCTION__,__LINE__,cmd);
+        fclose(fp);
+        fclose(fpRead);
+        return;
+
+    }
+
+    //Get how many power grids we have at this GW
+
+    returnValue = strstr(buf,";");
+    *returnValue = 0;
+    returnValue++;
+
+    grid_number = atoi(returnValue);
+
+    printf("[%s,%d]grid_num %d\n",__FUNCTION__,__LINE__,grid_number);
+
+    for(i = 0 ; i < grid_number ; i++)
+    {
+
+        //initialize char array
+
+        memset(grid_id,0,sizeof(grid_id));
+        memset(buf,0,sizeof(buf));
+        
+        //Get grid id
+        
+        fgets(buf, BUFLEN , fpRead);
+        snprintf(grid_id,32,"%s",buf);
+        grid_id[strlen(grid_id) - 1] = 0;
+
+        fprintf(fp,
+           "cpm70_agent,%s,ID,01,02,03,\n"
+            "cpm70_agent,%s,lastReportTime,01,02,03,\n"
+            "cpm70_agent,%s,wire,01,02,03,\n"
+            "cpm70_agent,%s,freq,01,02,03,\n"
+            "cpm70_agent,%s,ua,01,02,03,\n"
+            "cpm70_agent,%s,ub,01,02,03,\n"
+            "cpm70_agent,%s,uc,01,02,03,\n"
+            "cpm70_agent,%s,u_avg,01,02,03,\n"
+            "cpm70_agent,%s,uab,01,02,03,\n"
+            "cpm70_agent,%s,ubc,01,02,03,\n"
+            "cpm70_agent,%s,uca,01,02,03,\n"
+            "cpm70_agent,%s,uln_avg,01,02,03,\n"
+            "cpm70_agent,%s,ia,01,02,03,\n"
+            "cpm70_agent,%s,ib,01,02,03,\n"
+            "cpm70_agent,%s,ic,01,02,03,\n"
+            "cpm70_agent,%s,i_avg,01,02,03,\n"
+            "cpm70_agent,%s,pa,01,02,03,\n"
+            "cpm70_agent,%s,pb,01,02,03,\n"
+            "cpm70_agent,%s,pc,01,02,03,\n"
+            "cpm70_agent,%s,p_sum,01,02,03,\n"
+            "cpm70_agent,%s,sa,01,02,03,\n"
+            "cpm70_agent,%s,sb,01,02,03,\n"
+            "cpm70_agent,%s,sc,01,02,03,\n"
+            "cpm70_agent,%s,s_sum,01,02,03,\n"
+            "cpm70_agent,%s,pfa,01,02,03,\n"
+            "cpm70_agent,%s,pfb,01,02,03,\n"
+            "cpm70_agent,%s,pfc,01,02,03,\n"
+            "cpm70_agent,%s,pf_avg,01,02,03,\n"
+            "cpm70_agent,%s,ae_tot,01,02,03,\n"
+            "cpm70_agent,%s,uavg_thd,01,02,03,\n"
+            "cpm70_agent,%s,iavg_thd,01,02,03,\n"
+            ,grid_id,grid_id,grid_id,grid_id,grid_id,grid_id,grid_id
+            ,grid_id,grid_id,grid_id,grid_id,grid_id,grid_id,grid_id
+            ,grid_id,grid_id,grid_id,grid_id,grid_id,grid_id,grid_id
+            ,grid_id,grid_id,grid_id,grid_id,grid_id,grid_id,grid_id
+            ,grid_id,grid_id,grid_id
+        );
+
+    }
+
+    fclose(fp);
+    fclose(fpRead);
+
+    //replace the old conf file
+
+    if(ret = rename(TMP_PATH,DATACONF) != 0)
+    {
+
+        printf("[%s,%d]rename %s failed, we are using the old conf file\n",__FUNCTION__,__LINE__,TMP_PATH);
+
+    }
+
+
+    return;
 
 }

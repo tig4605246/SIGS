@@ -102,7 +102,7 @@ int main()
         if(strcmp("SGSlogger",deviceTemp->deviceName))
         {
 
-            //printf("deviceName : %s\n",deviceTemp->deviceName);
+            printf("deviceName : %s\n",deviceTemp->deviceName);
             ret = sgsCreateTable(db, deviceTemp);
             if(ret != 0)
             {
@@ -133,6 +133,7 @@ int main()
             if(strcmp("SGSlogger",deviceTemp->deviceName))
             {
 
+                printf(YELLOW"Newing records\n"NONE);
                 ret = sgsNewRecord(db, deviceTemp, NULL);
 
                 if(ret != 0)
@@ -143,6 +144,11 @@ int main()
                 }
 
             } 
+
+            //Check if we got some outdated data logs need to be deleted (now - 86400*7 )
+
+            sgsDeleteRecordsByTime(db, deviceTemp, now - 60);
+
             deviceTemp = deviceTemp->next;
 
         }
@@ -150,9 +156,7 @@ int main()
         time(&now);
 
 
-        //Check if we got some outdated data logs need to be deleted (now - 86400*7 )
-
-        sgsDeleteRecordsByTime(db, deviceTemp, now - 60);
+        
 
         deviceTemp = deviceInfoPtr;
         
@@ -213,11 +217,18 @@ void forceQuit(int sigNum)
 
 static int sampleCallback(void *NotUsed, int argc, char **argv, char **azColName)
 {
+
     int i;
-   for(i=0; i<argc; i++){
+   for(i=0; i<argc; i++)
+   {
+
       printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+
    }
+
    printf("\n");
    printf(LIGHT_PURPLE"[%s,%d] this is a callback function from SGSlogger\n"NONE,__FUNCTION__,__LINE__);
+
    return 0;
+
 }

@@ -21,32 +21,11 @@
 #include <time.h>
 #include <error.h>
 #include <errno.h>
-#include <arpa/inet.h>
-#include <assert.h>
-#include <netinet/in.h>
-#include <signal.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
 
-
+#include <curl/curl.h> //`pkg-config --cflags --libs ` or -lcurl
 #include "../ipcs/SGSipcs.h"
-#include "../events/SGSEvent.h"
 #include "../controlling/SGScontrol.h"
 #include "../thirdparty/cJSON.h" // cJSON.c -lm
-
-//Post definitions for max length
-
-#define SA      struct sockaddr
-#define MAXLINE 16384
-#define MAXSUB  16384
-
-//Debug variable
-
-int UploadDataProcessCount = 0;
-int CreateJSONAndRunHTTPCommandCount = 0;
-int process_httpCount = 0;
 
 deviceInfo *deviceInfoPtr = NULL;
 
@@ -54,35 +33,24 @@ dataInfo *dataInfoPtr = NULL;
 
 deviceInfo *interface = NULL;
 
-//Upload interval
+// catch post response for handler
 
-int upload_interval = 30;
+struct string{
+    char *ptr;
+    size_t len;
+};
 
-//I don't know what this is for
+//we use this function to initialize string
 
-extern int h_errno;
+void init_string(struct string *s);
 
-//Server ip
+//curl callback handler
 
-char *hname = "140.118.121.61";
-
-//Which port server is using
-
-#define SERVERPORT 8000
-
-//the RESTAPI 
-
-char *page = "/test";
+size_t response_handler(void *ptr, size_t size, size_t nmemb, struct string *s);
 
 //perform JSON operation and call curl http POST
 
 int CreateJSONAndRunHTTPCommand(deviceInfo *targetPtr);
-
-//Purpose : Replace curl doing Post
-//Pre : content we want to upload
-//Post : return the packets size we upload to the server (target)
-
-ssize_t process_http( char *content);
 
 //Intent : close program correctly
 //Pre : signal number catched by sigaction
@@ -201,129 +169,45 @@ int main(int argc, char** argv)
         //times up
 
         ret = CreateJSONAndRunHTTPCommand(target);
-        sleep(30);
+        sleep(5);
 
     }
 
 }
 
-ssize_t process_http( char *content)
+void init_string(struct string *s) 
 {
-    
-    int sockfd;
-	struct sockaddr_in servaddr;
-	char **pptr;
-	char str[50];
-	struct hostent *hptr;
-	char sendline[MAXLINE + 1], recvline[MAXLINE + 1];
-    int i=0;
-    char *error = NULL;
-	ssize_t n;
 
-    printf(YELLOW"process_httpCount %d\n"NONE,process_httpCount++);
+  s->len = 0;
+  s->ptr = malloc(s->len+1);
+  if (s->ptr == NULL) 
+  {
 
-    //Intialize host entity with server ip address
+    fprintf(stderr, "malloc() failed\n");
+    exit(EXIT_FAILURE);
 
-    if ((hptr = gethostbyname(hname)) == NULL) 
-    {
+  }
+  s->ptr[0] = '\0';
 
-		syslog(LOG_ERR, "[%s:%d] gethostbyname error for host: %s: %s", __FUNCTION__, __LINE__,hname ,hstrerror(h_errno));
+}
 
-		return -1;
+size_t response_handler(void *ptr, size_t size, size_t nmemb, struct string *s)
+{
 
-	}
+  size_t new_len = s->len + size*nmemb;
+  s->ptr = realloc(s->ptr, new_len+1);
+  if (s->ptr == NULL) 
+  {
 
-	syslog(LOG_ERR, "[%s:%d] hostname: %s\n",__FUNCTION__,__LINE__, hptr->h_name);
+    fprintf(stderr, "realloc() failed\n");
+    exit(EXIT_FAILURE);
 
-    //Set up address type (FAMILY)
+  }
+  memcpy(s->ptr+s->len, ptr, size*nmemb);
+  s->ptr[new_len] = '\0';
+  s->len = new_len;
 
-	if (hptr->h_addrtype == AF_INET && (pptr = hptr->h_addr_list) != NULL) 
-    {
-
-		syslog(LOG_ERR, "[%s:%d] address: %s\n",__FUNCTION__,__LINE__,inet_ntop( hptr->h_addrtype , *pptr , str , sizeof(str) ));
-
-	} 
-    else
-    {
-
-		syslog(LOG_ERR, "[%s:%d] Error call inet_ntop \n",__FUNCTION__,__LINE__);
-
-        return -1;
-
-	}
-
-    //Create socket
-
-	sockfd = socket(AF_INET, SOCK_STREAM, 0);
-
-    //Set to 0  (Initialization)
-
-	bzero(&servaddr, sizeof(servaddr));
-
-    //Fill in the parameters
-
-	servaddr.sin_family = AF_INET;
-	servaddr.sin_port = htons(SERVERPORT);
-	inet_pton(AF_INET, str, &servaddr.sin_addr);
-
-    //Connect to the target server
-
-	connect(sockfd, (SA *) & servaddr, sizeof(servaddr));
-
-    //Header content for HTTP POST
-
-	snprintf(sendline, MAXSUB,
-		 "POST %s HTTP/1.1\r\n"
-		 "Host: %s\r\n"
-		 "Content-type: application/json; charset=UTF-8\r\n"
-         "User-Agent: Kelier/0.1\r\n"
-		 "Content-Length: %ld\r\n\r\n"
-		 "%s", page, hname, strlen(content), content);
-
-    //print out the content
-
-    printf("sendline : \n %s",sendline);
-    syslog(LOG_ERR, "[%s:%d] sendline : ",__FUNCTION__,__LINE__);
-
-    //Send the packet to the server
-
-	write(sockfd, sendline, strlen(sendline));
-
-    //Get the result
-
-	while ((n = read(sockfd, recvline, MAXLINE)) > 0) 
-    {
-
-		recvline[n] = '\0';
-        
-		
-	}
-
-    //Check if the last sending process is a success or not
-
-    error = strstr(recvline,"fail");
-    if(error != NULL)
-    {
-
-        syslog(LOG_ERR, "\033[1;31m""[%s,%d] %s\n""\033[1;37m",__FUNCTION__,__LINE__, recvline);
-        printf("\033[1;31m""[%s,%d] %s\n""\033[1;37m",__FUNCTION__,__LINE__, recvline);
-        
-        return -1;
-
-    }
-    else
-    {
-
-        syslog(LOG_ERR, "\033[1;32m""[%s,%d] Post Successfully\n""\033[1;37m",__FUNCTION__,__LINE__);
-        printf( "\033[1;32m""[%s,%d] Post Result : %s \n""\033[1;37m",__FUNCTION__,__LINE__,recvline);
-
-    }
-
-    //Always release the resources
-
-    close(sockfd);
-
-	return n;
+  return size*nmemb;
 
 }
 
@@ -336,19 +220,35 @@ int CreateJSONAndRunHTTPCommand(deviceInfo *targetPtr)
     char *format = NULL;
     cJSON *root, *row; 
     cJSON *field;
+    CURL *curl;
 	char *errstr;
 	char Content_Length[32];
+	struct curl_slist *chunk = NULL;
+    struct string s;
     dataInfo *dataTemp = targetPtr->dataInfoPtr;
     dataLog dLog ;
 
     printf( "[%s:%d] CreateJSONAndRunHTTPCommand called\n", __FUNCTION__, __LINE__);
+
+    
+
+    init_string(&s);
+    
+    // Initialize curl headers
+    syslog(LOG_ERR,"[%s:%d]  ", __FUNCTION__, __LINE__);
+    /*
+    chunk = curl_slist_append(chunk, "Accept: text/plain");
+	chunk = curl_slist_append(chunk, "Accept-Encoding: gzip, deflate");
+    chunk = curl_slist_append(chunk, "application/json; charset=UTF-8");
+	chunk = curl_slist_append(chunk, "Content_Length");
+	chunk = curl_slist_append(chunk, "User-Agent: Kelier/0.1");
+    */
 
     // Initialize cJSON
 
     root = cJSON_CreateObject();
     cJSON_AddItemToObject(root, "rows", row=cJSON_CreateArray() );
     syslog(LOG_ERR,"[%s:%d]  ", __FUNCTION__, __LINE__);
-
     /*
         ---Stuff cJSON at here---
     */
@@ -419,13 +319,82 @@ int CreateJSONAndRunHTTPCommand(deviceInfo *targetPtr)
 
     // Print the JSON data        
 
-    //printf("%s\n",output);
+    printf("%s\n",output);
     // Adding curl http options
 
     sprintf(Content_Length,"Content-Length: %o",50);
-    //printf("%s\n",Content_Length);
+    printf("%s\n",Content_Length);
 
-    ret = process_http(output);
+    curl_global_init(CURL_GLOBAL_ALL);
+
+    curl = curl_easy_init();
+
+    if(curl) 
+    {
+
+        printf("init\n");
+        if(interface != NULL)
+        {   
+
+            printf("using %s\n",interface->interface);
+            ret = curl_easy_setopt(curl, CURLOPT_URL, interface->interface);
+
+        }
+           
+        else
+            ret = curl_easy_setopt(curl, CURLOPT_URL, "140.118.121.61:8000/test");
+        printf("%d\n",ret);
+        //errstr = curl_easy_strerror(ret);
+        //printf("%s\n",errstr);
+
+        /* Now specify we want to POST data */
+        curl_easy_setopt(curl, CURLOPT_POST, 1L);
+
+
+        /* size of the POST data */
+        //ret = curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, sizeof(output));
+        printf("setopt FIELDSSIZE\n");
+        printf("%d\n",ret);
+        //errstr = curl_easy_strerror(ret);
+        //printf("%s\n",errstr);
+
+        /* pass in a pointer to the data - libcurl will not copy */
+        ret = curl_easy_setopt(curl, CURLOPT_POSTFIELDS, output);
+        printf("setopt FIELD\n");
+        printf("%d\n",ret);
+        //errstr = curl_easy_strerror(ret);
+        //printf("%s\n",errstr);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, response_handler);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &s);
+        
+        ret = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+
+        ret = curl_easy_perform(curl);
+        printf("perform return %d\n",ret);
+        //errstr = curl_easy_strerror(ret);
+        //printf("%s\n",errstr);
+
+    }
+    else
+    {
+
+        printf("initialize curl failed\n");
+        return -1;
+
+    }
+
+    if(ret != CURLE_OK)
+        fprintf(stderr, "curl_easy_perform() failed: %s\n",curl_easy_strerror(ret));
+
+    if(s.ptr[11] == 't') ret = 0;
+    else ret = -1;
+
+    //curl_slist_free_all(chunk);
+
+    // always cleanup 
+    
+    curl_easy_cleanup(curl);
+    curl_global_cleanup();
 
     // Clean JSON pointer
 
@@ -433,6 +402,7 @@ int CreateJSONAndRunHTTPCommand(deviceInfo *targetPtr)
     
     free(format);
     free(output);
+    free(s.ptr);
     printf(  "[%s:%d] Finished\n", __FUNCTION__, __LINE__);
     return ret;
 
