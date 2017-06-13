@@ -128,7 +128,7 @@ static void getInfo()
 
     memset(cmd,0,sizeof(sizeof(cmd)));
 
-    snprintf(cmd,CMDLEN,"./cpm70-agent --get-dev-status");
+    snprintf(cmd,CMDLEN,"/home/aaeon/API/cpm70-agent --get-dev-status");
 
     //execute command
 
@@ -176,7 +176,7 @@ static void getInfo()
 
         //Set the last char to be zero, prevents overflow
 
-        buf[strlen(buf)] = '\0';
+        buf[strlen(buf) - 1] = '\0';
 
         //printf("buf len %lu\n%s",strlen(buf),buf);//debugging
 

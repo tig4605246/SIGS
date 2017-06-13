@@ -219,6 +219,13 @@ int sgsNewRecord(sqlite3 *db, deviceInfo *target, cF callbackFunction)
         printf(LIGHT_RED"[%s,%d] target is NULL\n"NONE,__FUNCTION__,__LINE__);
         return -1;
 
+    }
+    else if(target->dataInfoPtr == NULL)
+    {
+
+        printf(LIGHT_RED"[%s,%d] target->dataInfoPtr is NULL\n"NONE,__FUNCTION__,__LINE__);
+        return -1;
+
     } 
     if(data == NULL)
     {

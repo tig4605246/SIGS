@@ -64,15 +64,15 @@ extern int h_errno;
 
 //Server ip
 
-char *hname = "140.118.121.61";
+char *hname = "140.118.70.136";
 
 //Which port server is using
 
-#define SERVERPORT 8000
+#define SERVERPORT 9000
 
 //the RESTAPI 
 
-char *page = "/test";
+char *page = "/smartTest";
 
 //perform JSON operation and call curl http POST
 
@@ -277,13 +277,13 @@ ssize_t process_http( char *content)
 		 "Host: %s\r\n"
 		 "Content-type: application/json; charset=UTF-8\r\n"
          "User-Agent: Kelier/0.1\r\n"
-		 "Content-Length: %ld\r\n\r\n"
+		 "Content-Length: %u\r\n\r\n"
 		 "%s", page, hname, strlen(content), content);
 
     //print out the content
 
-    printf("sendline : \n %s",sendline);
-    syslog(LOG_ERR, "[%s:%d] sendline : ",__FUNCTION__,__LINE__);
+    printf("sendline : \n %s\n",sendline);
+    //syslog(LOG_ERR, "[%s:%d] sendline : ",__FUNCTION__,__LINE__);
 
     //Send the packet to the server
 
@@ -376,7 +376,7 @@ int CreateJSONAndRunHTTPCommand(deviceInfo *targetPtr)
 
         cJSON_AddStringToObject(field,dataTemp->valueName,dLog.value.s);
 
-        printf("[%s:%d]  dataTemp-valueName %s \n", __FUNCTION__, __LINE__,dataTemp->valueName);
+        //printf("[%s:%d]  dataTemp-valueName %s \n", __FUNCTION__, __LINE__,dataTemp->valueName);
         dataTemp = dataTemp->next;
         
 
@@ -386,6 +386,10 @@ int CreateJSONAndRunHTTPCommand(deviceInfo *targetPtr)
         while( dataTemp != NULL)
         {
 
+            if(!strcmp(dataTemp->valueName,"ID"))
+                break;
+
+            //syslog(LOG_ERR,"[%s:%d] dataTemp->valueName %s", __FUNCTION__, __LINE__,dataTemp->valueName);
             
             memset(dLog.value.s,'\0',sizeof(dLog.value.s));
             dLog.valueType = STRING_VALUE;
@@ -397,19 +401,17 @@ int CreateJSONAndRunHTTPCommand(deviceInfo *targetPtr)
             //Put data into the JSON Object
 
             cJSON_AddStringToObject(field,dataTemp->valueName,dLog.value.s);
+
             //syslog(LOG_ERR,"[%s:%d] dataTemp->valueName %s", __FUNCTION__, __LINE__,dataTemp->valueName);
             
-            if(strcmp(dataTemp->valueName,"ID"))
-                dataTemp = dataTemp->next;
-            else
-                break;
-            //syslog(LOG_ERR,"[%s:%d] dataTemp->valueName %s", __FUNCTION__, __LINE__,dataTemp->valueName);
-
+            dataTemp = dataTemp->next;
+            
+            
         }
 
     }
 
-    syslog(LOG_ERR,"[%s:%d] cJSON done ", __FUNCTION__, __LINE__);
+    //printf("[%s:%d] cJSON done \n", __FUNCTION__, __LINE__);
 
     // We check the JSON data at here
 
@@ -433,7 +435,7 @@ int CreateJSONAndRunHTTPCommand(deviceInfo *targetPtr)
     
     free(format);
     free(output);
-    printf(  "[%s:%d] Finished\n", __FUNCTION__, __LINE__);
+    printf("[%s:%d] Finished\n", __FUNCTION__, __LINE__);
     return ret;
 
 }

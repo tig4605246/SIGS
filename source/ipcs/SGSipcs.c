@@ -145,12 +145,12 @@ int sgsInitDeviceInfo(deviceInfo **deviceInfoPtr)
 
         memset(buf,'\0',sizeof(buf));
         if(fscanf(deviceConfigFile, "%[^\n]\n", buf) < 0) break;
-        printf("[%s,%d]fscanf in %s\n",__FUNCTION__,__LINE__,buf);
+        //printf("[%s,%d]fscanf in %s\n",__FUNCTION__,__LINE__,buf);
         if(!strlen(buf)) continue;
         if(buf[0] == '#')
         {
 
-            printf("Skipping %s\n",buf);
+            //printf("Skipping %s\n",buf);
             continue;
 
         } 
@@ -208,7 +208,7 @@ int sgsInitDeviceInfo(deviceInfo **deviceInfoPtr)
         else
         {
 
-            printf("[%s,%d]deviceInfoPtr is not NULL\n",__FUNCTION__,__LINE__);
+            //printf("[%s,%d]deviceInfoPtr is not NULL\n",__FUNCTION__,__LINE__);
             tempPtr->next = *deviceInfoPtr;
             *deviceInfoPtr = tempPtr;
             
@@ -252,7 +252,7 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int Creat
         //printf("[LINE %d]: %s\n", i, buf);
 
         //Skip the empty line
-        printf("[%s,%d]fscanf %s\n",__FUNCTION__,__LINE__,buf);
+        //printf("[%s,%d]fscanf %s\n",__FUNCTION__,__LINE__,buf);
         if(!strlen(buf))
         { 
             printf("[%s,%d]buf == 0\n",__FUNCTION__,__LINE__);
@@ -265,7 +265,7 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int Creat
 
         if(buf[0] == '#')
         { 
-            printf("[%s,%d]line is commented\n",__FUNCTION__,__LINE__);
+            //printf("[%s,%d]line is commented\n",__FUNCTION__,__LINE__);
             zero++; 
             continue;
         
@@ -303,7 +303,7 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int Creat
                 sp2++;
 
             }
-            printf("[%s,%d]sp1 = %s sp2 = %s\n",__FUNCTION__,__LINE__,sp1,sp2);
+            //printf("[%s,%d]sp1 = %s sp2 = %s\n",__FUNCTION__,__LINE__,sp1,sp2);
             switch(j)
             {
                 
@@ -420,9 +420,9 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int Creat
         //printf("  %d: name=%s, daemon=%s, bus=%s, id=%d, addr=%d, cmd=%s, rectime=%d\n", i, ctag->name, ctag->daemon, ctag->bus, ctag->id, ctag->addr, ctag->cmd, ctag->rectime_in_sec);
     }
     fclose(dataConfigFile);
-    printf("[Debug] line is %d, zero is %d\n",line,zero);
+    //printf("[Debug] line is %d, zero is %d\n",line,zero);
     line -= (zero );
-    printf("[Debug] line is %d, zero is %d\n",line,zero);
+    //printf("[Debug] line is %d, zero is %d\n",line,zero);
     if(CreateShm)
     {
 

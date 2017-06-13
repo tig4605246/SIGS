@@ -18,8 +18,15 @@ TEST7=writesgs
 
 # flag for paho mqtt [ -rdynamic -lpaho-mqtt3a ] 
 # flag for cJSON  [ -lm ]
+# flag -lsqlite3
+ 
+# ARM core
 
+#CC=arm-linux-gnueabi-gcc
 
+# x86 core
+
+CC=gcc
 
 all:
 
@@ -33,7 +40,7 @@ all:
 
 	$(CC) -o ../../bin/$(PROG5) ../uploader/$(PROG5).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../thirdparty/cJSON.c  -pthread -lm
 
-	$(CC) -o ../../bin/$(PROG6) ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../log/SGSlogfile.c $(PROG6).c -pthread -lm -lsqlite3 -ldl
+	$(CC) -o ../../bin/$(PROG6) ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../log/SGSlogfile.c ../thirdparty/sqlite3.c $(PROG6).c -pthread -lm -ldl
 
 	#$(CC) -o ../../bin/$(PROG7) ../collector/$(PROG7).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../thirdparty/cJSON.c -pthread -lm -lcurl 
 

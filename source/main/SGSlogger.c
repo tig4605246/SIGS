@@ -104,10 +104,12 @@ int main()
 
             printf("deviceName : %s\n",deviceTemp->deviceName);
             ret = sgsCreateTable(db, deviceTemp);
+
             if(ret != 0)
             {
-                printf(LIGHT_RED"[%s,%d] sgsCreateTable failed\n"NONE,__FUNCTION__,__LINE__);
-                return -1;
+
+                printf(LIGHT_RED"[%s,%d] sgsCreateTable for %s failed\n"NONE,__FUNCTION__,__LINE__,deviceTemp->deviceName);
+
             }
 
         }

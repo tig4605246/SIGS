@@ -101,6 +101,8 @@ int main()
     char input;
     FILE *daemonFp = NULL;
     struct sigaction act, oldact;
+
+    struct sigaction act_2, oldact_2;
     
     
     printf("Starting SGSmaster...\n");
@@ -109,9 +111,17 @@ int main()
 
     //sgsShowDeviceInfo(deviceInfoPtr);
 
+    //catching SIGINT
+
     act.sa_handler = (__sighandler_t)forceQuit;
     act.sa_flags = SA_ONESHOT|SA_NOMASK;
     sigaction(SIGINT, &act, &oldact);
+
+    //catching SIGTERM
+
+    act_2.sa_handler = (__sighandler_t)forceQuit;
+    act_2.sa_flags = SA_ONESHOT|SA_NOMASK;
+    sigaction(SIGTERM, &act_2, &oldact_2);
 
     printf("[%s,%d] Initializing IPCs...\n",__FUNCTION__,__LINE__);
 
@@ -346,7 +356,7 @@ void forceQuit(int sigNum)
     if(deviceInfoPtr != NULL)
         releaseResource();
         
-    printf("[Ctrl + C] Catched (signal number %d) , forceQuitting...\n",sigNum);
+    printf("Signal Catched (signal number %d), SGSmaster is forceQuitting...\n",sigNum);
     exit(0);
 
 }
