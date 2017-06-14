@@ -419,7 +419,7 @@ void updateConf()
     char cmd[CMDLEN];
     char buf[BUFLEN];
     char *returnValue = NULL;
-    char agent_name[] = "cpm70-agent";
+    char agent_name[] = "cpm70-agent-tx";
     char grid_id[32];
     int grid_number = 0, i = 0;
     int ret = 0;
@@ -446,7 +446,7 @@ void updateConf()
 
     memset(cmd,0,sizeof(sizeof(cmd)));
 
-    snprintf(cmd,CMDLEN,"./cpm70-agent --list-all");
+    snprintf(cmd,CMDLEN,"./cpm70-agent-tx --list-all");
 
     printf("%s\n",cmd);
 
