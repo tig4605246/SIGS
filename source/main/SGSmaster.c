@@ -4,7 +4,7 @@
     Last Update: March 8,2017
     Program statement: 
         This program will manage all other sub processes it creates.
-        Also, it's responsible for opening and closing all sub processes.
+        Also, it's responsible for invoking and terminating all sub processes.
 
 */
 
@@ -37,61 +37,71 @@ int shmID = 0;
 dataInfo *dataInfoPtr = NULL;
 deviceInfo *deviceInfoPtr = NULL;
 
-//Intent : set up dataInfo and deviceInfo (get pointers from global parameters)
-//Pre : Nothing
-//Post : On success, return 0. On error, return -1 and shows the error message
+//Intent : Set up dataInfo and deviceInfo (get pointers from global parameters)
+//Pre    : Nothing
+//Post   : On success, return 0. On error, return -1 and shows the error message
 
 int initializeInfo();
 
-//Intent : free deviceInfoPtr, dataInforPtr and free the shared memory (get pointers from global parameters)
-//Pre : Nothing
-//Post : On success, return 0. On error, return -1 and shows the error messages
+//Intent : Free deviceInfoPtr, dataInforPtr and free the shared memory (get pointers from global parameters)
+//Pre    : Nothing
+//Post   : On success, return 0. On error, return -1 and shows the error messages
 
 void releaseResource();
 
 //Intent : Start sub processes
-//Pre : Nothing
-//Post : On success, return 0. On error, return -1 and shows the error messages
+//Pre    : Nothing
+//Post   : On success, return 0. On error, return -1 and shows the error messages
 
 void startCollectingProcesses();
 
 //Intent : Stop sub processes by using the pid stored in the deviceInfo struct
-//Pre : Nothing
-//Post : Nothing
+//Pre    : Nothing
+//Post   : Nothing
 
 void stopAllCollectingProcesses();
 
-//Intent : write data to shared memory
-//Pre : Nothing
-//Post : Nothing
+//Intent : Write data to shared memory
+//Pre    : Nothing
+//Post   : Nothing
 
 void testWriteSharedMemory();
 
-//Intent : start GW-to-Server processes
-//Pre : Nothing
-//Post : Nothing
+//Intent : Start GW-to-Server processes
+//Pre    : Nothing
+//Post   : Nothing
 
 void stratUploadingProcesses();
 
-//Intent : stop GW-to-Server processes
-//Pre : Nothing
-//Post : Nothing
+//Intent : Stop GW-to-Server processes
+//Pre    : Nothing
+//Post   : Nothing
 
 void stopUploadingProcesses();
 
-//Intent : shut down everything when SIGINT is catched
-//Pre : Nothing
-//Post : Nothing
+//Intent : Shut down everything when SIGINT is catched
+//Pre    : Nothing
+//Post   : Nothing
 
 //Intent : 
 
 void forceQuit(int sigNum);
 
 //Intent : This function will update the conf by cpm70-agent, if the process failed, it will call the backup conf file
-//Pre : Nothing
-//Post : Nothing
+//Pre    : Nothing
+//Post   : Nothing
 
 void updateConf();
+
+/*
+
+//Intent : Restart sub-processes
+//Pre    : Nothing
+//Post   : Nothing
+
+void RestartSubProcesses();
+
+*/
 
 
 int main()
@@ -103,9 +113,12 @@ int main()
     struct sigaction act, oldact;
 
     struct sigaction act_2, oldact_2;
+
+    struct sigaction act_3, oldact_3;
     
     
     printf("Starting SGSmaster...\n");
+
     showVersion();
 
 
@@ -123,11 +136,24 @@ int main()
     act_2.sa_flags = SA_ONESHOT|SA_NOMASK;
     sigaction(SIGTERM, &act_2, &oldact_2);
 
+    /*
+    //catching SIGUSR2
+
+    act_2.sa_handler = (__sighandler_t)RestartSubProcesses;
+    act_2.sa_flags = SA_ONESHOT|SA_NOMASK;
+    sigaction(SIGUSR2, &act_2, &oldact_2);
+    */
+
+    printf("[%s,%d] Updating data.conf...\n",__FUNCTION__,__LINE__);
+
+    updateConf();
+
     printf("[%s,%d] Initializing IPCs...\n",__FUNCTION__,__LINE__);
 
     initializeInfo();
 
     printf("Starting sub processes...\n");
+
     startCollectingProcesses();
 
     while(1)
@@ -185,11 +211,9 @@ int main()
         }
 
     }
-    updateConf();
 
     return 0;
 }
-
 
 int initializeInfo()
 {
@@ -353,10 +377,12 @@ void forceQuit(int sigNum)
 {
 
     stopAllCollectingProcesses();
+
     if(deviceInfoPtr != NULL)
         releaseResource();
         
     printf("Signal Catched (signal number %d), SGSmaster is forceQuitting...\n",sigNum);
+
     exit(0);
 
 }

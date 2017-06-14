@@ -42,12 +42,6 @@
 #define MAXLINE 16384
 #define MAXSUB  16384
 
-//Debug variable
-
-int UploadDataProcessCount = 0;
-int CreateJSONAndRunHTTPCommandCount = 0;
-int process_httpCount = 0;
-
 deviceInfo *deviceInfoPtr = NULL;
 
 dataInfo *dataInfoPtr = NULL;
@@ -79,22 +73,34 @@ char *page = "/smartTest";
 int CreateJSONAndRunHTTPCommand(deviceInfo *targetPtr);
 
 //Purpose : Replace curl doing Post
-//Pre : content we want to upload
-//Post : return the packets size we upload to the server (target)
+//Pre     : content we want to upload
+//Post    : return the packets size we upload to the server (target)
 
 ssize_t process_http( char *content);
 
 //Intent : close program correctly
-//Pre : signal number catched by sigaction
-//Post : Nothing 
+//Pre    : signal number catched by sigaction
+//Post   : Nothing 
 
 void stopAndLeave(int sigNum);
 
 //Intent : set up dataInfo and deviceInfo (get pointers from global parameters)
-//Pre : Nothing
-//Post : On success, return 0. On error, return -1 and shows the error message
+//Pre    : Nothing
+//Post   : On success, return 0. On error, return -1 and shows the error message
 
 static int initializeInfo();
+
+//Intent : Write data to socket's file descriptor properly
+//Pre    : file descriptor, data buffer, data length
+//Post   : On success, return 0. On error return -1.
+
+int my_write(int fd, void *buffer, int length);
+
+//Intent : Read data from socket's file descriptor properly
+//Pre    : file descriptor, data buffer, data length
+//Post   : On success, return 0. On error return -1.
+
+int my_read(int fd, void *buffer, int length);
 
 
 int main(int argc, char** argv)
@@ -201,7 +207,7 @@ int main(int argc, char** argv)
         //times up
 
         ret = CreateJSONAndRunHTTPCommand(target);
-        sleep(30);
+        sleep(5);
 
     }
 
@@ -216,11 +222,9 @@ ssize_t process_http( char *content)
 	char str[50];
 	struct hostent *hptr;
 	char sendline[MAXLINE + 1], recvline[MAXLINE + 1];
-    int i=0;
+    int i = 0, ret = 0;
     char *error = NULL;
 	ssize_t n;
-
-    printf(YELLOW"process_httpCount %d\n"NONE,process_httpCount++);
 
     //Intialize host entity with server ip address
 
@@ -256,6 +260,20 @@ ssize_t process_http( char *content)
 
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
+    if(sockfd == -1)
+    {
+
+        printf("socket failed, errno %d, %s\n",errno,strerror(errno));
+        return -1;
+
+    }
+    else
+    {
+
+        printf("[%s,%d]socket() done\n",__FUNCTION__,__LINE__);
+
+    }
+
     //Set to 0  (Initialization)
 
 	bzero(&servaddr, sizeof(servaddr));
@@ -268,7 +286,22 @@ ssize_t process_http( char *content)
 
     //Connect to the target server
 
-	connect(sockfd, (SA *) & servaddr, sizeof(servaddr));
+	ret = connect(sockfd, (SA *) & servaddr, sizeof(servaddr));
+
+    if(ret == -1)
+    {
+
+        printf("connect() failed, errno %d, %s\n",errno,strerror(errno));
+        close(sockfd);
+        return -1;
+
+    }
+    else
+    {
+
+        printf("[%s,%d]connect() done\n",__FUNCTION__,__LINE__);
+
+    }
 
     //Header content for HTTP POST
 
@@ -283,21 +316,34 @@ ssize_t process_http( char *content)
     //print out the content
 
     printf("sendline : \n %s\n",sendline);
-    //syslog(LOG_ERR, "[%s:%d] sendline : ",__FUNCTION__,__LINE__);
 
     //Send the packet to the server
 
-	write(sockfd, sendline, strlen(sendline));
+    ret = my_write(sockfd, sendline, strlen(sendline));
+
+    if(ret == -1)
+    {
+
+        printf("write() failed, errno %d, %s\n",errno,strerror(errno));
+        close(sockfd);
+        return -1;
+
+    }
+    printf("[%s,%d]Write() done\n",__FUNCTION__,__LINE__);
 
     //Get the result
 
-	while ((n = read(sockfd, recvline, MAXLINE)) > 0) 
+    ret = my_read(sockfd, recvline, (sizeof(recvline) - 1));
+
+    if(ret == -1)
     {
 
-		recvline[n] = '\0';
-        
-		
-	}
+        printf("read() failed, errno %d, %s\n",errno,strerror(errno));
+        close(sockfd);
+        return -1;
+
+    }
+    printf("[%s,%d]Read done\n",__FUNCTION__,__LINE__);
 
     //Check if the last sending process is a success or not
 
@@ -307,7 +353,7 @@ ssize_t process_http( char *content)
 
         syslog(LOG_ERR, "\033[1;31m""[%s,%d] %s\n""\033[1;37m",__FUNCTION__,__LINE__, recvline);
         printf("\033[1;31m""[%s,%d] %s\n""\033[1;37m",__FUNCTION__,__LINE__, recvline);
-        
+        close(sockfd);
         return -1;
 
     }
@@ -477,3 +523,81 @@ static int initializeInfo()
 
 }
 
+int my_write(int fd, void *buffer, int length)
+{
+
+    int bytes_left;
+    int written_bytes;
+    char *ptr;
+
+    ptr=buffer;
+    bytes_left=length;
+
+    while(bytes_left>0)
+    {
+            
+            //printf("Write loop\n");
+            written_bytes=write(fd,ptr,bytes_left);
+            //printf("Write %d bytes\n",written_bytes);
+
+            if(written_bytes<=0)
+            {       
+
+                    if(errno==EINTR)
+
+                        written_bytes=0;
+
+                    else             
+
+                        return(-1);
+
+            }
+
+            bytes_left-=written_bytes;
+            ptr+=written_bytes;   
+
+    }
+
+    return(0);
+
+}
+
+int my_read(int fd, void *buffer, int length)
+{
+
+    int bytes_left;
+    int bytes_read;
+    char *ptr;
+    
+    ptr=buffer;
+    bytes_left=length;
+
+    while(bytes_left>0)
+    {
+
+        bytes_read=read(fd,ptr,bytes_read);
+
+        if(bytes_read<0)
+        {
+
+            if(errno==EINTR)
+
+                bytes_read=0;
+
+            else
+
+                return(-1);
+
+        }
+
+        else if(bytes_read==0)
+            break;
+
+        bytes_left-=bytes_read;
+        ptr+=bytes_read;
+
+    }
+
+    return(length-bytes_left);
+
+}

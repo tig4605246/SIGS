@@ -128,7 +128,7 @@ static void getInfo()
 
     memset(cmd,0,sizeof(sizeof(cmd)));
 
-    snprintf(cmd,CMDLEN,"/home/aaeon/API/cpm70-agent --get-dev-status");
+    snprintf(cmd,CMDLEN,"/home/aaeon/API/cpm70-agent-tx --get-dev-status");
 
     //execute command
 
