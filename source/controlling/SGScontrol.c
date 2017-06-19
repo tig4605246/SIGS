@@ -35,7 +35,6 @@ int sgsInitControl(char *processName)
     {
 
         printf( "[mongo:%d] failed in fopen(%s)! %s",__LINE__, buf, strerror(errno));
-        closelog();
         return -1;
 
     }

@@ -207,7 +207,7 @@ int main(int argc, char** argv)
         //times up
 
         ret = CreateJSONAndRunHTTPCommand(target);
-        sleep(5);
+        sleep(30);
 
     }
 
@@ -237,7 +237,7 @@ ssize_t process_http( char *content)
 
 	}
 
-	syslog(LOG_ERR, "[%s:%d] hostname: %s\n",__FUNCTION__,__LINE__, hptr->h_name);
+	//syslog(LOG_ERR, "[%s:%d] hostname: %s\n",__FUNCTION__,__LINE__, hptr->h_name);
 
     //Set up address type (FAMILY)
 
@@ -299,7 +299,7 @@ ssize_t process_http( char *content)
     else
     {
 
-        printf("[%s,%d]connect() done\n",__FUNCTION__,__LINE__);
+        //printf("[%s,%d]connect() done\n",__FUNCTION__,__LINE__);
 
     }
 
@@ -315,7 +315,7 @@ ssize_t process_http( char *content)
 
     //print out the content
 
-    printf("sendline : \n %s\n",sendline);
+    //printf("sendline : \n %s\n",sendline);
 
     //Send the packet to the server
 
@@ -329,7 +329,7 @@ ssize_t process_http( char *content)
         return -1;
 
     }
-    printf("[%s,%d]Write() done\n",__FUNCTION__,__LINE__);
+    //printf("[%s,%d]Write() done\n",__FUNCTION__,__LINE__);
 
     //Get the result
 
@@ -343,27 +343,28 @@ ssize_t process_http( char *content)
         return -1;
 
     }
-    printf("[%s,%d]Read done\n",__FUNCTION__,__LINE__);
+    //printf("[%s,%d]Read done\n",__FUNCTION__,__LINE__);
 
     //Check if the last sending process is a success or not
 
-    error = strstr(recvline,"fail");
+    error = strcasestr(recvline,"true");
     if(error != NULL)
     {
 
-        syslog(LOG_ERR, "\033[1;31m""[%s,%d] %s\n""\033[1;37m",__FUNCTION__,__LINE__, recvline);
-        printf("\033[1;31m""[%s,%d] %s\n""\033[1;37m",__FUNCTION__,__LINE__, recvline);
-        close(sockfd);
-        return -1;
+        syslog(LOG_ERR, "\033[1;32m""[%s,%d] Post Successfully\n""\033[1;37m",__FUNCTION__,__LINE__);
+        //printf( "\033[1;32m""[%s,%d] Post Result : %s \n""\033[1;37m",__FUNCTION__,__LINE__,recvline);
 
     }
     else
     {
 
-        syslog(LOG_ERR, "\033[1;32m""[%s,%d] Post Successfully\n""\033[1;37m",__FUNCTION__,__LINE__);
-        printf( "\033[1;32m""[%s,%d] Post Result : %s \n""\033[1;37m",__FUNCTION__,__LINE__,recvline);
+        syslog(LOG_ERR, "\033[1;31m""[%s,%d] %s\n""\033[1;37m",__FUNCTION__,__LINE__, recvline);
+        //printf("\033[1;31m""[%s,%d] %s\n""\033[1;37m",__FUNCTION__,__LINE__, recvline);
+        close(sockfd);
+        return -1;
 
     }
+    
 
     //Always release the resources
 
@@ -387,13 +388,13 @@ int CreateJSONAndRunHTTPCommand(deviceInfo *targetPtr)
     dataInfo *dataTemp = targetPtr->dataInfoPtr;
     dataLog dLog ;
 
-    printf( "[%s:%d] CreateJSONAndRunHTTPCommand called\n", __FUNCTION__, __LINE__);
+    //printf( "[%s:%d] CreateJSONAndRunHTTPCommand called\n", __FUNCTION__, __LINE__);
 
     // Initialize cJSON
 
     root = cJSON_CreateObject();
     cJSON_AddItemToObject(root, "rows", row=cJSON_CreateArray() );
-    syslog(LOG_ERR,"[%s:%d]  ", __FUNCTION__, __LINE__);
+    //syslog(LOG_ERR,"[%s:%d]  ", __FUNCTION__, __LINE__);
 
     /*
         ---Stuff cJSON at here---
@@ -481,7 +482,7 @@ int CreateJSONAndRunHTTPCommand(deviceInfo *targetPtr)
     
     free(format);
     free(output);
-    printf("[%s:%d] Finished\n", __FUNCTION__, __LINE__);
+    //printf("[%s:%d] Finished\n", __FUNCTION__, __LINE__);
     return ret;
 
 }
@@ -509,7 +510,7 @@ static int initializeInfo()
     } 
 
     ret = sgsInitDataInfo(deviceInfoPtr, &dataInfoPtr, 0);
-    if(ret == 0) 
+    if(ret == -1) 
     {
 
         printf("[%s,%d] init data conf failed ret = %d\n",__FUNCTION__,__LINE__,ret);

@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
     {
 
         getInfo();
-        sleep(5);
+        sleep(10);
 
     }
 
@@ -302,7 +302,7 @@ static int initializeInfo()
     } 
 
     ret = sgsInitDataInfo(deviceInfoPtr, &dataInfoPtr, 0);
-    if(ret == 0) 
+    if(ret == -1) 
     {
 
         printf("[%s,%d] init data conf failed ret = %d\n",__FUNCTION__,__LINE__,ret);

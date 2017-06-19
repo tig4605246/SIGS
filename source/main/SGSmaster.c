@@ -158,7 +158,7 @@ int main()
 
     while(1)
     {
-
+        /*
         printf("$-> ");
         scanf(" %c",&input);
 
@@ -200,15 +200,17 @@ int main()
 
             default :
 
-                printf("commands : \n");
-                printf("l - list contents of the device conf and data conf\n");
-                printf("r - Restart \n");
-                printf("u - start uploading program \n");
-                printf("x - close the program\n");
-                printf("\n");
+                // printf("commands : \n");
+                // printf("l - list contents of the device conf and data conf\n");
+                // printf("r - Restart \n");
+                // printf("u - start uploading program \n");
+                // printf("x - close the program\n");
+                // printf("\n");
                 break;
 
         }
+        */
+        usleep(100000);
 
     }
 
@@ -446,7 +448,7 @@ void updateConf()
 
     memset(cmd,0,sizeof(sizeof(cmd)));
 
-    snprintf(cmd,CMDLEN,"./cpm70-agent-tx --list-all");
+    snprintf(cmd,CMDLEN,"/home/aaeon/API/cpm70-agent-tx --list-all");
 
     printf("%s\n",cmd);
 
