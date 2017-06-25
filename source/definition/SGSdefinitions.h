@@ -57,6 +57,7 @@ typedef time_t epochTime;
 #define CONFIGURECONF "../conf/configure.conf"
 #define DEVICECONF    "../conf/device.conf"
 #define DATACONF      "../conf/data.conf"
+#define LOG           "../conf/ErrorLog"
 
 // Master key for generating ipcs
 

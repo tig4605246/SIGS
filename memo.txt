@@ -1,13 +1,13 @@
 To-Do-List:
 
-1. set catching signal for script to control the programs
+A. Smart Campus
+    
+    1. Dynamic cpm70_agent: 
+        
+        Put mongo and agent together, refresh list everytime before we try to retrieve the data
 
-2. update conf with SGSmaster file before initialize the shared memory
+B. Solar Project
 
-3. MUST Run test tonight 
+    1. Huge update :
 
-optional:
-
-1. set deviceInfoPtr and dataInfoPtr to be Global variables 
-
-2. Implement log function (record & delete data that is recorded 7 days ago)
+        

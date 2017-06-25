@@ -20,7 +20,7 @@ void showVersion()
 {
 
     printf("----\n");
-    printf("| State : %s \t Version : %s\n",PROJECTSTATUS ,PROJECTVERSION);
+    printf("| State : %s\n| Version : %s\n",PROJECTSTATUS ,PROJECTVERSION);
     printf("----\n");
 
 }

@@ -207,6 +207,7 @@ int main(int argc, char** argv)
         //times up
 
         ret = CreateJSONAndRunHTTPCommand(target);
+        
         sleep(30);
 
     }
@@ -270,7 +271,7 @@ ssize_t process_http( char *content)
     else
     {
 
-        printf("[%s,%d]socket() done\n",__FUNCTION__,__LINE__);
+        //printf("[%s,%d]socket() done\n",__FUNCTION__,__LINE__);
 
     }
 
@@ -408,7 +409,7 @@ int CreateJSONAndRunHTTPCommand(deviceInfo *targetPtr)
         //Create an object inside the "rows"
 
         cJSON_AddItemToArray(row, field=cJSON_CreateObject());
-        syslog(LOG_ERR,"[%s:%d]  ", __FUNCTION__, __LINE__);
+        //syslog(LOG_ERR,"[%s:%d]  ", __FUNCTION__, __LINE__);
         
         //initialize dLog->value.s
 
