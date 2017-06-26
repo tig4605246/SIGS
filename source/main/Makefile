@@ -1,7 +1,7 @@
 PROG1=SGSmaster
 PROG2=GWInfo
 PROG3=cpm70_agent_standalone
-PROG5=cpm70_mongo
+PROG5=aemdra_agent_standalone
 PROG6=SGSlogger
 PROG8=FakeCollector
 
@@ -34,7 +34,7 @@ all:
 
 	$(CC) -o ../../bin/cpm70_agent ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../collector/$(PROG3).c ../thirdparty/cJSON.c -pthread -lm  
 
-	$(CC) -o ../../bin/$(PROG5) ../uploader/$(PROG5).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../thirdparty/cJSON.c  -pthread -lm
+	$(CC) -o ../../bin/aemdra_agent ../uploader/$(PROG5).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../thirdparty/cJSON.c  -pthread -lm
 
 	#$(CC) -o ../../bin/$(PROG6) ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../log/SGSlogfile.c ../thirdparty/sqlite3.c $(PROG6).c -pthread -lm -ldl
 
