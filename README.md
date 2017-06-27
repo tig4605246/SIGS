@@ -1,4 +1,4 @@
-# Simple Gateway Software
+# Suki Gateway Software
 
 #### Last edited by tig4605246 ---2017/05/05
 ---------------------------------------
