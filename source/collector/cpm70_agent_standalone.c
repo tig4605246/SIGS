@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
 
         ret = getInfoToJSONAndUpload(buf);
 
-        //printf("function return %d\n",ret);
+        printf("function return %d\n",ret);
 
         sleep(upload_interval);
 
@@ -356,6 +356,7 @@ ssize_t process_http( char *content)
 	char sendline[MAXLINE + 1], recvline[MAXLINE + 1];
     int i = 0, ret = 0;
     char *error = NULL;
+    char address[64];
 	ssize_t n;
 
     //Intialize host entity with server ip address
@@ -369,14 +370,18 @@ ssize_t process_http( char *content)
 
 	}
 
-	//syslog(LOG_ERR, "[%s:%d] hostname: %s\n",__FUNCTION__,__LINE__, hptr->h_name);
+	//printf("[%s:%d] hostname: %s\n",__FUNCTION__,__LINE__, hptr->h_name);
 
     //Set up address type (FAMILY)
+
+    memset(address,'\0',sizeof(address));
 
 	if (hptr->h_addrtype == AF_INET && (pptr = hptr->h_addr_list) != NULL) 
     {
 
-		syslog(LOG_ERR, "[%s:%d] address: %s\n",__FUNCTION__,__LINE__,inet_ntop( hptr->h_addrtype , *pptr , str , sizeof(str) ));
+        affress = inet_ntop( hptr->h_addrtype , *pptr , str , sizeof(str) );
+		printf( "[%s:%d] address: %s\n",__FUNCTION__,__LINE__);
+        
 
 	} 
     else
@@ -417,7 +422,7 @@ ssize_t process_http( char *content)
 	inet_pton(AF_INET, str, &servaddr.sin_addr);
 
     //Connect to the target server
-
+    
 	ret = connect(sockfd, (SA *) & servaddr, sizeof(servaddr));
 
     if(ret == -1)
@@ -483,7 +488,7 @@ ssize_t process_http( char *content)
     if(error != NULL)
     {
 
-        syslog(LOG_ERR, "\033[1;32m""[%s,%d] Post Successfully\n""\033[1;37m",__FUNCTION__,__LINE__);
+        //syslog(LOG_ERR, "\033[1;32m""[%s,%d] Post Successfully\n""\033[1;37m",__FUNCTION__,__LINE__);
         //printf( "\033[1;32m""[%s,%d] Post Result : %s \n""\033[1;37m",__FUNCTION__,__LINE__,recvline);
 
     }

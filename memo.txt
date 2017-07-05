@@ -8,6 +8,19 @@ A. Smart Campus
 
 B. Solar Project
 
-    1. Huge update :
+    Rebuild structure: fit the need of Solar Project
+
+    1. Rebuild core structure  (1 week = 7 days work time)
+
+        |   Master & Submaster communication
+        |   Shared memory list (Static or Dynamic ?)
+        |   Event handler (Log and mailing system)
+        |   local db (sqlite3)
+        |   mailing system
+
+    2. Build Solar Agent (1 week = 7 days work time)
+
+        |   collector
+        |   uploader
 
         

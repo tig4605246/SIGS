@@ -100,11 +100,11 @@ char *hname = "140.118.70.136";
 
 //Which port server is using
 
-#define SERVERPORT 9000
+#define SERVERPORT 11045
 
 //the RESTAPI 
 
-char *page = "/smartTest";
+char *page = "/ems_post";
 
 
 int main(int argc, char *argv[])
@@ -188,6 +188,7 @@ int getInfoToJSONAndUpload(char *buf)
     if(strstr(buf,"ok") == NULL)
     {
         //Should return -1 here
+        printf("agent return not ok:\n%s\n",buf);
 
         return -1;
     }
@@ -315,7 +316,7 @@ int getInfoToJSONAndUpload(char *buf)
                 cJSON_AddStringToObject(field,"rea",raw[i++]);
                 cJSON_AddStringToObject(field,"reb",raw[i++]);
                 cJSON_AddStringToObject(field,"rec",raw[i++]);
-                cJSON_AddStringToObject(field,"re.tot",raw[i++]);
+                cJSON_AddStringToObject(field,"re_tot",raw[i++]);
                 
 
             }
@@ -389,7 +390,7 @@ ssize_t process_http( char *content)
 	if (hptr->h_addrtype == AF_INET && (pptr = hptr->h_addr_list) != NULL) 
     {
 
-		syslog(LOG_ERR, "[%s:%d] address: %s\n",__FUNCTION__,__LINE__,inet_ntop( hptr->h_addrtype , *pptr , str , sizeof(str) ));
+		//syslog(LOG_ERR, "[%s:%d] address: %s\n",__FUNCTION__,__LINE__,inet_ntop( hptr->h_addrtype , *pptr , str , sizeof(str) ));
 
 	} 
     else
@@ -496,7 +497,7 @@ ssize_t process_http( char *content)
     if(error != NULL)
     {
 
-        syslog(LOG_ERR, "\033[1;32m""[%s,%d] Post Successfully\n""\033[1;37m",__FUNCTION__,__LINE__);
+        //syslog(LOG_ERR, "\033[1;32m""[%s,%d] Post Successfully\n""\033[1;37m",__FUNCTION__,__LINE__);
         //printf( "\033[1;32m""[%s,%d] Post Result : %s \n""\033[1;37m",__FUNCTION__,__LINE__,recvline);
 
     }
@@ -515,7 +516,7 @@ ssize_t process_http( char *content)
 
     close(sockfd);
 
-	return n;
+	return 0;
 
 }
 

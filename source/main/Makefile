@@ -34,7 +34,7 @@ all:
 
 	$(CC) -o ../../bin/cpm70_agent ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../collector/$(PROG3).c ../thirdparty/cJSON.c -pthread -lm  
 
-	$(CC) -o ../../bin/aemdra_agent ../uploader/$(PROG5).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../thirdparty/cJSON.c  -pthread -lm
+	$(CC) -o ../../bin/aemdra_agent ../collector/$(PROG5).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../thirdparty/cJSON.c  -pthread -lm
 
 	#$(CC) -o ../../bin/$(PROG6) ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../log/SGSlogfile.c ../thirdparty/sqlite3.c $(PROG6).c -pthread -lm -ldl
 

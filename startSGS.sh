@@ -2,32 +2,32 @@
 
 #set up directories and start up the SEG 
 
-PATH=/home/SGS/SIGS/
+SGSPATH=/home/SGS/SGS/
 
-# case "$1" in
-#   start)
+case "$1" in
+   start)
 
-# 	cd /home/kelier-nb/SGS/
-# 	echo -n "Starting SGSmaster: "
-#         start-stop-daemon -b -S -q -m -p /home/kelier-nb/SGS/bin/pid/SGSmaster.pid \
-#             --exec /home/kelier-nb/SGS/bin/SGSmaster
-#         [ $? = 0 ] && echo "OK" || echo "FAIL"
+ 	echo -n "Starting SGSmaster: \n"
+        cd ${SGSPATH}bin/
 
-# 	;;
+        ./cpm70_agent &
 
-#   stop)
+        ./aemdra_agent &
 
-# 	cd /home/kelier-nb/SGS/
-# 	echo -n "Stoping SGSmaster: "
-#         start-stop-daemon -K -q -p /home/kelier-nb/SGS/bin/pid/SGSmaster.pid
-#         [ $? = 0 ] && echo "OK" || echo "FAIL"
+ 	;;
 
-# 	;;
+   stop)
 
-# esac
+ 	echo -n "Stoping SGSmaster: \n"
+        cpm70_PID=`cat ${SGSPATH}bin/pid/cpm70_agent.pid`
+        aemdra_PID=`cat ${SGSPATH}bin/pid/aemdra_agent.pid`
+        kill -15 ${cpm70_PID} ${aemdra_PID}
+         
 
-cd ${PATH}bin/
+ 	;;
 
-sudo ./SGSmaster &
+esac
+
+
 
 return 0
