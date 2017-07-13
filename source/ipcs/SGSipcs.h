@@ -129,7 +129,7 @@ int sgsSendQueueMsg(int msgid, char *message, int msgtype );
 
 // Intent : receive a message from queue 
 // Pre : message queue id, pointer to store the message, type of the message
-// Post : On success, return 0. On error, -1 is returned
+// Post : On success, return msgtype. On error, -1 is returned
 
 int sgsRecvQueueMsg(int msgid, char *buf, int msgtype );
 

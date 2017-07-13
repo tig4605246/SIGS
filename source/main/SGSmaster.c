@@ -2,10 +2,9 @@
 
     Name: Xu Xi-Ping
     Date: March 1,2017
-    Last Update: March 8,2017
+    Last Update: July 13,2017
     Program statement: 
-        This program will manage all other sub processes it creates.
-        Also, it's responsible for invoking and terminating all sub processes.
+        Main master, Receive commands from server and issue controlling messages to all sub masters
 
 */
 
@@ -20,550 +19,552 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 
 //We declare own libraries at below
 
 #include "../ipcs/SGSipcs.h"
 #include "../events/SGSEvent.h"
+#include "../controlling/SGScontrol.h"
 
-#define CMDLEN 128
-#define BUFLEN 2048
+//This structure is used for storing child process info
 
-#define TMP_PATH "./tmp.conf"
+typedef struct{
 
-//Store shared memory id
+    int pid;
+    int msgId;
+    char childName[32];
 
-int shmID = 0;
+}childProcessInfo;
 
-dataInfo *dataInfoPtr = NULL;
-deviceInfo *deviceInfoPtr = NULL;
+//Intent    : Initialize child and the message queue
+//Pre       : Nothing
+//Post      : On success, return message queue id, otherwise return -1 and set sgsErrNum
 
-//Intent : Set up dataInfo and deviceInfo (get pointers from global parameters)
-//Pre    : Nothing
-//Post   : On success, return 0. On error, return -1 and shows the error message
+int InitChild(childProcessInfo *infoPtr, char *childPath, int key, char *name);
 
-int initializeInfo();
+//Intent    : Check if children are still alive. If the child is dead, reap its old pid and restart it.
+//Pre       : Nothing
+//Post      : Nothing
 
-//Intent : Free deviceInfoPtr, dataInforPtr and free the shared memory (get pointers from global parameters)
-//Pre    : Nothing
-//Post   : On success, return 0. On error, return -1 and shows the error messages
+void CheckChildAlive();
 
-void releaseResource();
+//Intent    : Restart the system and send the [message] to the maintainer by email
+//Pre       : char pointer to the message
+//Post       : Nothing
 
-//Intent : Start sub processes
-//Pre    : Nothing
-//Post   : On success, return 0. On error, return -1 and shows the error messages
+void RestartSystem(childProcessInfo *infoPtr, char *message);
 
-void startCollectingProcesses();
+//Intent    : Shutdown the system and send the shutdown message to the maintainer by email
+//Pre       : char pointer to the message
+//Post      : Nothing
 
-//Intent : Stop sub processes by using the pid stored in the deviceInfo struct
-//Pre    : Nothing
-//Post   : Nothing
+void ShutdownSystem(childProcessInfo *infoPtr, char *message);
 
-void stopAllCollectingProcesses();
+//Intent    : Shutdown the system, mainly for debugging
+//Pre       : signal number
+//Post      : Nothing
 
-//Intent : Write data to shared memory
-//Pre    : Nothing
-//Post   : Nothing
+void ShutdownSystemBySignal(childProcessInfo *infoPtr, int sigNum);
 
-void testWriteSharedMemory();
+//Intent    : Shutdown the system, mainly for debugging
+//Pre       : child info struct
+//Post      : Nothing
 
-//Intent : Start GW-to-Server processes
-//Pre    : Nothing
-//Post   : Nothing
+void ShutdownSystemByInput();
 
-void stratUploadingProcesses();
+//Intent    : send routine log messages to the server
+//Pre       : Nothing
+//Post      : On success, return 0. Otherwise return -1 and set the ErrNum
 
-//Intent : Stop GW-to-Server processes
-//Pre    : Nothing
-//Post   : Nothing
+int ReportToServer();
 
-void stopUploadingProcesses();
+//All info about masters are here, be caredul with it
 
-//Intent : Shut down everything when SIGINT is catched
-//Pre    : Nothing
-//Post   : Nothing
+childProcessInfo cpInfo[5];
 
-//Intent : 
-
-void forceQuit(int sigNum);
-
-//Intent : This function will update the conf by cpm70-agent, if the process failed, it will call the backup conf file
-//Pre    : Nothing
-//Post   : Nothing
-
-void updateConf();
-
-/*
-
-//Intent : Restart sub-processes
-//Pre    : Nothing
-//Post   : Nothing
-
-void RestartSubProcesses();
-
-*/
-
-
-int main()
+int main(int argc, char *argv[])
 {
 
-    int i, ret = 0;
-    char input;
-    FILE *daemonFp = NULL;
-    struct sigaction act, oldact;
+    int i, ret = 0;                             //  functional variables
+    int sgsMasterId = -1;                       //  master's queue id
+    char input[128];                            //  input buffer for manual mode
+    char buf[MSGBUFFSIZE];                      //  buffer used to catch queue message
+    char *msgType = NULL, *msgContent = NULL;   //  for process messages
+    struct sigaction act, oldact;               //  for sigaction
 
-    struct sigaction act_2, oldact_2;
+    //Help
 
-    struct sigaction act_3, oldact_3;
+    if(argc < 2 || !strcmp(argv[1],"-h"))
+    {
+
+        printf("Usage: SGSmaster [options]\n");
+        printf("Options:\n");
+        printf("  -m     manual mode\n");
+        printf("  -a     auto mode\n");
+        printf("  -p     show default config path\n");
+        exit(0);
+
+    }
+
+    //Initialize cpInfo
+
+    for(i = 0 ; i < 5 ; i++)
+    {
+
+        cpInfo[i].pid = -1;
+        cpInfo[i].msgId = -1;
+        memset(cpInfo[i].childName,'\0',sizeof(cpInfo[i].childName));
+
+    }
     
-    
-    printf("Starting SGSmaster...\n");
+    //Version Info
+
+    printf(LIGHT_GREEN"Starting SGSmaster...\n"NONE);
 
     showVersion();
 
+    //Store own pid
 
-    //sgsShowDeviceInfo(deviceInfoPtr);
+    ret = sgsInitControl("SGSmaster");
 
-    //catching SIGINT
+    //Starting childs
 
-    act.sa_handler = (__sighandler_t)forceQuit;
+    ret = InitChild(&(cpInfo[0]), EVENT_HANDLER_PATH, EVENT_HANDLER_KEY, "EventHandler");
+    if(ret == -1)
+    {
+
+        ShutdownSystemByInput();
+
+    }
+    //ret = InitChild(cpInfo[1], DATABUFFER_SUBMASTER_PATH, DATABUFFER_SUBMASTER_KEY, "DataBufferSubmaster");
+    //ret = InitChild(cpInfo[2], COLLECTOR_SUBMASTER_PATH, COLLECTOR_SUBMASTER_KEY, "CollectorSubmaster");
+    //ret = InitChild(cpInfo[3], UPLOADER_SUBMASTER_PATH, UPLOADER_SUBMASTER_KEY, "UploaderSubmaster");
+    //ret = InitChild(cpInfo[4], LOGGER_PATH, LOGGER_KEY, "Logger");
+
+    //Set signal action
+
+    act.sa_handler = (__sighandler_t)ShutdownSystemByInput;
     act.sa_flags = SA_ONESHOT|SA_NOMASK;
     sigaction(SIGINT, &act, &oldact);
 
-    //catching SIGTERM
+    //Open Master's message queue
 
-    act_2.sa_handler = (__sighandler_t)forceQuit;
-    act_2.sa_flags = SA_ONESHOT|SA_NOMASK;
-    sigaction(SIGTERM, &act_2, &oldact_2);
-
-    /*
-    //catching SIGUSR2
-
-    act_2.sa_handler = (__sighandler_t)RestartSubProcesses;
-    act_2.sa_flags = SA_ONESHOT|SA_NOMASK;
-    sigaction(SIGUSR2, &act_2, &oldact_2);
-    */
-
-    printf("[%s,%d] Updating data.conf...\n",__FUNCTION__,__LINE__);
-
-    updateConf();
-
-    printf("[%s,%d] Initializing IPCs...\n",__FUNCTION__,__LINE__);
-
-    initializeInfo();
-
-    printf("Starting sub processes...\n");
-
-    startCollectingProcesses();
-
-    while(1)
+    sgsMasterId = sgsCreateMsgQueue(SGSKEY, 1);
+    if(sgsMasterId == -1)
     {
-        /*
-        printf("$-> ");
-        scanf(" %c",&input);
-
-        switch(input)
-        {
-
-            case 'l' :
-
-                sgsShowAll(deviceInfoPtr);
-                break;
-
-            case 'r' :
-
-                stopAllCollectingProcesses();
-                if(deviceInfoPtr != NULL)
-                    releaseResource();
-                initializeInfo();
-                startCollectingProcesses();
-                break;
-
-            case 'x' :
-
-                stopAllCollectingProcesses();
-                if(deviceInfoPtr != NULL)
-                    releaseResource();
-                printf("bye\n");
-                exit(0);
-                break;
-
-            case 'u' :
-
-                break;
-
-            case 't' :
-
-                testWriteSharedMemory();
-                
-                break;
-
-            default :
-
-                // printf("commands : \n");
-                // printf("l - list contents of the device conf and data conf\n");
-                // printf("r - Restart \n");
-                // printf("u - start uploading program \n");
-                // printf("x - close the program\n");
-                // printf("\n");
-                break;
-
-        }
-        */
-        usleep(100000);
-
+        printf("Open master queue failed...\n");
     }
 
-    return 0;
-}
+    //Main loop
 
-int initializeInfo()
-{
-
-    int ret = 0;
-    ret = sgsInitDeviceInfo(&deviceInfoPtr);
-    if(ret != 0)
+    if(!strcmp(argv[1],"-m"))   //Manual
     {
-
-        printf("[%s,%d] init device conf failed ret = %d\n",__FUNCTION__,__LINE__,ret);
-        return -1;
-
-    } 
-
-    ret = sgsInitDataInfo(deviceInfoPtr, &dataInfoPtr, 1);
-    if(ret == 0) 
-    {
-
-        printf("[%s,%d] init data conf failed ret = %d\n",__FUNCTION__,__LINE__,ret);
-        return -1;
-
-    }
-
-    shmID = ret;
-
-    return 0;
-
-}
-
-void releaseResource()
-{
-
-    sgsDeleteAll(deviceInfoPtr,shmID);
-
-    return ;
-
-}
-
-void startCollectingProcesses()
-{
-
-    pid_t pid = 0;
-    char buf[128];
-    deviceInfo *ptr = deviceInfoPtr;
-
-    printf("[%s,%d] Starting sub processes...\n\n",__FUNCTION__,__LINE__);
-
-    while(ptr != NULL)
-    {
-
-        //fork sub process
-
-        if(1)
+        while(1)
         {
+            
+            memset(input,'\0',sizeof(input));
+            printf("$-> ");
+            scanf(" %s",input);
 
-            pid = fork();
-
-            //decide what to do by pid
-
-            if(pid == 0)
+            if(!strcmp(input,"bye"))
             {
 
-                //opening sub process
-
-                memset(buf,'\0',sizeof(buf));
-                sprintf(buf,"./%s",ptr->deviceName);
-                printf("starting %s with pid %d\n\n",buf,getpid());
-                execlp(buf,buf,ptr->deviceName,NULL);
-
-                //Only get here when execlp fails
-
-                perror("execlp");
-                exit(-1);
+                ShutdownSystemByInput(cpInfo);
 
             }
-            else if(pid > 0)
+            else if(!strcmp(input,"hello-all"))
             {
 
-                ptr->subProcessPid = pid;
+                for(i = 0 ; i < 1 ; i++)
+                {
+
+                    memset(input,'\0',sizeof(input));
+                    snprintf(input,127,"Hello %s",cpInfo[i].childName);
+                    sgsSendQueueMsg(cpInfo[i].msgId, input, 1);
+                
+                }
+                
+            }
+            else if(!strcmp(input,"mail-test"))
+            {
+
+                sgsSendEmail("Test mail by master");
+
+            }
+
+            printf("\njob done\n");
+            usleep(100000);
+
+        }
+    }
+    else if(!strcmp(argv[1],"-a"))  //Auto
+    {
+
+        i=0;
+        while(1)
+        {
+            
+            memset(buf,'\0',sizeof(buf));
+            ret = sgsRecvQueueMsg(sgsMasterId,buf,1);
+
+            if(ret != -1)
+            {
+
+                switch(ret)
+                {
+
+                    case EnumEventHandler:
+                    sgsSendQueueMsg(cpInfo[0].msgId, input, EnumEventHandler);
+                    break;
+
+                    case EnumDataBuffer:
+                    sgsSendQueueMsg(cpInfo[1].msgId, input, EnumDataBuffer);
+                    break;
+
+                    case EnumCollector:
+                    sgsSendQueueMsg(cpInfo[2].msgId, input, EnumCollector);
+                    break;
+
+                    case EnumUploader:
+                    sgsSendQueueMsg(cpInfo[3].msgId, input, EnumUploader);
+                    break;
+
+                    case EnumLogger:
+                    sgsSendQueueMsg(cpInfo[4].msgId, input, EnumLogger);
+                    break;
+
+                    default:
+                    printf(LIGHT_RED"Unknown msgtype %d\ncontent:%s\n"NONE,ret,buf);
+                    memset(input,'\0',sizeof(input));
+                    snprintf(input,127,"Master got an unknown type message");
+                    sgsSendEmail(input);
+                    break;
+
+                }
+
+
+            }
+
+            usleep(100000);
+
+            i++;
+
+            if(i>50)
+            {
+
+                CheckChildAlive();
+                i = 0;
+
+            }
+
+        }
+
+    }
+  
+    return 0;
+
+}
+
+int InitChild(childProcessInfo *infoPtr, char *childPath, int key, char *name)
+{
+
+    int eventPid = 0;
+    int id = -1;
+    int i = 0, ret = 0;
+    char buf[MSGBUFFSIZE];
+
+    id = sgsCreateMsgQueue(key, 1);
+
+    if(id == -1 )
+    {
+
+        printf("msg queue open failed, return -1");
+        return -1;
+
+    }
+
+    eventPid = fork();
+
+    if(eventPid == -1)
+    {
+
+        printf("fork error,return -1");
+        return -1;
+    
+    }
+
+    if(eventPid == 0)
+    {
+
+        execlp(childPath,childPath,NULL);
+
+    }
+
+    infoPtr->pid = eventPid;
+    infoPtr->msgId = id;
+    strncpy(infoPtr->childName,name,31);
+
+    memset(buf,'\0',sizeof(buf));
+
+    for(i = 0; i < 10 ; i++)
+    {
+        ret = sgsRecvQueueMsg(id,buf,2);
+        if(ret == 0)
+        {
+
+            if(!strcmp(buf,infoPtr->childName))
+            {
+
+                printf("Child %s is opended\n",infoPtr->childName);
+                return 0;
 
             }
             else
             {
 
-                //pid < 0, forking failed
+                printf("message is : %s, fail to open target child\n",buf);
+                //Get rid of the wrong child
+                kill(infoPtr->pid,SIGTERM);
+                do
+                {
 
-                printf("[%s,%d] fork() return %d, forking %s failed, %s\n",__FUNCTION__, __LINE__, pid, ptr->deviceName, strerror(pid));
+                    ret = waitpid((infoPtr)->pid, NULL, WNOHANG);
+                    if(ret == 0)
+                    {
 
+                        printf("No child exited\n");
+
+                    }
+                    sleep(1);
+
+                }while(ret == 0);
+                return -1;
+            
             }
 
         }
 
-        //next deviceInfo
-
-        ptr = ptr->next;
-
     }
-    return ;
+    printf("Encounter Problem while initializing childs\n");
+    return -1;
 
 }
 
-void stopAllCollectingProcesses()
+void ShutdownSystemByInput()
 {
 
-    int ret = 0;
-    pid_t pid = 0;
-    char buf[128];
-    deviceInfo *ptr = deviceInfoPtr;
-    FILE *pidFile = NULL;
+    int ret = 0, i = 0;
+    FILE *ptr = NULL;
+    childProcessInfo *infoPtr = cpInfo;
+    printf("shutdown by input\n");
 
-    printf("[%s,%d] Stopping sub processes...\n\n",__FUNCTION__,__LINE__);
-
-    while(ptr != NULL)
+    for(i = 0 ; i < 5 ; i++)
     {
 
-        sprintf(buf,"./pid/%s",ptr->deviceName);
-        pidFile = fopen(buf,"r");
-
-        if(ptr->subProcessPid > 0)
+        if((infoPtr + i)->pid != -1)
         {
 
-            printf("[%s,%d] Stopping %s now (stored pid is %d) \n",__FUNCTION__,__LINE__,ptr->deviceName,ptr->subProcessPid);
-            ret = kill(ptr->subProcessPid,SIGUSR1);
-            if(ret < 0)
+            kill((infoPtr + i)->pid, 9);
+
+            do
             {
 
-                printf("[%s,%d] kill failed %s\n",__FUNCTION__, __LINE__, strerror(ret));
-                
-            }
+                ret = waitpid((infoPtr + i)->pid, NULL, WNOHANG);
+                if(ret == 0)
+                {
 
-        }
-        else if(pidFile != NULL)
-        {
+                    printf("No child exited\n");
 
-            printf("[%s,%d] %s stored pid is %d \n",__FUNCTION__,__LINE__,buf,ptr->subProcessPid);
-            ret = kill(ptr->subProcessPid,SIGUSR1);
-            if(ret < 0)
+                }
+                sleep(1);
+
+            }while(ret == 0);
+
+            if(ret == (infoPtr + i)->pid )
             {
 
-                printf("[%s,%d] kill failed %s\n",__FUNCTION__, __LINE__, strerror(ret));
-                
+                printf("Catch Child %d successfully\n",ret);
+
+            }
+            else
+            {
+
+                printf("ret = %d, failed to catch the child\n",ret);
+
             }
 
-        }
-        else
-        {
-            printf("[%s,%d] skipping %s , pid is %d \n",__FUNCTION__,__LINE__,ptr->deviceName,ptr->subProcessPid);
+            ret = sgsDeleteMsgQueue((infoPtr + i)->msgId);
+
+            if(ret != 0)
+            {
+
+                printf(LIGHT_RED"[%s,%d] %s's Message queue deletion failed!!\n"NONE,__FUNCTION__,__LINE__,(infoPtr + i)->childName);
+
+            }
+
         }
         
-        ptr = ptr->next;
-
-        if(pidFile != NULL)
-            fclose(pidFile);
 
     }
-    return;
 
-}
-
-void forceQuit(int sigNum)
-{
-
-    stopAllCollectingProcesses();
-
-    if(deviceInfoPtr != NULL)
-        releaseResource();
-        
-    printf("Signal Catched (signal number %d), SGSmaster is forceQuitting...\n",sigNum);
+    printf("Master Leaving...\n");
 
     exit(0);
 
 }
 
-void testWriteSharedMemory()
+void CheckChildAlive()
 {
 
-    dataLog source;
-    dataInfo *ptr = deviceInfoPtr->dataInfoPtr;
-    int i = 0;
+    childProcessInfo *infoPtr = cpInfo;
+    char buf[128];
+    char message[640];
+    int i = 0, ret = 0;
 
-
-    while(ptr != NULL)
+    for(i = 0 ; i < 5 ; i++)
     {
 
-        source.valueType = INTEGER_VALUE;
-        source.value.i = i;
-        sgsWriteSharedMemory(ptr, &source);
-        ptr = ptr->next;
-        i++;
+        if((infoPtr + i)->pid != -1)
+        {
 
-    }
-    
+            ret = waitpid((infoPtr + i)->pid, NULL, WNOHANG);
+            if(ret != 0)
+            {
 
-    return ;
+                memset(buf, '\0', sizeof(buf));
+                strncpy(buf, (infoPtr + i)->childName, 127);
+                (infoPtr + i)->pid = -1;
 
-}
+                switch(i)
+                {
 
-void updateConf()
-{
+                    case 0:
+                    ret = InitChild((infoPtr + i), EVENT_HANDLER_PATH, EVENT_HANDLER_KEY, buf);
+                    if(ret != 0)
+                    {
 
-    FILE *fp = NULL;
-    FILE *fpRead = NULL;
-    char cmd[CMDLEN];
-    char buf[BUFLEN];
-    char *returnValue = NULL;
-    char agent_name[] = "cpm70-agent-tx";
-    char grid_id[32];
-    int grid_number = 0, i = 0;
-    int ret = 0;
+                        printf("Try to restart %s but failed\n",buf);
 
-    fp = fopen(TMP_PATH,"w");
+                    }
+                    break;
 
-    if(fp == NULL)
-    {
+                    case 1:
+                    ret = InitChild((infoPtr + i), DATABUFFER_SUBMASTER_PATH, DATABUFFER_SUBMASTER_KEY, buf);
+                    if(ret != 0)
+                    {
 
-        printf(LIGHT_RED"[%s,%d] Error, can't open %s. This is probably caused by permission or incorrect path\n"NONE,__FUNCTION__,__LINE__,DATACONF);
-        return ;
+                        printf("Try to restart %s but failed\n",buf);
 
-    }
+                    }
+                    break;
 
-    fprintf(fp,
-        "#data info #deviceName, SensorName, valueName, ID, read address, read length, (optional)\n"
-        "GWInfo,System_Info,CPU_Usage,01,02,03,\n"
-        "GWInfo,System_Info,Memory_Usage,01,02,03,\n"
-        "GWInfo,System_Info,Disk_Usage,01,02,03,\n"
-    );
+                    case 2:
+                    ret = InitChild((infoPtr + i), COLLECTOR_SUBMASTER_PATH, COLLECTOR_SUBMASTER_KEY, buf);
+                    if(ret != 0)
+                    {
 
-    
-    //Ready the command at here
+                        printf("Try to restart %s but failed\n",buf);
 
-    memset(cmd,0,sizeof(sizeof(cmd)));
+                    }
+                    break;
 
-    snprintf(cmd,CMDLEN,"/home/aaeon/API/cpm70-agent-tx --list-all");
+                    case 3:
+                    ret = InitChild((infoPtr + i), UPLOADER_SUBMASTER_PATH, UPLOADER_SUBMASTER_KEY, buf);
+                    if(ret != 0)
+                    {
 
-    printf("%s\n",cmd);
+                        printf("Try to restart %s but failed\n",buf);
 
-    //execute command
+                    }
+                    break;
 
-    fpRead = popen(cmd,"r");
+                    case 4:
+                    ret = InitChild((infoPtr + i), LOGGER_PATH, LOGGER_KEY, buf);
+                    if(ret != 0)
+                    {
 
-    //Read result to buf
+                        printf("Try to restart %s but failed\n",buf);
 
-    if(fpRead != NULL)
-        fgets(buf, BUFLEN , fpRead);
-    else
-    {
+                    }
+                    break;
 
-        printf("[%s,%d]execute command : %s failed\n",__FUNCTION__,__LINE__,cmd);
-        fclose(fp);
-        return;
+                    default:
+                    break;
 
-    }
+                }
+                
 
-    printf("buf is %s",buf);
+            }
 
-    //if ok, we update the data.conf
+        }
+        else
+        {
 
-    returnValue = strstr(buf,"ok");
+            memset(buf, '\0', sizeof(buf));
+            strncpy(buf, (infoPtr + i)->childName, 127);
 
-    if(returnValue == NULL)
-    {
+            switch(i)
+            {
 
-        printf(LIGHT_RED"[%s,%d]Reply of the command : %s\nFailed to get power grids' IDs\n"NONE,__FUNCTION__,__LINE__,cmd);
-        fclose(fp);
-        fclose(fpRead);
-        return;
+                case 0:
+                ret = InitChild((infoPtr + i), EVENT_HANDLER_PATH, EVENT_HANDLER_KEY, buf);
+                if(ret != 0)
+                {
 
-    }
+                    printf("Try to restart %s but failed\n",buf);
 
-    //Get how many power grids we have at this GW
+                }
+                break;
 
-    returnValue = strstr(buf,";");
-    *returnValue = 0;
-    returnValue++;
+                case 1:
+                ret = InitChild((infoPtr + i), DATABUFFER_SUBMASTER_PATH, DATABUFFER_SUBMASTER_KEY, buf);
+                if(ret != 0)
+                {
 
-    grid_number = atoi(returnValue);
+                    printf("Try to restart %s but failed\n",buf);
 
-    printf("[%s,%d]grid_num %d\n",__FUNCTION__,__LINE__,grid_number);
+                }
+                break;
 
-    for(i = 0 ; i < grid_number ; i++)
-    {
+                case 2:
+                ret = InitChild((infoPtr + i), COLLECTOR_SUBMASTER_PATH, COLLECTOR_SUBMASTER_KEY, buf);
+                if(ret != 0)
+                {
 
-        //initialize char array
+                    printf("Try to restart %s but failed\n",buf);
 
-        memset(grid_id,0,sizeof(grid_id));
-        memset(buf,0,sizeof(buf));
+                }
+                break;
+
+                case 3:
+                ret = InitChild((infoPtr + i), UPLOADER_SUBMASTER_PATH, UPLOADER_SUBMASTER_KEY, buf);
+                if(ret != 0)
+                {
+
+                    printf("Try to restart %s but failed\n",buf);
+
+                }
+                break;
+
+                case 4:
+                ret = InitChild((infoPtr + i), LOGGER_PATH, LOGGER_KEY, buf);
+                if(ret != 0)
+                {
+
+                    printf("Try to restart %s but failed\n",buf);
+
+                }
+                break;
+
+                default:
+                break;
+
+            }
+
+        }
         
-        //Get grid id
-        
-        fgets(buf, BUFLEN , fpRead);
-        snprintf(grid_id,32,"%s",buf);
-        grid_id[strlen(grid_id) - 1] = 0;
-
-        fprintf(fp,
-           "cpm70_agent,%s,ID,01,02,03,\n"
-            "cpm70_agent,%s,lastReportTime,01,02,03,\n"
-            "cpm70_agent,%s,wire,01,02,03,\n"
-            "cpm70_agent,%s,freq,01,02,03,\n"
-            "cpm70_agent,%s,ua,01,02,03,\n"
-            "cpm70_agent,%s,ub,01,02,03,\n"
-            "cpm70_agent,%s,uc,01,02,03,\n"
-            "cpm70_agent,%s,u_avg,01,02,03,\n"
-            "cpm70_agent,%s,uab,01,02,03,\n"
-            "cpm70_agent,%s,ubc,01,02,03,\n"
-            "cpm70_agent,%s,uca,01,02,03,\n"
-            "cpm70_agent,%s,uln_avg,01,02,03,\n"
-            "cpm70_agent,%s,ia,01,02,03,\n"
-            "cpm70_agent,%s,ib,01,02,03,\n"
-            "cpm70_agent,%s,ic,01,02,03,\n"
-            "cpm70_agent,%s,i_avg,01,02,03,\n"
-            "cpm70_agent,%s,pa,01,02,03,\n"
-            "cpm70_agent,%s,pb,01,02,03,\n"
-            "cpm70_agent,%s,pc,01,02,03,\n"
-            "cpm70_agent,%s,p_sum,01,02,03,\n"
-            "cpm70_agent,%s,sa,01,02,03,\n"
-            "cpm70_agent,%s,sb,01,02,03,\n"
-            "cpm70_agent,%s,sc,01,02,03,\n"
-            "cpm70_agent,%s,s_sum,01,02,03,\n"
-            "cpm70_agent,%s,pfa,01,02,03,\n"
-            "cpm70_agent,%s,pfb,01,02,03,\n"
-            "cpm70_agent,%s,pfc,01,02,03,\n"
-            "cpm70_agent,%s,pf_avg,01,02,03,\n"
-            "cpm70_agent,%s,ae_tot,01,02,03,\n"
-            "cpm70_agent,%s,uavg_thd,01,02,03,\n"
-            "cpm70_agent,%s,iavg_thd,01,02,03,\n"
-            ,grid_id,grid_id,grid_id,grid_id,grid_id,grid_id,grid_id
-            ,grid_id,grid_id,grid_id,grid_id,grid_id,grid_id,grid_id
-            ,grid_id,grid_id,grid_id,grid_id,grid_id,grid_id,grid_id
-            ,grid_id,grid_id,grid_id,grid_id,grid_id,grid_id,grid_id
-            ,grid_id,grid_id,grid_id
-        );
 
     }
-
-    fclose(fp);
-    fclose(fpRead);
-
-    //replace the old conf file
-
-    if(ret = rename(TMP_PATH,DATACONF) != 0)
-    {
-
-        printf("[%s,%d]rename %s failed, we are using the old conf file\n",__FUNCTION__,__LINE__,TMP_PATH);
-
-    }
-
-
-    return;
 
 }

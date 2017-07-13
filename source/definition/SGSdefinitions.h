@@ -17,8 +17,8 @@
 
 //Build version of the SIGS
 
-#define PROJECTSTATUS  "Alpha Build"
-#define PROJECTVERSION "0.5"
+#define PROJECTSTATUS  "Solar Alpha Build"
+#define PROJECTVERSION "0.1"
 
 //defines the log system type
 
@@ -50,7 +50,7 @@ typedef time_t epochTime;
 
 #define DATAVALUEMAX 16324
 
-#define MSGBUFFSIZE  512
+#define MSGBUFFSIZE  1024
 
 //define the log path of device.conf and data.conf
 
@@ -61,19 +61,33 @@ typedef time_t epochTime;
 
 // Master key for generating ipcs
 
-#define SGSKEY                  53595
+#define SGSKEY                   53595
 
-#define UPLOADER_SUBMASTER_KEY  51015
+#define UPLOADER_SUBMASTER_KEY   51015
 
-#define COLLECTOR_SUBMASTER_KEY 64654
+#define COLLECTOR_SUBMASTER_KEY  64654
 
-#define LOGGER_SUBMASTER_KEY    87478
+#define DATABUFFER_SUBMASTER_KEY 87478
+
+#define LOGGER_KEY               74974
+
+#define EVENT_HANDLER_KEY        91091
+
+//Codename 
+
+enum {EnumEventHandler = 1, EnumDataBuffer, EnumCollector, EnumUploader, EnumLogger};
 
 // General definitions
 
 #define SGSPATH     "./"
 #define OPENNEWSHM   1
 #define OPENEXISTSHM 0 
+
+#define EVENT_HANDLER_PATH "./SGSeventhandler"
+#define UPLOADER_SUBMASTER_PATH "./SGSuploadermaster"
+#define COLLECTOR_SUBMASTER_PATH "./SGScollectormaster"
+#define DATABUFFER_SUBMASTER_PATH "./SGSdatabuffermaster"
+#define LOGGER_PATH "./SGSlogger"
 
 //this struct is used by queue message 
 
@@ -300,7 +314,7 @@ struct dataLog
 
 typedef struct dataLog dataLog;
 
-//Intetnt : show current version
+//Intent : show current version
 //Pre : Nothing
 //Post : Nothing
 

@@ -38,5 +38,49 @@
 
 #endif
 
-//Purpose : print out the stored the error message and the error flag.
-//Pre : 
+unsigned int sgsErrNum;
+char sgsErrMsg[1024];
+
+//Intent : Send e-mail via gmail relay and libcurl
+//Pre    : Error messages
+//Post   : Nothing
+/*
+
+    Get receiver,
+    Get CC list,
+    Form email content
+    invoke curl email process (fork())
+    return
+
+*/
+
+void sgsSendEmail(char *message);
+
+
+//Intent : print out the stored the error message and the error flag.
+//Pre    : Nothing
+//Post   : Nothing
+/*
+
+    retrieve sgsErrMsg
+    print it out
+    return
+
+*/
+
+void sgsShowErrMsg();
+
+char* sgsGetErrMsg();
+
+//Intent : Set err num
+//pre    : Specific errNum
+//Post   : Nothing
+
+void sgsSetErrNum(unsigned int errNum);
+
+
+//Intent : Set ErrMsg
+//Pre    : Specific message
+//Post   : Nothing
+
+void sgsSetErrMsg(char *message);

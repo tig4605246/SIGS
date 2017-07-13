@@ -1,5 +1,5 @@
 PROG1=SGSmaster
-PROG2=GWInfo
+PROG2=SGSeventhandler
 PROG3=cpm70_agent_standalone
 PROG5=aemdra_agent_standalone
 PROG6=SGSlogger
@@ -14,9 +14,11 @@ TEST5=updateOperation
 TEST6=deleteOperation
 TEST7=writesgs
 
-# flag for paho mqtt [ -rdynamic -lpaho-mqtt3a ] 
-# flag for cJSON  [ -lm ]
-# flag -lsqlite3
+# mqtt flag 		[ -rdynamic -lpaho-mqtt3a ] 
+# cJSON flag  		[ -lm ]
+# sqlite3 flag 		[-lsqlite3 -ldl]
+# curl flag 		[-lcurl]
+# libmodbus flag 	[`pkg-config --cflags --libs libmodbus`]
  
 # ARM core (soft)
 
@@ -28,13 +30,15 @@ CC=gcc
 
 all:
 
-	$(CC) -o ../../bin/$(PROG1) $(PROG1).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../protocol/SGSmodbus.c -pthread -lm #`pkg-config --cflags --libs libmodbus`
+	$(CC) -o ../../bin/$(PROG1) $(PROG1).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../protocol/SGSmodbus.c ../controlling/SGScontrol.c ../events/SGSEvent.c -pthread -lm -lcurl #`pkg-config --cflags --libs libmodbus`
 
-	$(CC) -o ../../bin/$(PROG2) ../collector/$(PROG2).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../protocol/SGSmodbus.c -pthread -lm # `pkg-config --cflags --libs libmodbus`
+	$(CC) -o ../../bin/$(PROG2) $(PROG2).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c -pthread -lm
 
-	$(CC) -o ../../bin/cpm70_agent ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../collector/$(PROG3).c ../thirdparty/cJSON.c -pthread -lm  
+	#$(CC) -o ../../bin/$(PROG2) ../collector/$(PROG2).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../protocol/SGSmodbus.c -pthread -lm # `pkg-config --cflags --libs libmodbus`
 
-	$(CC) -o ../../bin/aemdra_agent ../collector/$(PROG5).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../thirdparty/cJSON.c  -pthread -lm
+	#$(CC) -o ../../bin/cpm70_agent ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../collector/$(PROG3).c ../thirdparty/cJSON.c -pthread -lm  
+
+	#$(CC) -o ../../bin/aemdra_agent ../collector/$(PROG5).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../thirdparty/cJSON.c  -pthread -lm
 
 	#$(CC) -o ../../bin/$(PROG6) ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../log/SGSlogfile.c ../thirdparty/sqlite3.c $(PROG6).c -pthread -lm -ldl
 

@@ -24,3 +24,19 @@ B. Solar Project
         |   uploader
 
         
+
+
+
+    3. All codes (Currently planned)
+        |   SGSmaster
+        |   UploaderMaster
+        |   DataBufferMaster
+        |   CollectorMaster
+        |   EventHandler
+        |   MailingAgent
+        |   Logger
+
+
+Notes:
+
+    test/sendmail.c will work, but some libraries are needed (libcurl and libssh2)

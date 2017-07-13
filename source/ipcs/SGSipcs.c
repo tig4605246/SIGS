@@ -855,7 +855,8 @@ int sgsCreateMsgQueue(key_t key, int create)
 {
 
 	int msgid;
-	msgid=msgget(key, /*IPC_NOWAIT |*/ IPC_CREAT | 0600);
+    
+	msgid=msgget(key, IPC_NOWAIT | IPC_CREAT | 0600);
 
 	if(msgid == -1)
     {
@@ -907,7 +908,7 @@ int sgsSendQueueMsg(int msgid, char *message, int msgtype )
 	printf("Prepare to send a message to queue (type %d)\n",msgtype);
 	ptr.mtype=(long)msgtype;
 
-	strncpy(ptr.mtext, message, sizeof(ptr.mtype) - 1 );
+	strncpy(ptr.mtext, message, sizeof(ptr.mtext) - 1 );
 	printf("ptr %ld %s\n",ptr.mtype,ptr.mtext);
 
     //Send the message to the queue
@@ -955,7 +956,7 @@ int sgsRecvQueueMsg(int msgid, char *buf, int msgtype )
 		printf("Queue message received, length %d bytes, type is %ld\n",result,ptr.mtype);
 		printf(YELLOW"message:\n%s\n"NONE,ptr.mtext);
 		strncpy(buf, ptr.mtext, sizeof(buf) - 1);
-		return 0;
+		return ptr.mtype;
 
 	}
 

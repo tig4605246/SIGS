@@ -4,7 +4,7 @@
 ---------------------------------------
 
 
-Wrap on some Open source libraries to make a simple IoT Gateway Software. The goal is to ease the pain during the development in the future.
+This branch is for the Solar Project
 
 [more information at wiki](https://github.com/tig4605246/SIGS/wiki)
 
