@@ -31,9 +31,10 @@ static const char *sample_payload[] = {
   NULL
 };
 
-char payload_text[12][1024];
+char payload_text[12][2048];
 
-struct upload_status {
+struct upload_status 
+{
   int lines_read;
 };
  

@@ -57,7 +57,6 @@ typedef time_t epochTime;
 #define CONFIGURECONF "../conf/configure.conf"
 #define DEVICECONF    "../conf/device.conf"
 #define DATACONF      "../conf/data.conf"
-#define LOG           "../conf/ErrorLog"
 
 // Master key for generating ipcs
 
@@ -77,6 +76,24 @@ typedef time_t epochTime;
 
 enum {EnumEventHandler = 1, EnumDataBuffer, EnumCollector, EnumUploader, EnumLogger};
 
+//Data Splitter
+
+#define SPLITTER ";"
+
+//Max process Log size
+
+#define MAXLOGSIZE 32000000
+
+//Data buffer pool 
+
+#define MAXBUFFERINFOBLOCK
+
+//Message type
+
+#define LOG         "Log"
+#define ERROR       "Error"
+#define CONTROL     "Control"
+
 // General definitions
 
 #define SGSPATH     "./"
@@ -88,6 +105,26 @@ enum {EnumEventHandler = 1, EnumDataBuffer, EnumCollector, EnumUploader, EnumLog
 #define COLLECTOR_SUBMASTER_PATH "./SGScollectormaster"
 #define DATABUFFER_SUBMASTER_PATH "./SGSdatabuffermaster"
 #define LOGGER_PATH "./SGSlogger"
+
+//DataBufferPool struct
+
+struct DataBufferInfo
+{
+
+    char dataName[64];
+    int shmId;
+    int numberOfData;
+    int inUse;//if this info block is in use or not
+
+    //inter-process mutex lock
+
+    pthread_mutex_t lock;
+
+    pthread_cond_t  lockCond;
+
+};
+
+typedef struct DataBufferInfo DataBufferInfo;
 
 //this struct is used by queue message 
 

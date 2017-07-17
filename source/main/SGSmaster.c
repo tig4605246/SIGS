@@ -79,15 +79,14 @@ void ShutdownSystemByInput();
 
 int ReportToServer();
 
-//All info about masters are here, be caredul with it
+childProcessInfo cpInfo[5]; //  All info about sub-masters are here, be caredul with it
 
-childProcessInfo cpInfo[5];
+int sgsMasterId = -1;       //  SGSmaster's queue id
 
 int main(int argc, char *argv[])
 {
 
-    int i, ret = 0;                             //  functional variables
-    int sgsMasterId = -1;                       //  master's queue id
+    int i, ret = 0;                             //  functional variables                   
     char input[128];                            //  input buffer for manual mode
     char buf[MSGBUFFSIZE];                      //  buffer used to catch queue message
     char *msgType = NULL, *msgContent = NULL;   //  for process messages
@@ -138,9 +137,33 @@ int main(int argc, char *argv[])
 
     }
     //ret = InitChild(cpInfo[1], DATABUFFER_SUBMASTER_PATH, DATABUFFER_SUBMASTER_KEY, "DataBufferSubmaster");
+    if(ret == -1)
+    {
+
+        ShutdownSystemByInput();
+
+    }
     //ret = InitChild(cpInfo[2], COLLECTOR_SUBMASTER_PATH, COLLECTOR_SUBMASTER_KEY, "CollectorSubmaster");
+    if(ret == -1)
+    {
+
+        ShutdownSystemByInput();
+
+    }
     //ret = InitChild(cpInfo[3], UPLOADER_SUBMASTER_PATH, UPLOADER_SUBMASTER_KEY, "UploaderSubmaster");
+    if(ret == -1)
+    {
+
+        ShutdownSystemByInput();
+
+    }
     //ret = InitChild(cpInfo[4], LOGGER_PATH, LOGGER_KEY, "Logger");
+    if(ret == -1)
+    {
+
+        ShutdownSystemByInput();
+
+    }
 
     //Set signal action
 

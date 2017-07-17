@@ -29,6 +29,8 @@
 pthread_mutexattr_t mutex_attr;
 pthread_condattr_t cond_attr;
 
+DataBufferInfo *DataBufferInfoPtr;
+
 void sgsDeleteDataInfo(dataInfo *dataInfoPtr, int shmid)
 {
 
@@ -938,15 +940,15 @@ int sgsRecvQueueMsg(int msgid, char *buf, int msgtype )
 		return -1;
 	}
 
-	printf("Prepare to receive a message from queue\n");
+	//printf("Prepare to receive a message from queue\n");
 	ptr.mtype=(long)msgtype;
 	result = msgrcv(msgid,&ptr,sizeof(struct msgbuff) - sizeof(long),msgtype,IPC_NOWAIT);//IPC_NOWAIT);	//recv msg type=1
 
 	if(result == -1)
     {
 
-		printf("Currently no queue message available\n");
-		perror("msgrcv");
+		//printf("Currently no queue message available\n");
+		//perror("msgrcv");
 		return -1;
 
 	}
@@ -959,5 +961,212 @@ int sgsRecvQueueMsg(int msgid, char *buf, int msgtype )
 		return ptr.mtype;
 
 	}
+
+}
+
+int sgsInitBufferPool(int Create)
+{
+
+    int poolId = -1;
+    int i = 0;
+    int ret = -1;
+    void *shm = NULL;
+
+    //Init the attributes
+
+    if(Create)
+    {
+
+        pthread_mutexattr_init(&mutex_attr);
+        pthread_mutexattr_setpshared(&mutex_attr, PTHREAD_PROCESS_SHARED);
+        pthread_condattr_init(&cond_attr);
+        pthread_condattr_setpshared(&cond_attr, PTHREAD_PROCESS_SHARED);
+
+    }
+    
+    if(Create)
+    {
+
+        /*
+        *  Create the segment.
+        */
+        poolId = shmget(DATABUFFER_SUBMASTER_KEY,  sizeof(struct DataBufferInfo )*MAXBUFFERINFOBLOCK,  IPC_EXCL | IPC_CREAT | 0666);
+
+    }
+    else
+    {
+
+        /*
+         * Locate the segment.
+         */
+        poolId = shmget(DATABUFFER_SUBMASTER_KEY, sizeof(struct DataBufferInfo )*MAXBUFFERINFOBLOCK, 0666);
+
+    }
+
+    if(poolId < 0){
+
+        perror("sgsInitBufferPool:");
+        return -1;
+
+    }
+
+    /*
+     *  Now we attach the segment to our data space.
+     */
+
+    if ((shm = (void *) shmat(poolId, NULL, 0)) == (char *) -1) 
+    {
+
+        perror("shmat");
+        sgsDeleteDataInfo(dataInfoPtrHead,-1);
+        return -1;
+
+    }
+
+    DataBufferInfoPtr = (struct DataBufferInfo *)shm;
+
+    //Initialize the pool and the mutex lock
+
+    if(Create)
+    {
+
+        memset(shm, 0, sizeof(struct DataBufferInfo )*MAXBUFFERINFOBLOCK);
+        for(i = 0 ; i < 50 ; i++)
+        {
+
+            pthread_mutex_init(&(DataBufferInfoPtr[i]->lock), &mutex_attr);
+            pthread_cond_init(&(DataBufferInfoPtr[i]->lockCond), &cond_attr);
+
+
+            ret = pthread_mutex_unlock( &(DataBufferInfoPtr[i]->lock) );
+            if(ret != 0)
+            {
+
+                perror("sgsInitBufferPool");
+                return -3;
+
+            }
+
+        }
+        
+    }
+    
+    return poolId;
+
+}
+
+int sgsDeleteBufferPool(int poolId )
+{
+
+    if(poolId >= 0)
+    {
+
+        if (shmctl(poolId, IPC_RMID, 0) == -1)
+        {
+
+            perror("sgsDeleteBufferPool:");
+
+        }
+
+    }
+
+}
+
+int sgsRegisterDataToBufferPool(char *dataName ,int shmId, int numberOfData)
+{
+
+    int i = 0;
+
+    while(i < 50)
+    {
+
+        if(pthread_mutex_trylock( &(DataBufferInfoPtr[i]->lock) ) != 0)
+        {
+
+            printf(LIGHT_RED"[%s,%d]%s %s is busy\n"NONE, __FUNCTION__, __LINE__, dataInfoPtr->sensorName, dataInfoPtr->valueName);
+            i++;
+            continue;
+
+        }
+        else
+        {
+
+            if(DataBufferInfoPtr[i]->inUse == 1)
+            {
+                i++;
+                continue;
+            }
+            else
+            {
+
+                strncpy(DataBufferInfoPtr[i]->dataName,dataName,63);
+                DataBufferInfoPtr[i]->shmId = shmId;
+                DataBufferInfoPtr[i]->numberOfData = numberOfData;
+                return 0;
+
+            }
+
+        }
+        i++;
+
+    }
+    printf("All blocks are in use, no available bloks currently\n");
+    return -1;
+
+}
+
+int sgsGetDataInfoFromBufferPool(char *dataName, DataBufferInfo *dest)
+{
+
+    int i = 0;
+
+    while(i < 50)
+    {
+
+        if(pthread_mutex_trylock( &(DataBufferInfoPtr[i]->lock) ) != 0)
+        {
+
+            printf(LIGHT_RED"[%s,%d]%s %s is busy\n"NONE, __FUNCTION__, __LINE__, dataInfoPtr->sensorName, dataInfoPtr->valueName);
+            i++;
+            continue;
+
+        }
+        else
+        {
+
+            if(DataBufferInfoPtr[i]->inUse == 0)
+            {
+                i++;
+                continue;
+            }
+            else
+            {
+
+                if(!strcmp(DataBufferInfoPt[i]->dataName,dataName))
+                {
+
+                    strncpy(dest->dataName,DataBufferInfoPtr[i]->dataName,63);
+                    dest->shmId = DataBufferInfoPtr[i]->shmId;
+                    dest->numberOfData = DataBufferInfoPtr[i]->numberOfData;
+                    return 0;
+
+                }
+                else
+                {
+
+                    i++;
+                    continue;
+
+                }
+
+            }
+
+        }
+        i++;
+
+    }
+    printf("Can't find the dataName %s\n",dataName);
+    return -1;
+
 
 }

@@ -133,5 +133,17 @@ int sgsSendQueueMsg(int msgid, char *message, int msgtype );
 
 int sgsRecvQueueMsg(int msgid, char *buf, int msgtype );
 
+//Intent :  Store the info of shared memories we are using
+//Pre : Nothing
+//Post : On success, return poolId and the ptr to pool will be set. Otherwise -1 is returned
+
+int sgsInitBufferPool(int Create);
+
+int sgsDeleteBufferPool(int poolId);
+
+int sgsRegisterDataToBufferPool(char *dataName ,int shmId, int numberOfData);
+
+int sgsGetDataInfoFromBufferPool(char *dataName, DataBufferInfo *dest);
+
 
 
