@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <sys/types.h>
 
 //We declare own libraries at below
 
@@ -8,19 +12,29 @@
 #include "../events/SGSEvent.h"
 #include "../controlling/SGScontrol.h"
 
+#define AUTOLIST "./conf/Upload/AutoList"
+
 //sigaction
 //Pid store
-//invoke child
+//Read Setting
+//invoke agents
 //Record their info
+//While loop
 //Send message to eventhandler
 
 typedef struct{
 
-    int pid;
-    int msgId;
-    char childName[32];
+    int pid;//child id
+    int msgId;//child queue id, We are not using it here
+    char childName[32];//Name of child process
+    char childPath[64];//Path to child process
 
 }childProcessInfo;
+
+//Intent    :   Shutdown children after catching the SIGTERM
+//Pre       :   signal number
+//Post      :   Nothing
+
 
 void ShutDownBySignal(int sigNum);
 
@@ -30,17 +44,22 @@ int main()
 {
 
     int ret = -1;
-    int id = -1;//  id for message queue to event-handler
+    int eventHandlerId = -1;//  id for message queue to Event-Handler
     int uploadMasterId = -1;
-    int i = 0;
+    int i = 0, count = 10;
     pid_t pid;
     char buf[512];
+    char *path = NULL;
+    char *name = NULL;
+    char *msgType = NULL;//message type
+    char *from = NULL;//who issue this message
+    FILE *fp = NULL;
     struct sigaction act, oldact; 
 
     printf("Child: SGSdatabuffermaster up\n");
 
-    id = sgsCreateMsgQueue(EVENT_HANDLER_KEY, 0);
-    uploadMasterId = sgsCreateMsgQueue(UPLOADER_SUBMASTER_KEY, 0)
+    eventHandlerId = sgsCreateMsgQueue(EVENT_HANDLER_KEY, 0);
+    uploadMasterId = sgsCreateMsgQueue(UPLOADER_SUBMASTER_KEY, 0);
 
     //Set signal action
 
@@ -48,6 +67,7 @@ int main()
     act.sa_flags = SA_ONESHOT|SA_NOMASK;
     sigaction(SIGINT, &act, &oldact);
 
+    //Initialize child list
 
     for(i = 0 ; i < 5 ; i++)
     {
@@ -55,42 +75,333 @@ int main()
         cpInfo[i].pid = -1;
         cpInfo[i].msgId = -1;
         memset(cpInfo[i].childName, '\0', sizeof(cpInfo[i].childName));
+        memset(cpInfo[i].childPath, '\0', sizeof(cpInfo[i].childPath));
+
+
+    }
+
+    //Read in list of auto start agent
+
+    fp = fopen(AUTOLIST, "r");
+
+    if(fp == NULL)
+    {
+
+        printf("No auto start list, skiping.\n");
 
     }
 
     //Open upload agents
 
-    for(i = 0 ; i < 5 ; i++)
+    i = 0;
+    while(i < 5)
     {
+
+        memset(buf, '\0', sizeof(buf));
+
+        //Read a line from the AutoList
+
+        fgets(buf, 128, fp);
+
+        //If the buf is "#END" leave this section
+
+        if(!strcmp("#END", buf)) break;
+
+        //If the buf is started with "#", we should skip it
+
+        if(buf[0] == '#') continue;
+
+        //Prepare the info
+
+        name = strtok(buf,";");
+        path = strtok(buf,";");
+
+        if(path != NULL && name != NULL)
+        {
+
+            snprintf(cpInfo[i].childPath, 63, "%s", path);
+            strncpy(cpInfo[i].childName, name, 31);
+
+        }
+        else
+        {
+
+            printf("[%s] is not a valid format\n",buf);
+            continue;
+
+        }
+
+        //Invoke children
 
         cpInfo[i].pid = fork();
         if(cpInfo[i].pid == 0)
         {
 
-            execlp(CHILD_PATH, CHILD_PATH, NULL);
+            execlp(cpInfo[i].childPath, cpInfo[i].childPath, NULL);
             perror("fork()");
             exit(0);
 
         }
 
+        usleep(5000);
+
+        //Check the child status right after the child starts
+
+        ret = waitpid(cpInfo[i].pid, NULL, WNOHANG);
+
+        if(ret != 0)
+        {
+
+            printf("pid %d Agent %s exits unexpectedly, return code %d\n", cpInfo[i].pid, cpInfo[i].childName, ret);
+            memset(buf,'\0',sizeof(buf));
+            snprintf(buf,511,"[%s,%d]Upload-Master: pid %d Agent %s exits unexpectedly, return code %d"
+                                                                , __FUNCTION__, __LINE__, cpInfo[i].pid, cpInfo[i].childName, ret);
+            sgsSendQueueMsg(eventHandlerId, buf, EnumUploader);
+            cpInfo[i].pid = -1;
+            memset(cpInfo[i].childName, '\0', sizeof(cpInfo[i].childName));
+
+            //If we add a continue here, we can avoid unused block between two used blocks
+
+        }
+
+        //Next child list
+
+        i++;
+
     }
+
+    //In this infinity loop, we'll deal with messages
 
     while(1)
     {
 
-        usleep(50000);
+        usleep(5000);
         memset(buf,'\0',sizeof(buf));
         ret = sgsRecvQueueMsg(uploadMasterId, buf, EnumUploader);
+
+        //Message type: Restart | Leave | Error | Control
+        //
+
         if(ret != -1)
         {
 
-            //
+            msgType = strtok(buf,";");
+
+            if(!strcmp(msgType,LOG))
+            {
+
+                sgsSendQueueMsg(eventHandlerId, buf, EnumUploader);
+
+            }
+            else if(!strcmp(msgType,ERROR))
+            {
+
+                sgsSendQueueMsg(eventHandlerId, buf, EnumUploader);
+
+            }
+            else if(!strcmp(msgType,LEAVE))
+            {
+
+                //Get process name
+
+                from = strtok(buf,";");
+
+                //If we get the name
+
+                if(from != NULL)
+                {
+
+                    //Which cpInfo is its
+
+                    for(i=0;i<5;i++)
+                    {
+
+                        if(!strcmp(cpInfo[i].childName,from))
+                        {
+
+                            // Try to reap its exit signal
+
+                            count = 10;
+
+                            do
+                            {
+
+                                ret = waitpid(cpInfo[i].pid, NULL, WNOHANG);
+                                count--;
+
+                            }while(ret == 0 && count > 0);
+
+                            //If we didn't get the signal in 10 loops
+
+                            if(count <= 0)
+                            {
+
+                                printf("[%s]Timeout when waiting child %s quit\n",LEAVE ,from);
+
+                            }
+
+                            //Reset the info
+
+                            memset(cpInfo[i].childName,'\0',sizeof(cpInfo[i].childName));
+                            memset(cpInfo[i].childPath,'\0',sizeof(cpInfo[i].childPath));
+                            cpInfo[i].pid = -1;
+                            cpInfo[i].msgId = -1;
+
+                            break;
+
+                        }
+
+                    }
+                
+                }
+                else
+                {
+
+                    printf("[%s]Can't find %s uploader. Is it still there?",LEAVE ,from);
+
+                }
+                
+            }
+            else if(!strcmp(msgType,RESTART))
+            {
+
+                //Get process name
+
+                from = strtok(buf,";");
+
+                //If we get the name
+
+                if(from != NULL)
+                {
+
+                    for(i=0;i<5;i++)
+                    {
+
+                        if(!strcmp(cpInfo[i].childName,from))
+                        {
+
+                            //send terminated signal to it
+
+                            kill(cpInfo[i].pid, SIGTERM);
+
+                            // Try to catch its exit signal
+
+                            count = 10;
+                            do
+                            {
+
+                                ret = waitpid(cpInfo[i].pid, NULL, WNOHANG);
+                                count--;
+
+                            }while(ret == 0 && count > 0);
+
+                            //If we fail the above task
+
+                            if(count <= 0)
+                            {
+
+                                printf("[%s]Timeout when waiting child %s quit\n",RESTART ,from);
+
+                            }
+
+                            //fork() our child to restart the agent
+
+                            cpInfo[i].pid = fork();
+
+                            if(cpInfo[i].pid == 0)
+                            {
+
+                                execlp(cpInfo[i].childPath, cpInfo[i].childPath, NULL);
+                                perror("fork()");
+                                exit(0);
+
+                            }
+
+                            break;
+
+                        }
+
+                    }
+                
+                }
+                else
+                {
+
+                    printf("[%s]Can't find %s uploader. Is it still there?",RESTART ,from);
+
+                }
+
+            }
+            else if(!strcmp(msgType,SHUTDOWN))
+            {
+
+                //Try to get process name
+
+                from = strtok(buf,";");
+
+                //If we get the name
+
+                if(from != NULL)
+                {
+
+                    //Find its cpInfo
+
+                    for(i=0;i<5;i++)
+                    {
+
+                        //If we find it
+
+                        if(!strcmp(cpInfo[i].childName,from))
+                        {
+
+                            //Send terminated signal to it
+
+                            kill(cpInfo[i].pid, SIGTERM);
+
+                            //Try to reap its exit signal
+
+                            count = 10;
+                            do
+                            {
+
+                                ret = waitpid(cpInfo[i].pid, NULL, WNOHANG);
+                                count--;
+
+                            }while(ret == 0 && count > 0);
+
+
+                            //If we fail the above task
+
+                            if(count <= 0)
+                            {
+
+                                printf("[%s]Timeout when waiting child %s quit\n",RESTART ,from);
+
+                            }
+
+                            //Reset the cpInfo
+
+                            memset(cpInfo[i].childName,'\0',sizeof(cpInfo[i].childName));
+                            cpInfo[i].pid = -1;
+                            cpInfo[i].msgId = -1;
+
+                        }
+
+                    }
+
+                }
+
+            }
+            else//for other messages we don't know the purpose
+            {
+
+                sgsSendQueueMsg(eventHandlerId, buf, EnumUploader);
+
+            }
 
         }
 
-
     }
-
 
 }
 
@@ -98,7 +409,10 @@ int main()
 void ShutDownBySignal(int sigNum)
 {
 
+    int i = 0;
+
     printf("Shuting down child before bye bye\n");
+
     for(i = 0 ; i < 5 ; i++)
     {
 

@@ -21,6 +21,7 @@
 #endif
 
 
+DataBufferInfo *DataBufferInfoPtr;
 
 // Intent : Free all allocated dataInfo at the pointer
 // Pre : deviceInfo pointer, close type 

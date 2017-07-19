@@ -1,6 +1,7 @@
 PROG1=SGSmaster
 PROG2=SGSeventhandler
 PROG3=SGSdatabuffermaster
+PROG4=SGSuploadmaster
 PROG5=aemdra_agent_standalone
 PROG6=SGSlogger
 PROG8=FakeCollector
@@ -30,13 +31,13 @@ CC=gcc
 
 all:
 
-	$(CC) -o ../../bin/$(PROG1) $(PROG1).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../protocol/SGSmodbus.c ../controlling/SGScontrol.c ../events/SGSEvent.c -pthread -lm -lcurl #`pkg-config --cflags --libs libmodbus`
+	$(CC) -o ../../bin/$(PROG1) $(PROG1).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c -pthread -lm -lcurl #`pkg-config --cflags --libs libmodbus`
 
 	$(CC) -o ../../bin/$(PROG2) $(PROG2).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c -pthread -lm -lcurl
 
-	$(CC) -o ../../bin/$(PROG3) ../$(PROG3).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../protocol/SGSmodbus.c -pthread -lm # `pkg-config --cflags --libs libmodbus`
+	$(CC) -o ../../bin/$(PROG3) $(PROG3).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c -pthread -lm # `pkg-config --cflags --libs libmodbus`
 
-	#$(CC) -o ../../bin/cpm70_agent ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../collector/$(PROG3).c ../thirdparty/cJSON.c -pthread -lm  
+	$(CC) -o ../../bin/$(PROG4) $(PROG4).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c -pthread -lm -lcurl 
 
 	#$(CC) -o ../../bin/aemdra_agent ../collector/$(PROG5).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../thirdparty/cJSON.c  -pthread -lm
 

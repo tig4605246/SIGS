@@ -29,8 +29,6 @@
 pthread_mutexattr_t mutex_attr;
 pthread_condattr_t cond_attr;
 
-DataBufferInfo *DataBufferInfoPtr;
-
 void sgsDeleteDataInfo(dataInfo *dataInfoPtr, int shmid)
 {
 
@@ -1018,7 +1016,6 @@ int sgsInitBufferPool(int Create)
     {
 
         perror("shmat");
-        sgsDeleteDataInfo(dataInfoPtrHead,-1);
         return -1;
 
     }
@@ -1034,11 +1031,11 @@ int sgsInitBufferPool(int Create)
         for(i = 0 ; i < 50 ; i++)
         {
 
-            pthread_mutex_init(&(DataBufferInfoPtr[i]->lock), &mutex_attr);
-            pthread_cond_init(&(DataBufferInfoPtr[i]->lockCond), &cond_attr);
+            pthread_mutex_init(&((DataBufferInfoPtr + i)->lock), &mutex_attr);
+            pthread_cond_init(&((DataBufferInfoPtr + i)->lockCond), &cond_attr);
 
 
-            ret = pthread_mutex_unlock( &(DataBufferInfoPtr[i]->lock) );
+            ret = pthread_mutex_unlock( &((DataBufferInfoPtr + i)->lock) );
             if(ret != 0)
             {
 
@@ -1080,10 +1077,10 @@ int sgsRegisterDataToBufferPool(char *dataName ,int shmId, int numberOfData)
     while(i < 50)
     {
 
-        if(pthread_mutex_trylock( &(DataBufferInfoPtr[i]->lock) ) != 0)
+        if(pthread_mutex_trylock( &((DataBufferInfoPtr + i)->lock) ) != 0)
         {
 
-            printf(LIGHT_RED"[%s,%d]%s %s is busy\n"NONE, __FUNCTION__, __LINE__, dataInfoPtr->sensorName, dataInfoPtr->valueName);
+            printf(LIGHT_RED"[%s,%d]%s  is busy\n"NONE, __FUNCTION__, __LINE__, (DataBufferInfoPtr + i)->dataName);
             i++;
             continue;
 
@@ -1091,7 +1088,7 @@ int sgsRegisterDataToBufferPool(char *dataName ,int shmId, int numberOfData)
         else
         {
 
-            if(DataBufferInfoPtr[i]->inUse == 1)
+            if((DataBufferInfoPtr + i)->inUse == 1)
             {
                 i++;
                 continue;
@@ -1099,9 +1096,9 @@ int sgsRegisterDataToBufferPool(char *dataName ,int shmId, int numberOfData)
             else
             {
 
-                strncpy(DataBufferInfoPtr[i]->dataName,dataName,63);
-                DataBufferInfoPtr[i]->shmId = shmId;
-                DataBufferInfoPtr[i]->numberOfData = numberOfData;
+                strncpy((DataBufferInfoPtr + i)->dataName,dataName,63);
+                (DataBufferInfoPtr + i)->shmId = shmId;
+                (DataBufferInfoPtr + i)->numberOfData = numberOfData;
                 return 0;
 
             }
@@ -1123,10 +1120,10 @@ int sgsGetDataInfoFromBufferPool(char *dataName, DataBufferInfo *dest)
     while(i < 50)
     {
 
-        if(pthread_mutex_trylock( &(DataBufferInfoPtr[i]->lock) ) != 0)
+        if(pthread_mutex_trylock( &((DataBufferInfoPtr + i)->lock) ) != 0)
         {
 
-            printf(LIGHT_RED"[%s,%d]%s %s is busy\n"NONE, __FUNCTION__, __LINE__, dataInfoPtr->sensorName, dataInfoPtr->valueName);
+            printf(LIGHT_RED"[%s,%d]%s is busy\n"NONE, __FUNCTION__, __LINE__, (DataBufferInfoPtr + i)->dataName);
             i++;
             continue;
 
@@ -1134,7 +1131,7 @@ int sgsGetDataInfoFromBufferPool(char *dataName, DataBufferInfo *dest)
         else
         {
 
-            if(DataBufferInfoPtr[i]->inUse == 0)
+            if((DataBufferInfoPtr + i)->inUse == 0)
             {
                 i++;
                 continue;
@@ -1142,12 +1139,12 @@ int sgsGetDataInfoFromBufferPool(char *dataName, DataBufferInfo *dest)
             else
             {
 
-                if(!strcmp(DataBufferInfoPt[i]->dataName,dataName))
+                if(!strcmp((DataBufferInfoPtr + i)->dataName,dataName))
                 {
 
-                    strncpy(dest->dataName,DataBufferInfoPtr[i]->dataName,63);
-                    dest->shmId = DataBufferInfoPtr[i]->shmId;
-                    dest->numberOfData = DataBufferInfoPtr[i]->numberOfData;
+                    strncpy(dest->dataName,(DataBufferInfoPtr + i)->dataName,63);
+                    dest->shmId = (DataBufferInfoPtr + i)->shmId;
+                    dest->numberOfData = (DataBufferInfoPtr + i)->numberOfData;
                     return 0;
 
                 }

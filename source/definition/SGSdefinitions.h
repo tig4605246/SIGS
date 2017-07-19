@@ -18,7 +18,7 @@
 //Build version of the SIGS
 
 #define PROJECTSTATUS  "Solar Alpha Build"
-#define PROJECTVERSION "0.1"
+#define PROJECTVERSION "0.3"
 
 //defines the log system type
 
@@ -72,6 +72,10 @@ typedef time_t epochTime;
 
 #define EVENT_HANDLER_KEY        91091
 
+#define UPLOAD_AGENT_KEY         73273
+
+#define COLLECTOR_AGENT_KEY      21912
+
 //Codename 
 
 enum {EnumEventHandler = 1, EnumDataBuffer, EnumCollector, EnumUploader, EnumLogger};
@@ -86,13 +90,17 @@ enum {EnumEventHandler = 1, EnumDataBuffer, EnumCollector, EnumUploader, EnumLog
 
 //Data buffer pool 
 
-#define MAXBUFFERINFOBLOCK
+#define MAXBUFFERINFOBLOCK 5
 
 //Message type
 
 #define LOG         "Log"
 #define ERROR       "Error"
 #define CONTROL     "Control"
+#define RESULT      "Result"
+#define LEAVE       "Leave"
+#define SHUTDOWN    "Shutdown"
+#define RESTART     "Restart"
 
 // General definitions
 

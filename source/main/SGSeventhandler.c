@@ -68,7 +68,7 @@ int main()
 
         //Prepare to receive message
 
-        ret = sgsRecvQueueMsg(id,buf,1);
+        ret = sgsRecvQueueMsg(id,buf,0);
 
         dataType = strtok(buf,SPLITTER);
 
@@ -83,18 +83,20 @@ int main()
             if(!strcmp(dataType,LOG))
             {
 
-                CheckLogFileSize("./SGSlog");
-                AddToLogFile("./SGSlog",buf);
+                CheckLogFileSize("./log/SGSlog");
+                AddToLogFile("./log/SGSlog",buf);
 
             }
             else if(!strcmp(dataType,ERROR))
             {
 
                 SendMailToMaintainer(ret, buf);
+                CheckLogFileSize("./log/SGSError");
+                AddToLogFile("./log/SGSError",buf);
 
             }
 
-            else if(!strcmp(dataType,CONTROL))
+            else
             {
 
                 printf("SGSEventhandler got message: %s\n",buf);

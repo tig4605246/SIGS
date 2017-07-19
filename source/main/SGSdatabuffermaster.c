@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <string.h>
+#include <unistd.h>
 
 //We declare own libraries at below
 
@@ -52,13 +54,13 @@ int main(int argc, char* argv[])
         for(i = 0 ; i < 50 ; i++)
         {
 
-            ret = CheckPoolStatus(DataBufferInfoPtr[i]);
+            ret = CheckPoolStatus(&(DataBufferInfoPtr[i]));
             if(ret == -1)
             {
 
                 memset(buf,'\0',sizeof(buf));
                 snprintf(buf,511,"ERROR;Something's wrong with Pool number %d",i);
-                sgsSendQueueMsg(id, buf, EnumDataBuffer)
+                sgsSendQueueMsg(id, buf, EnumDataBuffer);
 
             }
 
@@ -116,7 +118,7 @@ int CheckPoolStatus(DataBufferInfo *ptr)
                 return -1;
 
             }
-            return;
+            return -1;
 
         }
 

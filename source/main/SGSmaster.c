@@ -106,6 +106,16 @@ int main(int argc, char *argv[])
 
     }
 
+    if(!strcmp(argv[1],"-p"))
+    {
+
+        printf("General Config: ~/config/Config\n");
+        printf("mail address: ~/mail/CC, ~/mail/FROM, ~/mail/TO\n");
+        printf("processs' pid: ~/pid/\n");
+        printf("Logs: ~/log/");
+
+    }
+
     //Initialize cpInfo
 
     for(i = 0 ; i < 5 ; i++)
@@ -332,6 +342,7 @@ int InitChild(childProcessInfo *infoPtr, char *childPath, int key, char *name)
 
     for(i = 0; i < 10 ; i++)
     {
+
         ret = sgsRecvQueueMsg(id,buf,2);
         if(ret == 0)
         {
@@ -359,7 +370,7 @@ int InitChild(childProcessInfo *infoPtr, char *childPath, int key, char *name)
                         printf("No child exited\n");
 
                     }
-                    sleep(1);
+                    usleep(5000);
 
                 }while(ret == 0);
                 return -1;
