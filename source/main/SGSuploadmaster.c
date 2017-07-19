@@ -1,3 +1,15 @@
+/*
+
+    Name: Xi-Ping Xu
+    Date: July 19,2017
+    Last Update: July 19,2017
+    Program statement: 
+        This program manages uploader agents, including
+        1. watchdog
+        2. tranfer commands from/to agents
+
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -44,15 +56,15 @@ int main()
 {
 
     int ret = -1;
-    int eventHandlerId = -1;//  id for message queue to Event-Handler
+    int eventHandlerId = -1;    //  id for message queue to Event-Handler
     int uploadMasterId = -1;
     int i = 0, count = 10;
     pid_t pid;
     char buf[512];
-    char *path = NULL;
-    char *name = NULL;
-    char *msgType = NULL;//message type
-    char *from = NULL;//who issue this message
+    char *path = NULL;          // path to agent
+    char *name = NULL;          // name of agent
+    char *msgType = NULL;       // message type
+    char *from = NULL;          // who issue this message
     FILE *fp = NULL;
     struct sigaction act, oldact; 
 

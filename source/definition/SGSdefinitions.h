@@ -1,14 +1,17 @@
 /*
 
-    Name: Xu Xi-Ping
+    Name: Xi-Ping Xu
     Date: March 1,2017
-    Last Update: March 22,2017
+    Last Update: July 19,2017
     Program statement: 
         In here, We define the struct and some general variables, parameters
 
         After that, we define some datalog format
     Edited:
-        Adding uploadInfo for controlling use
+        1. Adding Enum for masters
+        2. Adding message type MACROs
+        3. Adding preset keys
+        4. Adding
 
 */
 

@@ -1,6 +1,6 @@
 /*
 
-    Name: Xu Xi-Ping
+    Name: Xi-Ping Xu
     Date: March 1,2017
     Last Update: March 29,2017
     Program statement: 

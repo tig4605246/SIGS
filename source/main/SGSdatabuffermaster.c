@@ -1,3 +1,13 @@
+/*
+
+    Name: Xu Xi-Ping
+    Date: July 19,2017
+    Last Update: July 19,2017
+    Program statement: 
+        A watchdog for the data buffer pool
+
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
