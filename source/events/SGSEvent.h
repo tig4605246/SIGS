@@ -2,18 +2,15 @@
 
     Name: Xi-Ping Xu
     Date: April 20,2017
-    Last Update: April 20,2017
-    Program statement: 
-        In here, We define the struct and some general variables, parameters
-
-        After that, we define some datalog format
-    Edited:
-        Adding uploadInfo for controlling use
+    Last Update: July 19,2017
+    Program Statement:
+    We define print type and error reporting functions here
+    In addition, we should add error numbers at here
 
 */
 
 //printf with colors
-//Example printf(RED"Error\n");
+//Example printf(RED"Error\n"NONE);
 
 #ifndef COLORS
 
@@ -69,6 +66,10 @@ void sgsSendEmail(char *message);
 */
 
 void sgsShowErrMsg();
+
+//Intent : get a pointer to error message
+//Pre    : Nothing
+//Post   : pointer to sgsErrMsg
 
 char* sgsGetErrMsg();
 

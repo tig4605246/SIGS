@@ -1,3 +1,14 @@
+/*
+
+    Name: Xi-Ping Xu
+    Date: July 5,2017
+    Last Update: July 21,2017
+    Program statement: 
+        It's a relay of all messages.
+        In addition, it's also responsible for mailing agent
+
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -17,9 +28,6 @@
 #include "../ipcs/SGSipcs.h"
 #include "../events/SGSEvent.h"
 
-#define CMDLEN 128
-#define BUFLEN 2048
-
 void ShutdownSystemBySignal(int sigNum);
 
 //Intent    :   record the log to log file
@@ -36,6 +44,10 @@ int CheckLogFileSize(char *filePath);
 
 int SendMailToMaintainer(int msgType, char *content);
 
+int mailAgentPid;
+
+int mailAgentMsgId;
+
 int main()
 {
 
@@ -44,16 +56,27 @@ int main()
     int ret;
     int sgsMasterId = -1; //msgid for queue message to master
     char buf[MSGBUFFSIZE];
+    char originInfo[MSGBUFFSIZE];
     char *dataType = NULL;
     struct sigaction act, oldact;
 
     printf("Child: SGSeventhandler up\n");
+    
 
     id = sgsCreateMsgQueue(EVENT_HANDLER_KEY, 0);
+    if(id == -1)
+    {
+        printf("Open event queue failed...\n");
+        exit(0);
+    }
 
     act.sa_handler = (__sighandler_t)ShutdownSystemBySignal;
     act.sa_flags = SA_ONESHOT|SA_NOMASK;
     sigaction(SIGTERM, &act, &oldact);
+
+    //Ignore SIGINT
+    
+    signal(SIGINT, SIG_IGN);
 
     sgsMasterId = sgsCreateMsgQueue(SGSKEY, 0);
     if(sgsMasterId == -1)
@@ -62,13 +85,48 @@ int main()
         exit(0);
     }
 
+    sgsSendQueueMsg(sgsMasterId, "[BOOT];EventHandler", EnumEventHandler);
+
+    //Open up mail agent
+
+    mailAgentMsgId = sgsCreateMsgQueue(MAIL_AGENT_KEY, 0);
+    if(mailAgentMsgId == -1)
+    {
+
+        printf("Open mailAgent queue failed...\n");
+
+    }
+    else // We open mail agent only if we have the queue message been opened successfully
+    {
+
+        mailAgentPid = fork();
+        if(mailAgentPid < 0)
+        {
+            perror("mailAgent");
+        }
+        else if(mailAgentPid == 0)
+        {
+
+            execlp(MAIL_AGENT_PATH,MAIL_AGENT_PATH,NULL);
+            perror("mailAgent");
+            exit(0);
+
+        }
+
+    }
+
+   
     while(1)
     {
 
+        memset(buf,'\0',sizeof(buf));
+        memset(originInfo,'\0',sizeof(originInfo));
 
         //Prepare to receive message
 
         ret = sgsRecvQueueMsg(id,buf,0);
+
+        strncpy(originInfo, buf, sizeof(originInfo));
 
         dataType = strtok(buf,SPLITTER);
 
@@ -84,30 +142,29 @@ int main()
             {
 
                 CheckLogFileSize("./log/SGSlog");
-                AddToLogFile("./log/SGSlog",buf);
+                AddToLogFile("./log/SGSlog",originInfo);
 
             }
             else if(!strcmp(dataType,ERROR))
             {
 
-                SendMailToMaintainer(ret, buf);
+                SendMailToMaintainer(ret, originInfo);
                 CheckLogFileSize("./log/SGSError");
-                AddToLogFile("./log/SGSError",buf);
+                AddToLogFile("./log/SGSError",originInfo);
 
             }
-
             else
             {
 
-                printf("SGSEventhandler got message: %s\n",buf);
+                printf("SGSEventhandler got message: %s\n",originInfo);
 
-                sgsSendQueueMsg(sgsMasterId, buf, ret);
+                sgsSendQueueMsg(sgsMasterId, originInfo, ret);
                 
             }
 
         }
             
-        usleep(50000);
+        usleep(5000);
 
     }
 
@@ -118,7 +175,10 @@ int main()
 void ShutdownSystemBySignal(int sigNum)
 {
 
+    kill(mailAgentPid, SIGTERM);
+
     printf("Handler bye bye\n");
+
     exit(0);
 
 }
@@ -140,7 +200,7 @@ int AddToLogFile(char *filePath, char *log)
 
     }
 
-    fprintf(fp,"[%d-%d-%d %d:%d:%d]%s\n"
+    fprintf(fp,"[%04d-%02d-%02d %02d:%02d:%02d],%s\n"
         , timeStruct.tm_year + 1900, timeStruct.tm_mon + 1, timeStruct.tm_mday, timeStruct.tm_hour, timeStruct.tm_min, timeStruct.tm_sec, log);
 
     fclose(fp);
@@ -213,7 +273,7 @@ int SendMailToMaintainer(int msgType, char *content)
 
     }
 
-    sgsSendEmail(message);
+    sgsSendQueueMsg(mailAgentMsgId, message, EnumEventHandler);
     return 0;
 
 }

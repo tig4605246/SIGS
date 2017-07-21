@@ -41,7 +41,7 @@ typedef struct{
 //Pre       : Nothing
 //Post      : On success, return message queue id, otherwise return -1 and set sgsErrNum
 
-int InitChild(childProcessInfo *infoPtr, char *childPath, int key, char *name);
+int InitChild(childProcessInfo *infoPtr, char *childPath, int key, char *name, int msgType);
 
 //Intent    : Check if children are still alive. If the child is dead, reap its old pid and restart it.
 //Pre       : Nothing
@@ -81,7 +81,13 @@ int ReportToServer();
 
 childProcessInfo cpInfo[5]; //  All info about sub-masters are here, be caredul with it
 
-int sgsMasterId = -1;       //  SGSmaster's queue id
+int sgsMasterId         = -1;       //  SGSmaster's queue id
+
+int mailAgentMsgId      = -1;       //  mailAgent's queue id
+
+int collectorAgentMsgId = -1;       //  collectorAgent's queue id
+
+int uploadAgentMsgId    = -1;       //  uploadAgentAgent's queue id
 
 int main(int argc, char *argv[])
 {
@@ -137,37 +143,77 @@ int main(int argc, char *argv[])
 
     ret = sgsInitControl("SGSmaster");
 
+    //Open Master's message queue
+
+    sgsMasterId = sgsCreateMsgQueue(SGSKEY, 1);
+    if(sgsMasterId == -1)
+    {
+
+        printf("Open master's queue failed...\n");
+
+    }
+
+    //Open mailAgent's message queue
+
+    mailAgentMsgId = sgsCreateMsgQueue(MAIL_AGENT_KEY, 1);
+    if(mailAgentMsgId == -1)
+    {
+
+        printf("Open mailAgent's queue failed...\n");
+
+    }
+
+    //Open collectorAgent's message queue
+
+    collectorAgentMsgId = sgsCreateMsgQueue(COLLECTOR_AGENT_KEY, 1);
+    if(collectorAgentMsgId == -1)
+    {
+
+        printf("Open collectorAgent's queue failed...\n");
+
+    }
+
+    //Open uploadAgent's message queue
+
+    uploadAgentMsgId = sgsCreateMsgQueue(UPLOAD_AGENT_KEY, 1);
+    if(uploadAgentMsgId == -1)
+    {
+
+        printf("Open uploadAgent's queue failed...\n");
+
+    }
+
     //Starting childs
 
-    ret = InitChild(&(cpInfo[0]), EVENT_HANDLER_PATH, EVENT_HANDLER_KEY, "EventHandler");
+    ret = InitChild(&(cpInfo[0]), EVENT_HANDLER_PATH, EVENT_HANDLER_KEY, "EventHandler", EnumEventHandler);
     if(ret == -1)
     {
 
         ShutdownSystemByInput();
 
     }
-    //ret = InitChild(cpInfo[1], DATABUFFER_SUBMASTER_PATH, DATABUFFER_SUBMASTER_KEY, "DataBufferSubmaster");
+    ret = InitChild(&(cpInfo[1]), DATABUFFER_SUBMASTER_PATH, DATABUFFER_SUBMASTER_KEY, "DataBufferSubmaster", EnumDataBuffer);
     if(ret == -1)
     {
 
         ShutdownSystemByInput();
 
     }
-    //ret = InitChild(cpInfo[2], COLLECTOR_SUBMASTER_PATH, COLLECTOR_SUBMASTER_KEY, "CollectorSubmaster");
+    ret = InitChild(&(cpInfo[2]), COLLECTOR_SUBMASTER_PATH, COLLECTOR_SUBMASTER_KEY, "CollectorSubmaster", EnumCollector);
     if(ret == -1)
     {
 
         ShutdownSystemByInput();
 
     }
-    //ret = InitChild(cpInfo[3], UPLOADER_SUBMASTER_PATH, UPLOADER_SUBMASTER_KEY, "UploaderSubmaster");
+    ret = InitChild(&(cpInfo[3]), UPLOADER_SUBMASTER_PATH, UPLOADER_SUBMASTER_KEY, "UploaderSubmaster", EnumUploader);
     if(ret == -1)
     {
 
         ShutdownSystemByInput();
 
     }
-    //ret = InitChild(cpInfo[4], LOGGER_PATH, LOGGER_KEY, "Logger");
+    //ret = InitChild(&(cpInfo[4]), LOGGER_PATH, LOGGER_KEY, "Logger", EnumLogger);
     if(ret == -1)
     {
 
@@ -180,14 +226,6 @@ int main(int argc, char *argv[])
     act.sa_handler = (__sighandler_t)ShutdownSystemByInput;
     act.sa_flags = SA_ONESHOT|SA_NOMASK;
     sigaction(SIGINT, &act, &oldact);
-
-    //Open Master's message queue
-
-    sgsMasterId = sgsCreateMsgQueue(SGSKEY, 1);
-    if(sgsMasterId == -1)
-    {
-        printf("Open master queue failed...\n");
-    }
 
     //Main loop
 
@@ -222,7 +260,7 @@ int main(int argc, char *argv[])
             else if(!strcmp(input,"mail-test"))
             {
 
-                sgsSendEmail("Test mail by master");
+                sgsSendQueueMsg(mailAgentMsgId, "Test mail by Main-Master", EnumEventHandler);
 
             }
 
@@ -271,11 +309,10 @@ int main(int argc, char *argv[])
                     printf(LIGHT_RED"Unknown msgtype %d\ncontent:%s\n"NONE,ret,buf);
                     memset(input,'\0',sizeof(input));
                     snprintf(input,127,"Master got an unknown type message");
-                    sgsSendEmail(input);
+                    sgsSendQueueMsg(mailAgentMsgId, input, 10);
                     break;
 
                 }
-
 
             }
 
@@ -286,7 +323,10 @@ int main(int argc, char *argv[])
             if(i>50)
             {
 
+                //We'll bring it back when we finish all other functions
+
                 CheckChildAlive();
+
                 i = 0;
 
             }
@@ -299,13 +339,14 @@ int main(int argc, char *argv[])
 
 }
 
-int InitChild(childProcessInfo *infoPtr, char *childPath, int key, char *name)
+int InitChild(childProcessInfo *infoPtr, char *childPath, int key, char *name, int msgType)
 {
 
     int eventPid = 0;
     int id = -1;
     int i = 0, ret = 0;
     char buf[MSGBUFFSIZE];
+    char info[64];
 
     id = sgsCreateMsgQueue(key, 1);
 
@@ -331,6 +372,8 @@ int InitChild(childProcessInfo *infoPtr, char *childPath, int key, char *name)
     {
 
         execlp(childPath,childPath,NULL);
+        perror("fork()");
+        exit(0);
 
     }
 
@@ -339,15 +382,17 @@ int InitChild(childProcessInfo *infoPtr, char *childPath, int key, char *name)
     strncpy(infoPtr->childName,name,31);
 
     memset(buf,'\0',sizeof(buf));
+    memset(info,'\0',sizeof(info));
+    snprintf(info,63,"[BOOT];%s",infoPtr->childName);
 
     for(i = 0; i < 10 ; i++)
     {
 
-        ret = sgsRecvQueueMsg(id,buf,2);
-        if(ret == 0)
+        ret = sgsRecvQueueMsg(sgsMasterId,buf,msgType);
+        if(ret != -1)
         {
 
-            if(!strcmp(buf,infoPtr->childName))
+            if(!strcmp(buf,info))
             {
 
                 printf("Child %s is opended\n",infoPtr->childName);
@@ -378,9 +423,10 @@ int InitChild(childProcessInfo *infoPtr, char *childPath, int key, char *name)
             }
 
         }
+        usleep(5000);
 
     }
-    printf("Encounter Problem while initializing childs\n");
+    printf("Encounter Problem while initializing %s\n", name);
     return -1;
 
 }
@@ -389,9 +435,12 @@ void ShutdownSystemByInput()
 {
 
     int ret = 0, i = 0;
+    char buf[MSGBUFFSIZE];
     FILE *ptr = NULL;
     childProcessInfo *infoPtr = cpInfo;
     printf("shutdown by input\n");
+
+
 
     for(i = 0 ; i < 5 ; i++)
     {
@@ -399,7 +448,7 @@ void ShutdownSystemByInput()
         if((infoPtr + i)->pid != -1)
         {
 
-            kill((infoPtr + i)->pid, 9);
+            kill((infoPtr + i)->pid, SIGTERM);
 
             do
             {
@@ -438,9 +487,24 @@ void ShutdownSystemByInput()
             }
 
         }
-        
 
     }
+
+    //mail agent queue id
+
+    ret = sgsDeleteMsgQueue(mailAgentMsgId);
+
+    //collector agent queue id
+
+    ret = sgsDeleteMsgQueue(collectorAgentMsgId);
+
+    //collector agent queue id
+
+    ret = sgsDeleteMsgQueue(uploadAgentMsgId);
+
+    //upload agent queue id
+
+    ret = sgsDeleteMsgQueue(sgsMasterId);
 
     printf("Master Leaving...\n");
 
@@ -474,7 +538,7 @@ void CheckChildAlive()
                 {
 
                     case 0:
-                    ret = InitChild((infoPtr + i), EVENT_HANDLER_PATH, EVENT_HANDLER_KEY, buf);
+                    ret = InitChild((infoPtr + i), EVENT_HANDLER_PATH, EVENT_HANDLER_KEY, buf, EnumEventHandler);
                     if(ret != 0)
                     {
 
@@ -484,7 +548,7 @@ void CheckChildAlive()
                     break;
 
                     case 1:
-                    ret = InitChild((infoPtr + i), DATABUFFER_SUBMASTER_PATH, DATABUFFER_SUBMASTER_KEY, buf);
+                    ret = InitChild((infoPtr + i), DATABUFFER_SUBMASTER_PATH, DATABUFFER_SUBMASTER_KEY, buf, EnumDataBuffer);
                     if(ret != 0)
                     {
 
@@ -494,7 +558,7 @@ void CheckChildAlive()
                     break;
 
                     case 2:
-                    ret = InitChild((infoPtr + i), COLLECTOR_SUBMASTER_PATH, COLLECTOR_SUBMASTER_KEY, buf);
+                    ret = InitChild((infoPtr + i), COLLECTOR_SUBMASTER_PATH, COLLECTOR_SUBMASTER_KEY, buf, EnumCollector);
                     if(ret != 0)
                     {
 
@@ -504,7 +568,7 @@ void CheckChildAlive()
                     break;
 
                     case 3:
-                    ret = InitChild((infoPtr + i), UPLOADER_SUBMASTER_PATH, UPLOADER_SUBMASTER_KEY, buf);
+                    ret = InitChild((infoPtr + i), UPLOADER_SUBMASTER_PATH, UPLOADER_SUBMASTER_KEY, buf, EnumUploader);
                     if(ret != 0)
                     {
 
@@ -514,7 +578,7 @@ void CheckChildAlive()
                     break;
 
                     case 4:
-                    ret = InitChild((infoPtr + i), LOGGER_PATH, LOGGER_KEY, buf);
+                    ret = InitChild((infoPtr + i), LOGGER_PATH, LOGGER_KEY, buf, EnumLogger);
                     if(ret != 0)
                     {
 
@@ -530,8 +594,13 @@ void CheckChildAlive()
                 
 
             }
+            else
+            {
+                printf("Child No.%d pid %d is fine\n", i, (infoPtr + i)->pid);
+            }
 
         }
+        /*
         else
         {
 
@@ -542,7 +611,7 @@ void CheckChildAlive()
             {
 
                 case 0:
-                ret = InitChild((infoPtr + i), EVENT_HANDLER_PATH, EVENT_HANDLER_KEY, buf);
+                ret = InitChild((infoPtr + i), EVENT_HANDLER_PATH, EVENT_HANDLER_KEY, buf, EnumEventHandler);
                 if(ret != 0)
                 {
 
@@ -552,7 +621,7 @@ void CheckChildAlive()
                 break;
 
                 case 1:
-                ret = InitChild((infoPtr + i), DATABUFFER_SUBMASTER_PATH, DATABUFFER_SUBMASTER_KEY, buf);
+                ret = InitChild((infoPtr + i), DATABUFFER_SUBMASTER_PATH, DATABUFFER_SUBMASTER_KEY, buf, EnumDataBuffer);
                 if(ret != 0)
                 {
 
@@ -562,7 +631,7 @@ void CheckChildAlive()
                 break;
 
                 case 2:
-                ret = InitChild((infoPtr + i), COLLECTOR_SUBMASTER_PATH, COLLECTOR_SUBMASTER_KEY, buf);
+                ret = InitChild((infoPtr + i), COLLECTOR_SUBMASTER_PATH, COLLECTOR_SUBMASTER_KEY, buf, EnumCollector);
                 if(ret != 0)
                 {
 
@@ -572,7 +641,7 @@ void CheckChildAlive()
                 break;
 
                 case 3:
-                ret = InitChild((infoPtr + i), UPLOADER_SUBMASTER_PATH, UPLOADER_SUBMASTER_KEY, buf);
+                ret = InitChild((infoPtr + i), UPLOADER_SUBMASTER_PATH, UPLOADER_SUBMASTER_KEY, buf, EnumUploader);
                 if(ret != 0)
                 {
 
@@ -582,7 +651,7 @@ void CheckChildAlive()
                 break;
 
                 case 4:
-                ret = InitChild((infoPtr + i), LOGGER_PATH, LOGGER_KEY, buf);
+                ret = InitChild((infoPtr + i), LOGGER_PATH, LOGGER_KEY, buf, EnumLogger);
                 if(ret != 0)
                 {
 
@@ -597,8 +666,8 @@ void CheckChildAlive()
             }
 
         }
+        */
         
-
     }
 
 }

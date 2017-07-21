@@ -2,6 +2,10 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #include "../thirdparty/cJSON.h"
 #include "SGSEvent.h"
@@ -74,6 +78,8 @@ void sgsSendEmail(char *message)
     struct curl_slist *recipients = NULL;
     struct upload_status upload_ctx;
     
+    //Read in mailing list
+
     FILE *toList = NULL;
     FILE *fromList = NULL;
     FILE *ccList = NULL;
@@ -85,7 +91,68 @@ void sgsSendEmail(char *message)
     char to[512];
     char cc[512];
 
-    int i=0;
+    int i = 0, ret = -1, count = 100;
+    pid_t pid;
+
+    int out; //redirect standard output
+
+
+    pid = fork(); //Create a child to do mailing for us 
+
+    if(pid == -1)
+    {
+
+        printf("sgsSendEmail failed [fork() return -1]\n");
+        return ;
+
+    }
+    else if(pid > 0)
+    {
+
+        count = 100;
+        do
+        {
+
+            ret = waitpid(pid,NULL,WNOHANG);
+            usleep(50000);
+            count--;
+
+        }while(ret == 0 && count > 0);
+
+        if(ret <= 0)
+        {
+
+            printf("sendmail child hanged, ret return %d\n",ret);
+
+        }
+
+        return; // Parent back to work
+
+    }
+
+    //If everything is ok, the following lines are only for child
+
+    //Redirect standard output
+
+    out = open("./log/mail.log", O_RDWR|O_CREAT|O_APPEND, 0666);
+
+    if(-1 == out) 
+    { 
+
+        perror("opening mail.log"); 
+        return ; 
+
+    }
+
+    if (-1 == dup2(out, fileno(stdout))) 
+    {
+
+        perror("cannot redirect stdout"); 
+        return ; 
+
+    }
+
+    /* ****Start mailing procedure**** */
 
     upload_ctx.lines_read = 0;
 
@@ -252,8 +319,10 @@ void sgsSendEmail(char *message)
         /* Always cleanup */ 
         curl_easy_cleanup(curl);
     }
- 
-  return ;
+    printf(NONE);
+    fflush(stdout); 
+    close(out);
+    exit(0);
 
 }
 

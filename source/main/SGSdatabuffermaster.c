@@ -31,19 +31,27 @@ int main(int argc, char* argv[])
 
     int ret = -1;
     int id = -1;//  id for message queue to event-handler
+    int dataBufferMasterId = -1;
     int i = 0;
-    char buf[512];
+    char buf[MSGBUFFSIZE];
     struct sigaction act, oldact; 
 
     printf("Child: SGSdatabuffermaster up\n");
 
     id = sgsCreateMsgQueue(EVENT_HANDLER_KEY, 0);
+    dataBufferMasterId = sgsCreateMsgQueue(DATABUFFER_SUBMASTER_KEY, 0);
 
     //Set signal action
 
     act.sa_handler = (__sighandler_t)ShutDownBySignal;
     act.sa_flags = SA_ONESHOT|SA_NOMASK;
-    sigaction(SIGINT, &act, &oldact);
+    sigaction(SIGTERM, &act, &oldact);
+    
+    //Ignore SIGINT
+    
+    signal(SIGINT, SIG_IGN);
+
+    sgsSendQueueMsg(id, "[BOOT];DataBufferSubmaster", EnumDataBuffer);
 
     ret = sgsInitBufferPool(1);
     if(ret == -1)
@@ -69,26 +77,25 @@ int main(int argc, char* argv[])
             {
 
                 memset(buf,'\0',sizeof(buf));
-                snprintf(buf,511,"ERROR;Something's wrong with Pool number %d",i);
+                snprintf(buf,MSGBUFFSIZE - 1,"%s;Something's wrong with Pool number %d",ERROR,i);
                 sgsSendQueueMsg(id, buf, EnumDataBuffer);
 
             }
 
         }
-
-
         sleep(10);
 
     }
-
-
-
 
 }
 
 void ShutDownBySignal(int sigNum)
 {
 
+    FILE *pf;
+    pf=fopen("./fuck","w");
+    fprintf(pf,"Fuck");
+    fclose(pf);
     sgsDeleteBufferPool(DataBufferPoolId);
     printf("Buffer master bye bye\n");
     exit(0);
@@ -128,10 +135,11 @@ int CheckPoolStatus(DataBufferInfo *ptr)
                 return -1;
 
             }
-            return -1;
 
         }
+        pthread_mutex_unlock( &(ptr->lock));
 
     }
+    return 0;
 
 }

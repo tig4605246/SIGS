@@ -1,10 +1,11 @@
 PROG1=SGSmaster
 PROG2=SGSeventhandler
 PROG3=SGSdatabuffermaster
-PROG4=SGSuploadmaster
-PROG5=aemdra_agent_standalone
+PROG4=SGSuploadermaster
+PROG5=SGScollectormaster
 PROG6=SGSlogger
-PROG8=FakeCollector
+PROG7=SGSmailagent
+PROG8=FakeTaida
 
 
 TEST1=openSql
@@ -39,11 +40,13 @@ all:
 
 	$(CC) -o ../../bin/$(PROG4) $(PROG4).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c -pthread -lm -lcurl 
 
-	#$(CC) -o ../../bin/aemdra_agent ../collector/$(PROG5).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../thirdparty/cJSON.c  -pthread -lm
+	$(CC) -o ../../bin/$(PROG5) $(PROG5).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c -pthread -lm -lcurl 
 
 	#$(CC) -o ../../bin/$(PROG6) ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../log/SGSlogfile.c ../thirdparty/sqlite3.c $(PROG6).c -pthread -lm -ldl
 
-	#$(CC) -o ../../bin/$(PROG8) ../collector/$(PROG8).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../protocol/SGSmodbus.c -pthread -lm `pkg-config --cflags --libs libmodbus`
+	$(CC) -o ../../bin/$(PROG7) ./$(PROG7).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c -pthread -lm -lcurl
+
+	$(CC) -o ../../bin/$(PROG8) ../collector/$(PROG8).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c -pthread -lm -lcurl `pkg-config --cflags --libs libmodbus`
 
 #Below is testing functions
 

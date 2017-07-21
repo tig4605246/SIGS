@@ -26,7 +26,7 @@
 //defines the log system type
 
 #define SQLITE3
-#define BUFFERPERIOD 7
+#define BUFFERPERIOD 60
 
 //defines the time variable
 
@@ -79,6 +79,8 @@ typedef time_t epochTime;
 
 #define COLLECTOR_AGENT_KEY      21912
 
+#define MAIL_AGENT_KEY           40904
+
 //Codename 
 
 enum {EnumEventHandler = 1, EnumDataBuffer, EnumCollector, EnumUploader, EnumLogger};
@@ -97,13 +99,13 @@ enum {EnumEventHandler = 1, EnumDataBuffer, EnumCollector, EnumUploader, EnumLog
 
 //Message type
 
-#define LOG         "Log"
-#define ERROR       "Error"
-#define CONTROL     "Control"
-#define RESULT      "Result"
-#define LEAVE       "Leave"
-#define SHUTDOWN    "Shutdown"
-#define RESTART     "Restart"
+#define LOG         "[Log]"
+#define ERROR       "[Error]"
+#define CONTROL     "[Control]"
+#define RESULT      "[Result]"
+#define LEAVE       "[Leave]"
+#define SHUTDOWN    "[Shutdown]"
+#define RESTART     "[Restart]"
 
 // General definitions
 
@@ -111,11 +113,13 @@ enum {EnumEventHandler = 1, EnumDataBuffer, EnumCollector, EnumUploader, EnumLog
 #define OPENNEWSHM   1
 #define OPENEXISTSHM 0 
 
-#define EVENT_HANDLER_PATH "./SGSeventhandler"
-#define UPLOADER_SUBMASTER_PATH "./SGSuploadermaster"
-#define COLLECTOR_SUBMASTER_PATH "./SGScollectormaster"
-#define DATABUFFER_SUBMASTER_PATH "./SGSdatabuffermaster"
-#define LOGGER_PATH "./SGSlogger"
+#define EVENT_HANDLER_PATH          "./SGSeventhandler"
+#define UPLOADER_SUBMASTER_PATH     "./SGSuploadermaster"
+#define COLLECTOR_SUBMASTER_PATH    "./SGScollectormaster"
+#define DATABUFFER_SUBMASTER_PATH   "./SGSdatabuffermaster"
+#define LOGGER_PATH                 "./SGSlogger"
+#define MAIL_AGENT_PATH             "./SGSmailagent"
+
 
 //DataBufferPool struct
 

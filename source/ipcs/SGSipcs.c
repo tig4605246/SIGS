@@ -221,7 +221,7 @@ int sgsInitDeviceInfo(deviceInfo **deviceInfoPtr)
 
 }
 
-int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int CreateShm)
+int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int CreateShm, char *infoPath)
 {
     int line = 0, zero = 0, j, shmid = 0, ret = 0;
     char buf[512], *sp1, *sp2;
@@ -235,7 +235,7 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int Creat
 
     shareMem *shareMemPtr = NULL;
 
-    if((dataConfigFile=fopen(DATACONF, "r"))==NULL)
+    if((dataConfigFile=fopen(infoPath, "r"))==NULL)
     {
 
         perror("sgsInitDataInfo");
@@ -249,10 +249,10 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int Creat
         if(fscanf(dataConfigFile, "%[^\n]\n", buf) < 0) 
             break;
         line++;
-        //printf("[LINE %d]: %s\n", i, buf);
+        printf("[LINE %d]: %s\n", __LINE__, buf);
 
         //Skip the empty line
-        //printf("[%s,%d]fscanf %s\n",__FUNCTION__,__LINE__,buf);
+        printf("[%s,%d]fscanf %s\n",__FUNCTION__,__LINE__,buf);
         if(!strlen(buf))
         { 
             printf("[%s,%d]buf == 0\n",__FUNCTION__,__LINE__);
@@ -265,7 +265,7 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int Creat
 
         if(buf[0] == '#')
         { 
-            //printf("[%s,%d]line is commented\n",__FUNCTION__,__LINE__);
+            printf("[%s,%d]line is commented\n",__FUNCTION__,__LINE__);
             zero++; 
             continue;
         
@@ -372,7 +372,13 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int Creat
 
         //I attach dataInfo to its belonged deviceInfo at here
 
-        deviceInfoHead = deviceInfoPtr;
+        if(deviceInfoPtr != NULL)
+        {
+
+            deviceInfoHead = deviceInfoPtr;
+
+        }
+
         if(deviceInfoHead != NULL)
         {
 
@@ -417,12 +423,35 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int Creat
             }
 
         }
+        else
+        {
+            if(dataInfoPtrHead == NULL)
+            {
+
+                dataInfoPtrHead = dataInfoPtrTemp;
+
+            }
+            else
+            {
+
+                dataInfoPtrTemp3 =  dataInfoPtrHead;
+
+                //printf("POI\n");
+                while(dataInfoPtrTemp3->next != NULL)
+                    dataInfoPtrTemp3 = dataInfoPtrTemp3->next;
+
+                //printf("hi\n");
+                dataInfoPtrTemp3->next = dataInfoPtrTemp;
+
+            }
+
+        }
         //printf("  %d: name=%s, daemon=%s, bus=%s, id=%d, addr=%d, cmd=%s, rectime=%d\n", i, ctag->name, ctag->daemon, ctag->bus, ctag->id, ctag->addr, ctag->cmd, ctag->rectime_in_sec);
     }
     fclose(dataConfigFile);
-    //printf("[Debug] line is %d, zero is %d\n",line,zero);
+    printf("[Debug] line is %d, zero is %d\n",line,zero);
     line -= (zero );
-    //printf("[Debug] line is %d, zero is %d\n",line,zero);
+    printf("[Debug] line is %d, zero is %d\n",line,zero);
     if(CreateShm)
     {
 
@@ -463,10 +492,22 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int Creat
     }
     if(CreateShm) memset(shm, 0, sizeof(struct dataInfo)*line);
 
-    deviceInfoHead = deviceInfoPtr;
-    dataInfoPtrTemp = deviceInfoHead->dataInfoPtr;
+    if( deviceInfoPtr != NULL)
+    {
+
+        deviceInfoHead = deviceInfoPtr;
+        dataInfoPtrTemp = deviceInfoHead->dataInfoPtr;
+
+    }
+    else
+    {
+
+        dataInfoPtrTemp = dataInfoPtrHead;
+
+    }
+
     shareMemPtr = (struct shareMem *)shm;
-    while(deviceInfoHead != NULL)
+    while(dataInfoPtrTemp != NULL)
     {
 
         //Initialize the mutex attributes
@@ -505,16 +546,24 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int Creat
 
         //locate shared memory address at here
 
-        while(dataInfoPtrTemp == NULL)
+
+        if(deviceInfoHead != NULL)
         {
 
-            //printf("getchaaa\n");
-            deviceInfoHead = deviceInfoHead->next;
-            if(deviceInfoHead != NULL)
-                dataInfoPtrTemp = deviceInfoHead->dataInfoPtr;
-            else break;
+            while(dataInfoPtrTemp == NULL)
+            {
+
+                //printf("getchaaa\n");
+                deviceInfoHead = deviceInfoHead->next;
+                if(deviceInfoHead != NULL)
+                    dataInfoPtrTemp = deviceInfoHead->dataInfoPtr;
+                else break;
+
+            }
 
         }
+        
+
         if(dataInfoPtrTemp != NULL)
         {
 
@@ -529,7 +578,7 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int Creat
     }
     *dataInfoPtr = dataInfoPtrHead;
 
-    //printf("Complete~~~~~~~~~~~~~~~\n\n");
+    printf(LIGHT_GREEN"Init complete\n\n"NONE);
 
     return shmid;
 
@@ -866,7 +915,7 @@ int sgsCreateMsgQueue(key_t key, int create)
 
 	}
 
-	printf(LIGHT_GREEN"Open queue successfully id is %d\n"NONE,msgid);
+	printf(LIGHT_GREEN"Open queue successfully id is %d, key is %d\n"NONE,msgid,key);
 
 	return msgid;
 
@@ -874,19 +923,31 @@ int sgsCreateMsgQueue(key_t key, int create)
 
 int sgsDeleteMsgQueue(int msgid)
 {
+
+    char buf[MSGBUFFSIZE];
+    int ret = -1;
+
 	if (msgid == -1) 
     {
-		printf(LIGHT_RED"Message queue does not exist.\n"NONE);
+		printf(LIGHT_RED"Message queue id %d does not exist.\n"NONE,msgid);
 		return 0;
 	}
+    /*
+    do
+    {
+
+        ret = sgsRecvQueueMsg(msgid, buf, 0);
+
+    }while(msgid != -1);
+    */
 
 	if (msgctl(msgid, IPC_RMID, NULL) == -1) 
     {
-		fprintf(stderr, "Message queue could not be deleted.\n");
+		fprintf(stderr, LIGHT_RED"Message queue id %d could not be deleted.\n"NONE,msgid);
 		return -1;
 	}
 
-	printf(LIGHT_GREEN"Message queue was deleted.\n"NONE);
+	printf(LIGHT_GREEN"Message queue id %d was deleted.\n"NONE,msgid);
 
 	return 0;
 }
@@ -955,7 +1016,9 @@ int sgsRecvQueueMsg(int msgid, char *buf, int msgtype )
 
 		printf("Queue message received, length %d bytes, type is %ld\n",result,ptr.mtype);
 		printf(YELLOW"message:\n%s\n"NONE,ptr.mtext);
-		strncpy(buf, ptr.mtext, sizeof(buf) - 1);
+        memset(buf,'\0',MSGBUFFSIZE);
+		snprintf(buf, MSGBUFFSIZE, "%s", ptr.mtext);
+        printf(YELLOW"buf message:\n%s\n"NONE,buf);
 		return ptr.mtype;
 
 	}
@@ -1043,6 +1106,10 @@ int sgsInitBufferPool(int Create)
                 return -3;
 
             }
+            memset((DataBufferInfoPtr + i)->dataName, '\0', sizeof((DataBufferInfoPtr + i)->dataName));
+            (DataBufferInfoPtr + i)->shmId = -1;
+            (DataBufferInfoPtr + i)->inUse = 0;
+            (DataBufferInfoPtr + i)->numberOfData = 0;
 
         }
         
@@ -1054,6 +1121,16 @@ int sgsInitBufferPool(int Create)
 
 int sgsDeleteBufferPool(int poolId )
 {
+
+    if(DataBufferInfoPtr != NULL)   shmdt(DataBufferInfoPtr);
+    
+    else
+    {
+
+        printf("data buffer pool is not opened.\n");
+        return -1;
+
+    }
 
     if(poolId >= 0)
     {
@@ -1067,9 +1144,11 @@ int sgsDeleteBufferPool(int poolId )
 
     }
 
+    return 0;
+
 }
 
-int sgsRegisterDataToBufferPool(char *dataName ,int shmId, int numberOfData)
+int sgsRegisterDataInfoToBufferPool(char *dataName ,int shmId, int numberOfData)
 {
 
     int i = 0;
@@ -1096,6 +1175,7 @@ int sgsRegisterDataToBufferPool(char *dataName ,int shmId, int numberOfData)
             else
             {
 
+                (DataBufferInfoPtr + i)->inUse = 1;
                 strncpy((DataBufferInfoPtr + i)->dataName,dataName,63);
                 (DataBufferInfoPtr + i)->shmId = shmId;
                 (DataBufferInfoPtr + i)->numberOfData = numberOfData;

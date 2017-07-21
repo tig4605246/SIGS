@@ -24,7 +24,7 @@
 #include "../events/SGSEvent.h"
 #include "../controlling/SGScontrol.h"
 
-#define AUTOLIST "./conf/Upload/AutoList"
+#define AUTOLIST "./conf/Collect/AutoList"
 
 //sigaction
 //Pid store
@@ -51,6 +51,7 @@ typedef struct{
 void ShutDownBySignal(int sigNum);
 
 childProcessInfo cpInfo[5]; //  All info about sub-masters are here, be caredul with it
+int agentMsgId = -1;
 
 int main()
 {
@@ -60,7 +61,8 @@ int main()
     int collectorMasterId = -1;
     int i = 0, count = 10;
     pid_t pid;
-    char buf[512];
+    char buf[MSGBUFFSIZE];
+    char originInfo[MSGBUFFSIZE];
     char *path = NULL;          // path to agent
     char *name = NULL;          // name of agent
     char *msgType = NULL;       //message type
@@ -71,13 +73,39 @@ int main()
     printf("Child: SGSdatabuffermaster up\n");
 
     eventHandlerId = sgsCreateMsgQueue(EVENT_HANDLER_KEY, 0);
+    if(eventHandlerId == -1)
+    {
+        printf("Open eventHandler queue failed...\n");
+        exit(0);
+    }
+
     collectorMasterId = sgsCreateMsgQueue(COLLECTOR_SUBMASTER_KEY, 0);
+    if(collectorMasterId == -1)
+    {
+        printf("Open collector queue failed...\n");
+        exit(0);
+    }
+
+    agentMsgId = sgsCreateMsgQueue(COLLECTOR_AGENT_KEY, 1);
+    if(agentMsgId == -1)
+    {
+        printf("Open collector agent queue failed...\n");
+        exit(0);
+    }
+
+
 
     //Set signal action
 
     act.sa_handler = (__sighandler_t)ShutDownBySignal;
     act.sa_flags = SA_ONESHOT|SA_NOMASK;
-    sigaction(SIGINT, &act, &oldact);
+    sigaction(SIGTERM, &act, &oldact);
+
+    //Ignore SIGINT
+    
+    signal(SIGINT, SIG_IGN);
+
+    sgsSendQueueMsg(eventHandlerId, "[BOOT];CollectorSubmaster", EnumCollector);
 
     //Initialize child list
 
@@ -102,85 +130,95 @@ int main()
         printf("No auto start list, skiping.\n");
 
     }
-
-    //Open upload agents
-
-    i = 0;
-    while(i < 5)
+    else
     {
 
-        memset(buf, '\0', sizeof(buf));
+        //Open collect agents
 
-        //Read a line from the AutoList
-
-        fgets(buf, 128, fp);
-
-        //If the buf is "#END" leave this section
-
-        if(!strcmp("#END", buf)) break;
-
-        //If the buf is started with "#", we should skip it
-
-        if(buf[0] == '#') continue;
-
-        //Prepare the info
-
-        name = strtok(buf,";");
-        path = strtok(buf,";");
-
-        if(path != NULL && name != NULL)
+        i = 0;
+        while(i < 5 || !feof(fp))
         {
 
-            snprintf(cpInfo[i].childPath, 63, "%s", path);
-            strncpy(cpInfo[i].childName, name, 31);
+            memset(buf, '\0', sizeof(buf));
+
+            //Read a line from the AutoList
+
+            fgets(buf, 128, fp);
+
+            if(buf[strlen(buf) - 1] == '\n')    buf[strlen(buf) - 1] = '\0';
+
+            printf("buf is [%s]\n",buf);
+
+            //If the buf is "#END" leave this section
+
+            if(!strcmp("#END", buf))    break;
+
+            //If the buf is started with "#", we should skip it
+
+            if(buf[0] == '#')   continue;
+
+            //Prepare the info
+
+            name = strtok(buf,";");
+            path = strtok(buf,";");
+            
+            if(path != NULL && name != NULL)
+            {
+
+                snprintf(cpInfo[i].childPath, 63, "%s", path);
+                strncpy(cpInfo[i].childName, name, 31);
+
+            }
+            else
+            {
+
+                printf("[%s] is not a valid format\n",buf);
+                continue;
+
+            }
+
+            //Invoke children
+
+            cpInfo[i].pid = fork();
+            if(cpInfo[i].pid == 0)
+            {
+
+                execlp(cpInfo[i].childPath, cpInfo[i].childPath, i, NULL);
+                perror("fork()");
+                exit(0);
+
+            }
+
+            usleep(5000);
+
+            //Check the child status right after the child starts
+
+            ret = waitpid(cpInfo[i].pid, NULL, WNOHANG);
+
+            if(ret != 0)
+            {
+
+                printf("%s;pid %d Agent %s exits unexpectedly, return code %d\n", ERROR, cpInfo[i].pid, cpInfo[i].childName, ret);
+                memset(buf,'\0',sizeof(buf));
+                snprintf(buf,511,"%s;[%s,%d]Collector-Master: pid %d Agent %s exits unexpectedly, return code %d"
+                                                                    , ERROR, __FUNCTION__, __LINE__, cpInfo[i].pid, cpInfo[i].childName, ret);
+                sgsSendQueueMsg(eventHandlerId, buf, EnumCollector);
+                cpInfo[i].pid = -1;
+                memset(cpInfo[i].childName, '\0', sizeof(cpInfo[i].childName));
+
+                //If we add a continue here, we can avoid unused block between two used blocks
+
+            }
+
+            //Next child list
+
+            i++;
 
         }
-        else
-        {
-
-            printf("[%s] is not a valid format\n",buf);
-            continue;
-
-        }
-
-        //Invoke children
-
-        cpInfo[i].pid = fork();
-        if(cpInfo[i].pid == 0)
-        {
-
-            execlp(cpInfo[i].childPath, cpInfo[i].childPath, NULL);
-            perror("fork()");
-            exit(0);
-
-        }
-
-        usleep(5000);
-
-        //Check the child status right after the child starts
-
-        ret = waitpid(cpInfo[i].pid, NULL, WNOHANG);
-
-        if(ret != 0)
-        {
-
-            printf("pid %d Agent %s exits unexpectedly, return code %d\n", cpInfo[i].pid, cpInfo[i].childName, ret);
-            memset(buf,'\0',sizeof(buf));
-            snprintf(buf,511,"[%s,%d]Upload-Master: pid %d Agent %s exits unexpectedly, return code %d"
-                                                                , __FUNCTION__, __LINE__, cpInfo[i].pid, cpInfo[i].childName, ret);
-            sgsSendQueueMsg(eventHandlerId, buf, EnumUploader);
-            cpInfo[i].pid = -1;
-            memset(cpInfo[i].childName, '\0', sizeof(cpInfo[i].childName));
-
-            //If we add a continue here, we can avoid unused block between two used blocks
-
-        }
-
-        //Next child list
-
-        i++;
 
     }
+
+
 
     //In this infinity loop, we'll deal with messages
 
@@ -189,13 +227,16 @@ int main()
 
         usleep(5000);
         memset(buf,'\0',sizeof(buf));
-        ret = sgsRecvQueueMsg(collectorMasterId, buf, EnumUploader);
+        //ret = sgsRecvQueueMsg(collectorMasterId, buf, EnumCollector);
 
-        //Message type: Restart | Leave | Error | Control
+        //Message type: Restart | Leave | Error | Control | Log
         //
-
+        ret = -1;
         if(ret != -1)
         {
+
+            memset(originInfo,'\0',sizeof(originInfo));
+            strncpy(originInfo, buf, sizeof(originInfo));
 
             msgType = strtok(buf,";");
 
@@ -269,7 +310,7 @@ int main()
                 else
                 {
 
-                    printf("[%s]Can't find %s uploader. Is it still there?",LEAVE ,from);
+                    printf("[%s]Can't find %s collector. Is it still there?",LEAVE ,from);
 
                 }
                 
@@ -323,7 +364,7 @@ int main()
                             if(cpInfo[i].pid == 0)
                             {
 
-                                execlp(cpInfo[i].childPath, cpInfo[i].childPath, NULL);
+                                execlp(cpInfo[i].childPath, cpInfo[i].childPath, i, NULL);
                                 perror("fork()");
                                 exit(0);
 
@@ -339,7 +380,7 @@ int main()
                 else
                 {
 
-                    printf("[%s]Can't find %s uploader. Is it still there?",RESTART ,from);
+                    printf("[%s]Can't find %s collector. Is it still there?",RESTART ,from);
 
                 }
 
@@ -407,7 +448,7 @@ int main()
             else//for other messages we don't know the purpose
             {
 
-                sgsSendQueueMsg(eventHandlerId, buf, EnumCollector);
+                sgsSendQueueMsg(eventHandlerId, originInfo, EnumCollector);
 
             }
 
@@ -423,7 +464,7 @@ void ShutDownBySignal(int sigNum)
 
     int i = 0;
 
-    printf("Shuting down child before bye bye\n");
+    printf("Shuting down collector children before bye bye\n");
 
     for(i = 0 ; i < 5 ; i++)
     {
@@ -436,6 +477,7 @@ void ShutDownBySignal(int sigNum)
         }
 
     }
+
     exit(0);
     return;
 
