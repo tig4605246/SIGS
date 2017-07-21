@@ -160,7 +160,9 @@ int main()
             //Prepare the info
 
             name = strtok(buf,";");
-            path = strtok(buf,";");
+            path = strtok(NULL,";");
+
+            printf("path to %s is %s\n",name,path);
             
             if(path != NULL && name != NULL)
             {
@@ -183,7 +185,9 @@ int main()
             if(cpInfo[i].pid == 0)
             {
 
-                execlp(cpInfo[i].childPath, cpInfo[i].childPath, i, NULL);
+                memset(buf,'\0',sizeof(buf));
+                snprintf(buf,MSGBUFFSIZE,"%d",i);
+                execlp(cpInfo[i].childPath, cpInfo[i].childPath, buf, NULL);
                 perror("fork()");
                 exit(0);
 
@@ -257,7 +261,7 @@ int main()
 
                 //Get process name
 
-                from = strtok(buf,";");
+                from = strtok(NULL,";");
 
                 //If we get the name
 
@@ -320,7 +324,7 @@ int main()
 
                 //Get process name
 
-                from = strtok(buf,";");
+                from = strtok(NULL,";");
 
                 //If we get the name
 
@@ -390,7 +394,7 @@ int main()
 
                 //Try to get process name
 
-                from = strtok(buf,";");
+                from = strtok(NULL,";");
 
                 //If we get the name
 

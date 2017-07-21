@@ -6,9 +6,9 @@
     Program statement: 
         This is a agent used to test SGS system. 
         It has following functions:
-        1. Register a data buffer to the data buffer pool
-        2. Generates fake data and update the data buffer
-        3. Receive and return queue messages
+        1. Get a data buffer info from the data buffer pool
+        2. Show fake data.
+        3. Issue Command to FakeTaida and receive result
 
 */
 

@@ -6,6 +6,7 @@ PROG5=SGScollectormaster
 PROG6=SGSlogger
 PROG7=SGSmailagent
 PROG8=FakeTaida
+PROG9=SolarPost
 
 
 TEST1=openSql

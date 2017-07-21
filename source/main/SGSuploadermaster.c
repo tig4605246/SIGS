@@ -159,7 +159,7 @@ int main()
             //Prepare the info
 
             name = strtok(buf,";");
-            path = strtok(buf,";");
+            path = strtok(NULL,";");
             
             if(path != NULL && name != NULL)
             {
@@ -256,7 +256,7 @@ int main()
 
                 //Get process name
 
-                from = strtok(buf,";");
+                from = strtok(NULL,";");
 
                 //If we get the name
 
@@ -319,7 +319,7 @@ int main()
 
                 //Get process name
 
-                from = strtok(buf,";");
+                from = strtok(NULL,";");
 
                 //If we get the name
 
@@ -389,7 +389,7 @@ int main()
 
                 //Try to get process name
 
-                from = strtok(buf,";");
+                from = strtok(NULL,";");
 
                 //If we get the name
 

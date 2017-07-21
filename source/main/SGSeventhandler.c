@@ -153,12 +153,20 @@ int main()
                 AddToLogFile("./log/SGSError",originInfo);
 
             }
+            else if(!strcmp(dataType,BOOT))
+            {
+
+                sgsSendQueueMsg(sgsMasterId, originInfo, ret);
+                CheckLogFileSize("./log/SGSlog");
+                AddToLogFile("./log/SGSlog",originInfo);
+
+            }
             else
             {
 
-                printf("SGSEventhandler got message: %s\n",originInfo);
+                printf("SGSEventhandler got unknown message: %s\n",originInfo);
 
-                sgsSendQueueMsg(sgsMasterId, originInfo, ret);
+                sgsSendQueueMsg(mailAgentMsgId, originInfo, ret);
                 
             }
 

@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
     while(1)
     {
 
-        usleep(100000);
+        usleep(10000);
         memset(buf,'\0',sizeof(buf));
         ret = sgsRecvQueueMsg(mailAgentMsgId, buf, 0);
         if(ret != -1)

@@ -132,26 +132,6 @@ void sgsSendEmail(char *message)
 
     //If everything is ok, the following lines are only for child
 
-    //Redirect standard output
-
-    out = open("./log/mail.log", O_RDWR|O_CREAT|O_APPEND, 0666);
-
-    if(-1 == out) 
-    { 
-
-        perror("opening mail.log"); 
-        return ; 
-
-    }
-
-    if (-1 == dup2(out, fileno(stdout))) 
-    {
-
-        perror("cannot redirect stdout"); 
-        return ; 
-
-    }
-
     /* ****Start mailing procedure**** */
 
     upload_ctx.lines_read = 0;
@@ -247,6 +227,7 @@ void sgsSendEmail(char *message)
     curl = curl_easy_init();
     if(curl) 
     {
+
         /* Set username and password */ 
         curl_easy_setopt(curl, CURLOPT_USERNAME, "ti4605246@gmail.com");
         curl_easy_setopt(curl, CURLOPT_PASSWORD, "ti4692690");
@@ -303,7 +284,7 @@ void sgsSendEmail(char *message)
         /* Since the traffic will be encrypted, it is very useful to turn on debug
         * information within libcurl to see what is happening during the transfer.
         */ 
-        curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+        curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
     
         /* Send the message */ 
         res = curl_easy_perform(curl);
@@ -320,8 +301,6 @@ void sgsSendEmail(char *message)
         curl_easy_cleanup(curl);
     }
     printf(NONE);
-    fflush(stdout); 
-    close(out);
     exit(0);
 
 }

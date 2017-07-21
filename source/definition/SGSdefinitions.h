@@ -106,6 +106,7 @@ enum {EnumEventHandler = 1, EnumDataBuffer, EnumCollector, EnumUploader, EnumLog
 #define LEAVE       "[Leave]"
 #define SHUTDOWN    "[Shutdown]"
 #define RESTART     "[Restart]"
+#define BOOT        "[BOOT]"
 
 // General definitions
 

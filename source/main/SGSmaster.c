@@ -206,7 +206,7 @@ int main(int argc, char *argv[])
         ShutdownSystemByInput();
 
     }
-    ret = InitChild(&(cpInfo[3]), UPLOADER_SUBMASTER_PATH, UPLOADER_SUBMASTER_KEY, "UploaderSubmaster", EnumUploader);
+    //ret = InitChild(&(cpInfo[3]), UPLOADER_SUBMASTER_PATH, UPLOADER_SUBMASTER_KEY, "UploaderSubmaster", EnumUploader);
     if(ret == -1)
     {
 
@@ -325,7 +325,7 @@ int main(int argc, char *argv[])
 
                 //We'll bring it back when we finish all other functions
 
-                CheckChildAlive();
+                //CheckChildAlive();
 
                 i = 0;
 
@@ -596,7 +596,11 @@ void CheckChildAlive()
             }
             else
             {
-                printf("Child No.%d pid %d is fine\n", i, (infoPtr + i)->pid);
+
+                memset(buf,'\0',sizeof(buf));
+                snprintf(buf,127,"%s;[Main-Master] Child %s (No.%d) pid %d is fine", LOG, (infoPtr + i)->childName, i, (infoPtr + i)->pid);
+                ret = sgsSendQueueMsg(cpInfo[0].msgId, buf, 10);
+            
             }
 
         }

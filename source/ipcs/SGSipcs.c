@@ -598,6 +598,7 @@ void sgsShowDeviceInfo(deviceInfo *deviceInfoPtr)
     }
     else
     {
+
         printf(BROWN"Device Name     : %s\n",head->deviceName);
         printf("Interface       : %s\n",head->interface);
         printf("Protocol Config : %s\n",head->protocolConfig);
@@ -1153,6 +1154,8 @@ int sgsRegisterDataInfoToBufferPool(char *dataName ,int shmId, int numberOfData)
 
     int i = 0;
 
+    printf("Start registration\n");
+
     while(i < 50)
     {
 
@@ -1169,16 +1172,19 @@ int sgsRegisterDataInfoToBufferPool(char *dataName ,int shmId, int numberOfData)
 
             if((DataBufferInfoPtr + i)->inUse == 1)
             {
+                printf("block %d is in use\n",i);
                 i++;
                 continue;
             }
             else
             {
 
+                printf("Block %d is empty\n", i);
                 (DataBufferInfoPtr + i)->inUse = 1;
                 strncpy((DataBufferInfoPtr + i)->dataName,dataName,63);
                 (DataBufferInfoPtr + i)->shmId = shmId;
                 (DataBufferInfoPtr + i)->numberOfData = numberOfData;
+                pthread_mutex_unlock( &((DataBufferInfoPtr + i)->lock));
                 return 0;
 
             }
@@ -1225,6 +1231,7 @@ int sgsGetDataInfoFromBufferPool(char *dataName, DataBufferInfo *dest)
                     strncpy(dest->dataName,(DataBufferInfoPtr + i)->dataName,63);
                     dest->shmId = (DataBufferInfoPtr + i)->shmId;
                     dest->numberOfData = (DataBufferInfoPtr + i)->numberOfData;
+                    pthread_mutex_unlock( &((DataBufferInfoPtr + i)->lock));
                     return 0;
 
                 }

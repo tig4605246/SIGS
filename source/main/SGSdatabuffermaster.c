@@ -26,11 +26,12 @@ void ShutDownBySignal(int sigNum);
 
 int CheckPoolStatus(DataBufferInfo *ptr);
 
+int id = -1;//  id for message queue to event-handler
+
 int main(int argc, char* argv[])
 {
 
     int ret = -1;
-    int id = -1;//  id for message queue to event-handler
     int dataBufferMasterId = -1;
     int i = 0;
     char buf[MSGBUFFSIZE];
@@ -105,6 +106,8 @@ void ShutDownBySignal(int sigNum)
 int CheckPoolStatus(DataBufferInfo *ptr)
 {
 
+    char buf[MSGBUFFSIZE];
+
     if(pthread_mutex_trylock( &(ptr->lock) ) != 0)
     {
 
@@ -120,7 +123,9 @@ int CheckPoolStatus(DataBufferInfo *ptr)
             if(ptr->shmId == -1)
             {
 
-                printf("Something wrong with the BufferPool, dataName %s\n",ptr->dataName);
+                memset(buf, '\0',sizeof(buf));
+                snprintf(buf,MSGBUFFSIZE,"%s;Something wrong with the BufferPool, dataName %s", ERROR, ptr->dataName);
+                sgsSendQueueMsg(id, buf, EnumDataBuffer);
                 return -1;
 
             }
@@ -131,7 +136,9 @@ int CheckPoolStatus(DataBufferInfo *ptr)
             if(ptr->shmId != -1)
             {
 
-                printf("Something wrong with the BufferPool, dataName %s\n",ptr->dataName);
+                memset(buf, '\0',sizeof(buf));
+                snprintf(buf,MSGBUFFSIZE,"%s;Something wrong with the BufferPool, dataName %s", ERROR, ptr->dataName);
+                sgsSendQueueMsg(id, buf, EnumDataBuffer);
                 return -1;
 
             }
