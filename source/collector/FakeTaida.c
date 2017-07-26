@@ -42,7 +42,7 @@ int msgType;        // 0 1 2 3 4 5, one of them
 int main(int argc, char *argv[])
 {
 
-    int i = 0, ret = 0;
+    int i = 0, ret = 0, numberOfData = 0;
     char buf[512];
     FILE *fp = NULL;
     time_t last, now;
@@ -53,8 +53,6 @@ int main(int argc, char *argv[])
     memset(buf,'\0',sizeof(buf));
 
     snprintf(buf,511,"%s;argc is %d, argv 1 %s", LOG, argc, argv[1]);
-
-    sgsSendQueueMsg(eventHandlerId,buf,9);
 
     msgType = atoi(argv[1]);
 
@@ -73,12 +71,19 @@ int main(int argc, char *argv[])
         exit(0);
     }
 
+    msgId = sgsCreateMsgQueue(COLLECTOR_AGENT_KEY, 0);
+    if(msgId == -1)
+    {
+        printf("Open Collector Agent queue failed...\n");
+        exit(0);
+    }
+
     dInfo = NULL;
     shmId = -1;
 
 
 
-    ret = sgsInitDataInfo(NULL, &dInfo, 1, "./conf/Collect/FakeTaida");
+    ret = sgsInitDataInfo(NULL, &dInfo, 1, "./conf/Collect/FakeTaida", -1, &numberOfData);
 
     if(ret < 0 )
     {
@@ -89,7 +94,7 @@ int main(int argc, char *argv[])
 
     }
 
-    printf("ret return %d\n", ret);
+    printf("ret return %d, data number %d\n", ret, numberOfData);
 
     //Store shared memory id
 
@@ -106,7 +111,7 @@ int main(int argc, char *argv[])
 
     //Registration
 
-    ret = sgsRegisterDataInfoToBufferPool("FakeTaida", shmId, 7);
+    ret = sgsRegisterDataInfoToBufferPool("FakeTaida", shmId, numberOfData);
     if(ret == -1)
     {
 
@@ -142,8 +147,8 @@ int main(int argc, char *argv[])
             //printf("show data\n");
             //sgsShowDataInfo(dInfo);
             //printf("got new time\n");
-            sleep(1);
             time(&last);
+            last += 1;
             now = last;
 
         }

@@ -182,7 +182,9 @@ int main()
             if(cpInfo[i].pid == 0)
             {
 
-                execlp(cpInfo[i].childPath, cpInfo[i].childPath, i, NULL);
+                memset(buf,'\0',sizeof(buf));
+                snprintf(buf,MSGBUFFSIZE,"%d",i);
+                execlp(cpInfo[i].childPath, cpInfo[i].childPath, buf, NULL);
                 perror("fork()");
                 exit(0);
 

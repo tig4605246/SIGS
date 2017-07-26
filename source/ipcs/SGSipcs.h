@@ -57,10 +57,10 @@ int sgsInitDeviceInfo(deviceInfo **deviceInfoPtr);
 
 
 // Intent   : Create and initialize the dataInfo with data.conf file. After that, create a new shared memory or open an existed one
-// Pre      : deviceInfo pointer, open type (1 is new, 0 is open an exist one), path to info file
+// Pre      : deviceInfo pointer, open type (1 is new, 0 is open an exist one), path to info file, pre-opend shm id or set it to -1 to use the default key(SGSKEY) and shm
 // Post     : On success, return 0. On error, -1 is returned
 
-int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int CreateShm, char *infoPath);
+int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int CreateShm, char *infoPath, int preShmId, int *numberOfData);
 
 
 

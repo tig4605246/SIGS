@@ -28,15 +28,21 @@ B. Solar Project
 
 
     3. All codes (Currently planned)
-        |   SGSmaster
-        |   UploaderMaster
-        |   DataBufferMaster
-        |   CollectorMaster
-        |   EventHandler
-        |   MailingAgent
-        |   Logger
+        |   SGSmaster [done]
+        |   UploaderMaster [done]
+        |   DataBufferMaster [done]
+        |   CollectorMaster [done]
+        |   EventHandler [done]
+        |   MailingAgent [done]
+        |   Logger [working on]
 
 
 Notes:
 
     test/sendmail.c will work, but some libraries are needed (libcurl and libssh2)
+
+    Since printf is not reentrant function, using printf in sigaction callback funtion is not safe.
+
+    The db must be clean before any change to Collector's AutoList. 
+
+    

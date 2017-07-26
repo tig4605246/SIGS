@@ -24,8 +24,6 @@
 #include "../events/SGSEvent.h"
 #include "../controlling/SGScontrol.h"
 
-int RegisterDataBuffer(int sharedMemoryId, int numberOfInfo);
-
 int GenerateAndUpdateData();
 
 int CheckAndRespondQueueMessage();
@@ -42,19 +40,18 @@ int msgType;        // 0 1 2 3 4 5, one of them
 int main(int argc, char *argv[])
 {
 
-    int i = 0, ret = 0;
+    int i = 0, ret = 0, numberOfData = 0;
     char buf[512];
     FILE *fp = NULL;
     time_t last, now;
-    struct sigaction act, oldact;  
+    struct sigaction act, oldact;
+    DataBufferInfo bufferInfo;  
 
-    printf("FakeTaida starts---\n");
+    printf("SolarPost starts---\n");
 
     memset(buf,'\0',sizeof(buf));
 
     snprintf(buf,511,"%s;argc is %d, argv 1 %s", LOG, argc, argv[1]);
-
-    sgsSendQueueMsg(eventHandlerId,buf,9);
 
     msgType = atoi(argv[1]);
 
@@ -73,45 +70,39 @@ int main(int argc, char *argv[])
         exit(0);
     }
 
-    dInfo = NULL;
-    shmId = -1;
-
-
-
-    ret = sgsInitDataInfo(NULL, &dInfo, 1, "./conf/Collect/FakeTaida");
-
-    if(ret < 0 )
+    msgId = sgsCreateMsgQueue(UPLOAD_AGENT_KEY, 0);
+    if(msgId == -1)
     {
-
-        printf("failed to create dataInfo, ret is %d\n",ret);
-        sgsSendQueueMsg(eventHandlerId,"[Error];failed to create dataInfo",9);
+        printf("Open Upload Agent queue failed...\n");
         exit(0);
-
     }
 
-    printf("ret return %d\n", ret);
-
-    //Store shared memory id
-
-    shmId = ret;
-
-    //Show data
-
-    //printf("Show dataInfo\n");
-    //sgsShowDataInfo(dInfo);
+    dInfo = NULL;
 
     //Attach buffer pool
 
     ret = sgsInitBufferPool(0);
 
-    //Registration
+    //Get data info
 
-    ret = sgsRegisterDataInfoToBufferPool("FakeTaida", shmId, 7);
+    ret = sgsGetDataInfoFromBufferPool("FakeTaida", &bufferInfo);
     if(ret == -1)
     {
 
-        printf("Failed to register, return %d\n", ret);
-        sgsDeleteDataInfo(dInfo, shmId);
+        printf("Failed to get data buffer info, return %d\n", ret);
+        exit(0);
+
+    }
+
+    printf("Number of data is %d \n",bufferInfo.numberOfData);
+
+    //Attach the dataInfo
+
+    ret = sgsInitDataInfo(NULL, &dInfo, 0, "./conf/Collect/FakeTaida", bufferInfo.shmId, &numberOfData);
+    if(ret == -1)
+    {
+
+        printf("Attach shmid %d Failed\n",bufferInfo.shmId);
         exit(0);
 
     }
@@ -133,7 +124,7 @@ int main(int argc, char *argv[])
 
         //check time interval
 
-        if(((now%interval) == 0) || ((now-last) >= interval ))
+        if( (now-last) >= interval )
         {
 
             //Update data
@@ -142,8 +133,8 @@ int main(int argc, char *argv[])
             //printf("show data\n");
             //sgsShowDataInfo(dInfo);
             //printf("got new time\n");
-            sleep(1);
             time(&last);
+            last += 4;
             now = last;
 
         }
@@ -156,82 +147,73 @@ int main(int argc, char *argv[])
 
 }
 
-int RegisterDataBuffer(int sharedMemoryId, int numberOfInfo)
-{
-
-    int ret = -1;
-
-    ret = sgsRegisterDataInfoToBufferPool("FakeTaida", sharedMemoryId, numberOfInfo);
-    if(ret != 0)
-    {
-
-        printf("Registration failed, return %d\n", ret);
-        printf("Delete dataInfo, shmid %d\n",ret);
-        sgsDeleteDataInfo(dInfo, ret);
-        exit(0);
-
-    }
-    return 0;
-
-}
-
 int GenerateAndUpdateData()
 {
 
     dataInfo *tmpInfo = NULL;
     dataLog dLog;
+    char buf[128];
 
     tmpInfo = dInfo ;
     while(tmpInfo != NULL)
     {
+        
+        sgsReadSharedMemory(tmpInfo, &dLog);
+
+        memset(buf,'\0',sizeof(buf));
+
+        strftime(buf, sizeof(buf), "%a %Y-%m-%d %H:%M:%S", &(dLog.updatedTime));
 
         if(!strcmp(tmpInfo->valueName,"AC1"))
         {
 
-            dLog.value.i = rand()%100 + 3000;
+            printf("AC1: %d\n",dLog.value.i);
+            printf(YELLOW"updated time:%s\n\n"NONE,buf);
 
         }
         else if(!strcmp(tmpInfo->valueName,"AC2"))
         {
 
-            dLog.value.i = rand()%100 + 4000;
+            printf("AC2: %d\n",dLog.value.i);
+            printf(YELLOW"updated time:%s\n\n"NONE,buf);
 
         }
         else if(!strcmp(tmpInfo->valueName,"AC3"))
         {
 
-            dLog.value.i = rand()%100 + 5000;
+            printf("AC3: %d\n",dLog.value.i);
+            printf(YELLOW"updated time:%s\n\n"NONE,buf);
 
         }
         else if(!strcmp(tmpInfo->valueName,"DC1"))
         {
 
-            dLog.value.i = rand()%100 + 5000;
+            printf("DC1: %d\n",dLog.value.i);
+            printf(YELLOW"updated time:%s\n\n"NONE,buf);
 
         }
         else if(!strcmp(tmpInfo->valueName,"DC2"))
         {
 
-            dLog.value.i = rand()%100 + 5000;
+            printf("DC2: %d\n",dLog.value.i);
+            printf(YELLOW"updated time:%s\n\n"NONE,buf);
 
         }
         else if(!strcmp(tmpInfo->valueName,"Daily"))
         {
 
-            dLog.value.i = rand()%100 + 10000;
+            printf("Daily: %d\n",dLog.value.i);
+            printf(YELLOW"updated time:%s\n\n"NONE,buf);
 
         }
         else if(!strcmp(tmpInfo->valueName,"Error"))
         {
 
-            dLog.value.i = 0 + rand()%5;
+            printf("Error: %d\n",dLog.value.i);
+            printf(YELLOW"updated time:%s\n\n"NONE,buf);
 
         }
-
-        dLog.valueType = INTEGER_VALUE;
-        dLog.status = 1;
-
-        sgsWriteSharedMemory(tmpInfo, &dLog);
+        
         tmpInfo = tmpInfo->next;
 
     }
@@ -296,8 +278,8 @@ int CheckAndRespondQueueMessage()
 int ShutdownSystemBySignal(int sigNum)
 {
 
-    printf("FakeTaida bye bye\n");
-    sgsDeleteDataInfo(dInfo, shmId);
+    printf("SolarPost bye bye\n");
+    sgsDeleteDataInfo(dInfo, -1);
     exit(0);
 
 }

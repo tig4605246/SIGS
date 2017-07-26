@@ -33,43 +33,54 @@
 
 #ifdef SQLITE3
 
+struct sqlCallbackStruct
+{
+
+    char dataName[32];
+    int numberOfData;
+    epochTime currentTime;
+
+};
+
+typedef struct sqlCallbackStruct sqlCallbackStruct;
+
 typedef int (*cF)(void *custumeArg, int argc, char **argv, char **azColName);//A type of sqlite3 callback function
 
-//purpose : This function will open the SQlite databse or create a new one if it's not existed.
-//Pre : .db filename, ** pointer of sqlite3 
-//Post : On success, return 0, otherwise a -1 will be returned
+//purpose   : This function will open the SQlite databse or create a new one if it's not existed.
+//Pre       : .db filename, ** pointer of sqlite3 
+//Post      : On success, return 0, otherwise a -1 will be returned
 
 int sgsOpenSqlDB(char *fileName , sqlite3 **db);
 
-//Purpose : This function will create datatable at the giving database
-//Pre : db pointer, deviceInfo pointer of ther target device
-//Post : On success, return 0, Ohterwise return -1
+//Purpose   : This function will create datatable at the giving database
+//Pre       : db pointer, deviceInfo pointer of ther target device
+//Post      : On success, return 0, Ohterwise return -1
 
-int sgsCreateTable(sqlite3 *db, deviceInfo *target);
+int sgsCreateTable(sqlite3 *db, dataInfo *target);
 
-//Purpose : This function will new a data record to the giving database with the data we have in the giving deviceInfo
-//Pre : db pointer, deviceInfo pointer of the target device
-//Post : On success, return 0, otherwise a -1 will be returned
+//Purpose   : This function will new a data record to the giving database with the data we have in the giving deviceInfo
+//Pre       : db pointer, deviceInfo pointer of the target device
+//Post      : On success, return 0, otherwise a -1 will be returned
 
-int sgsNewRecord(sqlite3 *db, deviceInfo *target, cF callbackFunction);
+int sgsNewRecord(sqlite3 *db, dataInfo *target, cF callbackFunction);
 
-//Purpose : This function will retreive all records belongs to the giving device
-//Pre : db pointer, target device
-//Post : On success, return 0, otherwise -1 is return.
+//Purpose   : This function will retreive all records belongs to the giving device
+//Pre       : db pointer, target device
+//Post      : On success, return 0, otherwise -1 is return.
 
-int sgsRetreiveAllRecord(sqlite3 *db, deviceInfo *target);
+int sgsRetreiveAllRecord(sqlite3 *db, dataInfo *target);
 
-//Purpose : Retreive records which Timestamp are smaller than giving epoch time.  (ceiling)
-//Pre : db pointer, target device, epoch time, the callback function we wanted
-//Post : On success, return 0, otherwise -1 is return.
+//Purpose   : Retreive records which Timestamp are smaller than giving epoch time.  (ceiling)
+//Pre       : db pointer, target device, epoch time, the callback function we wanted
+//Post      : On success, return 0, otherwise -1 is return.
 
-int sgsRetrieveRecordsByTime(sqlite3 *db, deviceInfo *target, epochTime selectedTime, cF callbackFunction);
+int sgsRetrieveRecordsByTime(sqlite3 *db, dataInfo *target, epochTime selectedTime, cF callbackFunction);
 
-//Purpose : Delete records which is earlier by giving epoch time
-//Pre : db pointer, target device
-//Post : On success, return 0, otherwise -1 is return.
+//Purpose   : Delete records which is earlier by giving epoch time
+//Pre       : db pointer, target device
+//Post      : On success, return 0, otherwise -1 is return.
 
-int sgsDeleteRecordsByTime(sqlite3 *db, deviceInfo *target, epochTime selectedTime);
+int sgsDeleteRecordsByTime(sqlite3 *db, dataInfo *target, epochTime selectedTime);
 
 
 #else

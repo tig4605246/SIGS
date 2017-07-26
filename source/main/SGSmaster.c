@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
         ShutdownSystemByInput();
 
     }
-    //ret = InitChild(&(cpInfo[4]), LOGGER_PATH, LOGGER_KEY, "Logger", EnumLogger);
+    ret = InitChild(&(cpInfo[4]), LOGGER_PATH, LOGGER_KEY, "Logger", EnumLogger);
     if(ret == -1)
     {
 
@@ -438,7 +438,7 @@ void ShutdownSystemByInput()
     char buf[MSGBUFFSIZE];
     FILE *ptr = NULL;
     childProcessInfo *infoPtr = cpInfo;
-    printf("shutdown by input\n");
+    printf("shutdown by input\n");//Not safe
 
 
 
@@ -457,7 +457,7 @@ void ShutdownSystemByInput()
                 if(ret == 0)
                 {
 
-                    printf("No child exited\n");
+                    printf("No child exited\n");//Not safe
 
                 }
                 sleep(1);
@@ -467,13 +467,13 @@ void ShutdownSystemByInput()
             if(ret == (infoPtr + i)->pid )
             {
 
-                printf("Catch Child %d successfully\n",ret);
+                printf("Catch %s %d successfully\n", (infoPtr + i)->childName, ret);//Not safe
 
             }
             else
             {
 
-                printf("ret = %d, failed to catch the child\n",ret);
+                printf("ret = %d, failed to catch the child\n",ret);//Not safe
 
             }
 
@@ -482,7 +482,7 @@ void ShutdownSystemByInput()
             if(ret != 0)
             {
 
-                printf(LIGHT_RED"[%s,%d] %s's Message queue deletion failed!!\n"NONE,__FUNCTION__,__LINE__,(infoPtr + i)->childName);
+                printf(LIGHT_RED"[%s,%d] %s's Message queue deletion failed!!\n"NONE,__FUNCTION__,__LINE__,(infoPtr + i)->childName);//Not safe
 
             }
 

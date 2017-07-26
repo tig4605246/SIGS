@@ -47,7 +47,7 @@ int sgsOpenSqlDB(char *fileName , sqlite3 **db)
     {
 
         fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(*db));
-        return(0);
+        return -1;
 
     }
     else
@@ -61,12 +61,12 @@ int sgsOpenSqlDB(char *fileName , sqlite3 **db)
 
 }
 
-int sgsCreateTable(sqlite3 *db, deviceInfo *target)
+int sgsCreateTable(sqlite3 *db, dataInfo *target)
 {
 
-    deviceInfo *head = target;
-    dataInfo *data = target->dataInfoPtr;
-    dataInfo *tmp = target->dataInfoPtr;
+    dataInfo *head = target;
+    dataInfo *data = target;
+    dataInfo *tmp = target;
     int columnCount = 0;
     int i = 0;
     int ret = 0;
@@ -193,12 +193,12 @@ int sgsCreateTable(sqlite3 *db, deviceInfo *target)
 
 }
 
-int sgsNewRecord(sqlite3 *db, deviceInfo *target, cF callbackFunction)
+int sgsNewRecord(sqlite3 *db, dataInfo *target, cF callbackFunction)
 {
 
-    deviceInfo *head = target;
-    dataInfo *data = target->dataInfoPtr;
-    dataInfo *tmp = target->dataInfoPtr;
+    dataInfo *head = target;
+    dataInfo *data = target;
+    dataInfo *tmp = target;
     dataLog dLog;
     int rowCount = 0;
     int i = 0;
@@ -220,7 +220,7 @@ int sgsNewRecord(sqlite3 *db, deviceInfo *target, cF callbackFunction)
         return -1;
 
     }
-    else if(target->dataInfoPtr == NULL)
+    else if(target == NULL)
     {
 
         printf(LIGHT_RED"[%s,%d] target->dataInfoPtr is NULL\n"NONE,__FUNCTION__,__LINE__);
@@ -462,11 +462,11 @@ int sgsNewRecord(sqlite3 *db, deviceInfo *target, cF callbackFunction)
 
 }
 
-int sgsRetrieveRecordsByTime(sqlite3 *db, deviceInfo *target, epochTime selectedTime, cF callbackFunction)
+int sgsRetrieveRecordsByTime(sqlite3 *db, dataInfo *target, epochTime selectedTime, cF callbackFunction)
 {
 
-    deviceInfo *head = target;
-    dataInfo *data = target->dataInfoPtr;
+    dataInfo *head = target;
+    dataInfo *data = target;
     dataLog dLog;
     int ret = 0;
     char *zErrMsg = NULL;
@@ -530,7 +530,7 @@ int sgsRetrieveRecordsByTime(sqlite3 *db, deviceInfo *target, epochTime selected
 
 }
 
-int sgsDeleteRecordsByTime(sqlite3 *db, deviceInfo *target, epochTime selectedTime)
+int sgsDeleteRecordsByTime(sqlite3 *db, dataInfo *target, epochTime selectedTime)
 {
 
     char buf[DATAVALUEMAX];

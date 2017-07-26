@@ -221,7 +221,7 @@ int sgsInitDeviceInfo(deviceInfo **deviceInfoPtr)
 
 }
 
-int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int CreateShm, char *infoPath)
+int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int CreateShm, char *infoPath, int preShmId, int *numberOfData)
 {
     int line = 0, zero = 0, j, shmid = 0, ret = 0;
     char buf[512], *sp1, *sp2;
@@ -449,21 +449,33 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int Creat
         //printf("  %d: name=%s, daemon=%s, bus=%s, id=%d, addr=%d, cmd=%s, rectime=%d\n", i, ctag->name, ctag->daemon, ctag->bus, ctag->id, ctag->addr, ctag->cmd, ctag->rectime_in_sec);
     }
     fclose(dataConfigFile);
+    
     printf("[Debug] line is %d, zero is %d\n",line,zero);
+    
     line -= (zero );
+    
     printf("[Debug] line is %d, zero is %d\n",line,zero);
+    
+    if(numberOfData != NULL) *numberOfData = line;//Get data number
+    
+    /*
+    *
+    *       Prepare the shared memory
+    *
+    */
+
     if(CreateShm)
     {
 
         /*
          * Create the segment.
          */
-        shmid = shmget(SGSKEY, sizeof(struct dataInfo)*line,
-                          IPC_EXCL | IPC_CREAT | 0666);
+        shmid = shmget(SGSKEY, sizeof(struct dataInfo)*line, IPC_EXCL | IPC_CREAT | 0666);
+        
         //shmid = shmget(SGSKEY, sizeof(struct conf_tag)*i, IPC_CREAT | 0666);
 
     }
-    else
+    else if(preShmId == -1)
     {
 
         /*
@@ -472,6 +484,13 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int Creat
         shmid = shmget(SGSKEY, sizeof(struct dataInfo)*line, 0666);
 
     }
+    else
+    {
+
+        shmid = preShmId;
+    
+    }
+
     if(shmid < 0){
 
         perror("shmget");

@@ -43,11 +43,13 @@ all:
 
 	$(CC) -o ../../bin/$(PROG5) $(PROG5).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c -pthread -lm -lcurl 
 
-	#$(CC) -o ../../bin/$(PROG6) ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../log/SGSlogfile.c ../thirdparty/sqlite3.c $(PROG6).c -pthread -lm -ldl
+	$(CC) -o ../../bin/$(PROG6) ../events/SGSEvent.c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../log/SGSlogfile.c ../thirdparty/sqlite3.c $(PROG6).c -pthread -lm -ldl -lcurl
 
 	$(CC) -o ../../bin/$(PROG7) ./$(PROG7).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c -pthread -lm -lcurl
 
 	$(CC) -o ../../bin/$(PROG8) ../collector/$(PROG8).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c -pthread -lm -lcurl `pkg-config --cflags --libs libmodbus`
+
+	$(CC) -o ../../bin/$(PROG9) ../uploader/$(PROG9).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c -pthread -lm -lcurl `pkg-config --cflags --libs libmodbus`
 
 #Below is testing functions
 

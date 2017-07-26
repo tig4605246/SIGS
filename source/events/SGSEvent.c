@@ -109,6 +109,7 @@ void sgsSendEmail(char *message)
     else if(pid > 0)
     {
 
+        /*
         count = 100;
         do
         {
@@ -125,6 +126,7 @@ void sgsSendEmail(char *message)
             printf("sendmail child hanged, ret return %d\n",ret);
 
         }
+        */
 
         return; // Parent back to work
 

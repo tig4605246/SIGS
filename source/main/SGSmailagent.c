@@ -25,7 +25,17 @@ int main(int argc, char *argv[])
 
     int mailAgentMsgId = -1, ret = -1;
     char buf[MSGBUFFSIZE];
+    FILE *fp = NULL;
     struct sigaction act, oldact;
+
+    struct sigaction sigchld_action = {
+    .sa_handler = SIG_DFL,
+    .sa_flags = SA_NOCLDWAIT
+    };
+
+    //This sigaction prevents zombie children
+
+    sigaction(SIGCHLD, &sigchld_action, NULL);
 
 
     act.sa_handler = (__sighandler_t)ShutdownSystemBySignal;
