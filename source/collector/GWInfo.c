@@ -1,12 +1,17 @@
 /*
     Name: Xu Xi-Ping
     Date: March 13,2017
-    Last Update: March 13,2017
+    Last Update: July 27,2017
     Program statement: 
         This program will gather gateway's infos and updates the data in the shared memory
+
+        Gateway info includes:
+
+        1.CPU usage
+        2.MEM usage
+        3.Storage usage
+        4.network flow
         
-    Current Status:
-        Lack of error handling machenism
 
 */
 
@@ -32,6 +37,21 @@
 #define MEMFILE "cat /proc/meminfo"
 #define DISKFILE "df /dev/sda2"
 
+#define NETFLOWFILE "/proc/net/dev" // path of network log
+#define NETFILEEXT "./log/NetworkFlow" // path of existing network log
+
+typedef struct rxRead
+{
+    unsigned long long int bytes, packg, errs, drop, fifo, frame, compress, multicast;
+
+}rxRead;
+
+typedef struct txRead
+{
+    unsigned long long int bytes, packg, errs, drop, fifo, colls, carrier, compress;
+
+}txRead;
+
 typedef struct jiffy_counts_t 
 {
 
@@ -55,155 +75,211 @@ typedef struct df_filesystem_space_t
 
 } df_filesystem_space_t;
 
-//the info of cpu mem and disk will be stored at here
+dataInfo *dInfo = NULL;
+int interval = 10;  // time period between last and next collecting section
+int eventHandlerId; // Message queue id for event-handler
+int shmId;          // shared memory id
+int msgId;          // created by sgsCreateMessageQueue
+int msgType;        // 0 1 2 3 4 5, one of them
 
-int data[3] = {0};
-
-int shmID = 0;
-
-dataInfo *dataInfoPtr = NULL;
-deviceInfo *deviceInfoPtr = NULL;
-
-//Intent : Get Disk usage and write to target shm
-//Pre : pointer to target shm area
-//Post : On success, return 0. Otherwise return -1
-
-int collectCpuUsage(dataInfo *target);
-
-//Intent : Get Memory usage and write to target shm
-//Pre : pointer to target shm area
-//Post : On success, return 0. Otherwise return -1
-
-int collectMemoryUsage(dataInfo *target);
-
-//Intent : Get Disk usage and write to target shm
-//Pre : pointer to target shm area
-//Post : On success, return 0. Otherwise return -1
-
-int collectDiskUsage(dataInfo *target);
-
-//Intent : set up dataInfo and deviceInfo (get pointers from global parameters)
-//Pre : Nothing
-//Post : On success, return 0. On error, return -1 and shows the error message
-
-int initializeInfo();
-
-//Intent : terminate the process correctly. It's called by the sigaction with signal SIGUSR1
-//Pre : None
-//Post : None
-
-void stopAndAbort();
+char netCard[16] = {'\0'};
 
 
 int main(int argc, char argv[])
 {
 
+    int i = 0, ret = 0, numberOfData = 0;
+    char buf[512];
+    FILE *fp = NULL;
+    time_t last, now, netPeriod;
+    dataInfo *temp = NULL;
     struct sigaction act, oldact;
-    deviceInfo *temp = NULL;
-    dataInfo *tmp = NULL;
-    FILE *pidFile = NULL;
-    int ret = 0;
 
-    ret = initializeInfo();
-    if(ret < 0)
-    {
+    printf("GWInfo starts---\n");
 
-        printf("[%s,%d] Failed to initialize the configure and shared memory, quitting\n",__FUNCTION__,__LINE__);
+    memset(buf,'\0',sizeof(buf));
 
-    }
+    snprintf(buf,511,"%s;argc is %d, argv 1 %s", LOG, argc, argv[1]);
 
-    pidFile = fopen("./pid/GWInfo.pid","w");
-    if(pidFile != NULL)
-    {
-        fprintf(pidFile,"%d",getpid());
-        fclose(pidFile);
-    }
-    
+    msgType = atoi(argv[1]);
 
-    act.sa_handler = (__sighandler_t)stopAndAbort;
+    act.sa_handler = (__sighandler_t)ShutdownSystemBySignal;
     act.sa_flags = SA_ONESHOT|SA_NOMASK;
-    sigaction(SIGUSR1, &act, &oldact);
+    sigaction(SIGTERM, &act, &oldact);
 
-    temp = deviceInfoPtr;
+    //Ignore SIGINT
     
-    //Get the dataInfoPtr we want
+    signal(SIGINT, SIG_IGN);
 
-    while(temp != NULL)
+    eventHandlerId = sgsCreateMsgQueue(EVENT_HANDLER_KEY, 0);
+    if(eventHandlerId == -1)
+    {
+        printf("Open eventHandler queue failed...\n");
+        exit(0);
+    }
+
+    msgId = sgsCreateMsgQueue(COLLECTOR_AGENT_KEY, 0);
+    if(msgId == -1)
+    {
+        printf("Open Collector Agent queue failed...\n");
+        exit(0);
+    }
+
+    dInfo = NULL;
+    shmId = -1;
+
+
+
+    ret = sgsInitDataInfo(NULL, &dInfo, 1, "./conf/Collect/GWInfo", -1, &numberOfData);
+
+    if(ret < 0 )
     {
 
-        if(strcmp(temp->deviceName,"GWInfo"))
-            temp = temp->next;
+        printf("failed to create dataInfo, ret is %d\n",ret);
+        sgsSendQueueMsg(eventHandlerId,"[Error];failed to create dataInfo",9);
+        exit(0);
 
-        else
+    }
+
+    printf("ret return %d, data number %d\n", ret, numberOfData);
+
+    //Store shared memory id
+
+    shmId = ret;
+
+    //Show data
+
+    //printf("Show dataInfo\n");
+    //sgsShowDataInfo(dInfo);
+
+    //Attach buffer pool
+
+    ret = sgsInitBufferPool(0);
+
+    //Registration
+
+    ret = sgsRegisterDataInfoToBufferPool("GWInfo", shmId, numberOfData);
+    if(ret == -1)
+    {
+
+        printf("Failed to register, return %d\n", ret);
+        sgsDeleteDataInfo(dInfo, shmId);
+        exit(0);
+
+    }
+
+    //update data
+
+    //get first timestamp
+
+    time(&last);
+    now = last;
+    netPeriod = now;
+
+    //main loop
+
+    while(1) 
+    {
+
+        usleep(100000);
+        time(&now);
+
+        //check time interval
+
+        if((now-last) > interval )
         {
 
-            tmp = temp->dataInfoPtr;
-            break;
+            temp = dInfo;
+
+            while(temp != NULL)
+            {
+
+                //Update data
+                printf("Getting system info\n");
+
+                if(!strcmp(temp->valueName, "CPU_Usage"))
+                {
+
+                    ret = CollectCpuUsage(temp);
+
+                    if(ret != 0)
+                    {
+
+                        memset(buf,0,sizeof(buf));
+                        snprintf(buf, sizeof(buf) - 1, "%s;Failed to get cpu usage", ERROR);
+                        sgsSendQueueMsg(eventHandlerId, buf, msgId);
+
+
+                    }
+
+                }
+                else if(!strcmp(temp->valueName, "Memory_Usage") && ((now - netPeriod) > 600) )
+                {
+
+                    netPeriod = now;
+                    ret = CollectMemoryUsage(temp);
+
+                    if(ret != 0)
+                    {
+
+                        memset(buf,0,sizeof(buf));
+                        snprintf(buf, sizeof(buf) - 1, "%s;Failed to get memory usage", ERROR);
+                        sgsSendQueueMsg(eventHandlerId, buf, msgId);
+
+
+                    }
+
+                }
+                else if(!strcmp(temp->valueName, "Storage_Usage"))
+                {
+
+                    ret = CollectDiskUsage(temp);
+
+                    if(ret != 0)
+                    {
+
+                        memset(buf,0,sizeof(buf));
+                        snprintf(buf, sizeof(buf) - 1, "%s;Failed to get storage usage", ERROR);
+                        sgsSendQueueMsg(eventHandlerId, buf, msgId);
+
+
+                    }
+
+                }
+                else if(!strcmp(temp->valueName, "Network_Flow"))
+                {
+
+                    ret = CollectNetworkFlow(temp);
+
+                    if(ret != 0)
+                    {
+
+                        memset(buf,0,sizeof(buf));
+                        snprintf(buf, sizeof(buf) - 1, "%s;Failed to get Network flow", ERROR);
+                        sgsSendQueueMsg(eventHandlerId, buf, msgId);
+
+
+                    }
+
+                }
+                temp = temp->next;
+
+            }
+            time(&last);
+            now = last;
+            now += 1;
 
         }
 
-    }
-    if(temp == NULL)
-    {
+        //Check message
 
-        printf("Can't find GWInfo deviceInfo\n");
-        return -1;
+        //ret = CheckAndRespondQueueMessage();
 
     }
-    if(tmp == NULL)
-    {
-
-        printf("No dataInfo attached to the deviceInfo\n");
-        return -1;
-
-    }
-    //Main Loop
-
-    while(1)
-    {
-
-        tmp = temp->dataInfoPtr;
-        while(tmp != NULL)
-        {
-
-            if(!strcmp(tmp->valueName,"CPU_Usage") )
-            {
-                printf("[%s,%d] Collect CPU USage\n",__FUNCTION__,__LINE__);
-                ret = collectCpuUsage(tmp);
-                if(ret < 0)
-                    printf("collect CPU Usage failed\n");
-            }
-            
-            else if(!strcmp(tmp->valueName,"Memory_Usage"))
-            {
-                printf("[%s,%d] Collect Memory USage\n",__FUNCTION__,__LINE__);
-                ret = collectMemoryUsage(tmp);
-            }
-            else if(!strcmp(tmp->valueName,"Disk_Usage"))
-            {
-                printf("[%s,%d] Collect Disk USage\n",__FUNCTION__,__LINE__);
-                ret = collectDiskUsage(tmp);
-            }
-            
-            tmp = tmp->next;
-
-        }
-        sleep(10);
-        
-
-    }
-
-    
-
-    printf("\nWhatever SG INFO HERE\n");
-    //sgsShowDeviceInfo(deviceInfoPtr);
-    //sgsShowDataInfo(dataInfoPtr);
-
-    return 0;
 
 }
 
-int collectCpuUsage(dataInfo *target) 
+int CollectCpuUsage(dataInfo *target) 
 {
 
     FILE *fp = NULL;
@@ -256,7 +332,7 @@ int collectCpuUsage(dataInfo *target)
 
 }
 
-int collectDiskUsage(dataInfo *target)
+int CollectDiskUsage(dataInfo *target)
 {
 
     int i = 0;
@@ -308,7 +384,7 @@ int collectDiskUsage(dataInfo *target)
 
 }
 
-int collectMemoryUsage(dataInfo *target) 
+int CollectMemoryUsage(dataInfo *target) 
 {
 
 	int i;
@@ -390,38 +466,123 @@ int collectMemoryUsage(dataInfo *target)
 
 }
 
-int initializeInfo()
+int CollectNetworkFlow(dataInfo *target)
 {
 
-    int ret = 0;
-    ret = sgsInitDeviceInfo(&deviceInfoPtr);
-    if(ret != 0)
+    /* ************************************************************ */
+
+    FILE *fp = NULL;
+    FILE *to = NULL;
+    dataLog data;
+    DATETIME tw_time;
+
+    int count = 0;
+    unsigned long long int tempRx, tempTx;
+    static unsigned long long int var_temp_rx, var_temp_tx;
+
+    static const char wread[]="wlp2s0: %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu";
+    static const char xread[]="%llu %llu";
+
+    unsigned char buf[4096];
+
+    rxRead rx;
+    txRead tx;
+
+    //Shows function has been called
+
+    printf("[%s:%d] Function started\n",__FUNCTION__, __LINE__);
+
+    //Try to open the network interfaces file
+
+    to = fopen(NETFILEEXT, "r");
+
+    if(!to)
     {
 
-        printf("[%s,%d] init device conf failed ret = %d\n",__FUNCTION__,__LINE__,ret);
-        return -1;
+        printf(LIGHT_RED"[%s,%d] ERROR : open %s failed\n",__FUNCTION__,__LINE__,NETFILEEXT);
 
-    } 
+        var_temp_rx = 0;
+        var_temp_tx = 0;
 
-    ret = sgsInitDataInfo(deviceInfoPtr, &dataInfoPtr, 0);
-    if(ret == 0) 
+    }
+    else
     {
 
-        printf("[%s,%d] init data conf failed ret = %d\n",__FUNCTION__,__LINE__,ret);
-        return -1;
+        fgets(buf, 4096, to))
+        {
+
+            sscanf(buf, xread, &tempRx, &tempTx);
+
+        }
+
+        pclose(to);
+
+        printf("first : %llu\n\n", tempRx);
 
     }
 
-    shmID = ret;
+    //Get current TX RX
 
-    return 0;
+    fp = fopen(NETFLOWFILE, "r");
+
+    if(!fp)
+    {
+
+        printf("[%s:%d] There is no such file or path is incorrect\n "__FUNCTION__,__LINE__);
+        memset(&rx,0,sizeof(rx));
+        memset(&tx,0,sizeof(tx));
+
+    }
+    else
+    {
+
+        while(fgets(buf, 4096, fp))
+        {
+
+            if(count==3)        // Read data on line 4
+            {
+
+                sscanf(buf, wread,
+                    &rx.bytes, &rx.packg, &rx.errs, &rx.drop, &rx.fifo, &rx.frame, &rx.compress, &rx.multicast,
+                    &tx.bytes, &tx.packg, &tx.errs, &tx.drop, &tx.fifo, &tx.colls, &tx.carrier, &tx.compress);
+
+            }
+            else
+            {
+                count++;
+            }
+
+        }
+        pclose(fp);
+
+    }
+
+    
+
+    to = fopen(NETFILEEXT, "w");
+
+    var_temp_rx  = tempRx;
+    var_temp_tx  = tempTx;
+
+    tempTx = (tx.bytes);
+    tempRx = (rx.bytes);
+
+
+    fprintf(to, xread, tempRx, tempTx);
+
+    data.value.i = (tempRx - var_temp_rx) + (tempTx - var_temp_tx);
+    data.valueType = INTEGER_VALUE;
+
+    pclose(to);
+
+    return sgsWriteSharedMemory(target,&data);
 
 }
 
-void stopAndAbort()
+void ShutdownSystemBySignal()
 {
 
-    sgsDeleteAll(deviceInfoPtr, -1);
+    sgsDeleteDataInfo(dInfo, shmId);
     printf("[%s,%d] Catched SIGUSR1 successfully\n",__FUNCTION__,__LINE__);
     exit(0);
 

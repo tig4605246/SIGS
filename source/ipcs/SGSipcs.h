@@ -166,5 +166,9 @@ int sgsRegisterDataInfoToBufferPool(char *dataName ,int shmId, int numberOfData)
 
 int sgsGetDataInfoFromBufferPool(char *dataName, DataBufferInfo *dest);
 
+//Intent    : Get data info from pool
+//Pre       : Data name, a pointer to DataBufferInfo struct
+//Post      : On success, return 0. Otherwise -1 is returned
 
+int sgsDeleteDataInfoFromBufferPool(DataBufferInfo *dest);
 

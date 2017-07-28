@@ -36,8 +36,9 @@
 #include "../log/SGSlogfile.h"
 #include "../events/SGSEvent.h"
 
-#define DBNAME "logtest.db"
-#define AUTOLIST "./conf/Collect/AutoList"
+#define DB_CONFIG   "./conf/Database/Config"
+#define DB_PATH      "./log/SGSdb.db"
+#define AUTOLIST    "./conf/Collect/AutoList"
 
 //Intent    : shut down everything when SIGINT is catched
 //Pre       : Nothing
@@ -63,21 +64,41 @@ int CreateTable();
 
 int SaveLog();
 
+//Intent    : receive message from queue (If there's any)
+//Pre       : Nothing
+//Post      : On success, return 0. Otherwise return -1
+
 int CheckAndRespondQueueMessage();
 
-//Intent    : Delete outdated log
+//Intent    : Delete outdated log (by Timestamp, format is epochTime)
 //Pre       : Nothing
 //Post      : On success, return 0. Otherwise return -1
 
 int DeleteLog();
 
-int logId = -1;                 // logger message queue id
-int eventHandlerId = -1;        // Event-Handler queue id
-int interval = 5;              // time between each collecting
-dataInfo *dInfo[MAXBUFFERINFOBLOCK];             // 0 for inverter, 1 for irr & temp, 2 for GWInfo
-DataBufferInfo bufferInfo[MAXBUFFERINFOBLOCK];   // dataBufferInfo from buffer pool
-sqlite3 *db = NULL;             // db file pointer
-int dataSize = 0;               // accumulate the numberOfData for malloc()
+//Intent    : Get db setting
+//pre       : Log Path
+//Post      : On success, return 0. Otherwise return -1
+
+int GetSetting();
+
+int SetSetting();
+
+struct 
+{
+
+    char logDays[32];
+    char dataTableName[32];
+
+}databaseConfig;
+
+int logId = -1;                                     // logger message queue id
+int eventHandlerId = -1;                            // Event-Handler queue id
+int interval = 5;                                   // time between each collecting
+dataInfo *dInfo[MAXBUFFERINFOBLOCK];                // 0 for inverter, 1 for irr & temp, 2 for GWInfo
+DataBufferInfo bufferInfo[MAXBUFFERINFOBLOCK];      // dataBufferInfo from buffer pool
+sqlite3 *db = NULL;                                 // db file pointer
+int dataSize = 0;                                   // accumulate the numberOfData for malloc()
 
 #if 1
 
@@ -86,6 +107,7 @@ int main(int argc, char *argv[])
 
     int i = 0, ret = 0;
     char buf[512];
+    char days[32];
     char *name = NULL;
     char *path = NULL;
     FILE *fp = NULL;
@@ -122,7 +144,7 @@ int main(int argc, char *argv[])
         exit(0);
     }
 
-    //Init dInfo and bufferInfo
+    //Init variables
 
     for(i = 0 ; i < MAXBUFFERINFOBLOCK ; i++)
     {
@@ -131,6 +153,9 @@ int main(int argc, char *argv[])
         dInfo[i] = NULL;
 
     }
+    memset(databaseConfig.logDays, 0, sizeof(databaseConfig.logDays));
+    memset(databaseConfig.dataTableName, 0, sizeof(databaseConfig.dataTableName));
+
 
 
     //Attach buffer pool
@@ -233,7 +258,7 @@ int main(int argc, char *argv[])
 
     fclose(fp);
 
-    ret = sgsOpenSqlDB(DBNAME , &db);
+    ret = sgsOpenSqlDB(DB_PATH , &db);
     if(ret != 0)
     {
 
@@ -726,6 +751,11 @@ int CheckAndRespondQueueMessage()
 
     int ret = -1;
     char buf[MSGBUFFSIZE];
+    char *cmdType = NULL;
+    char *from = NULL;
+    char *to = NULL;
+    char *newDays = NULL;
+    char *newDatatableName = NULL;
 
     memset(buf,0,sizeof(buf));
 
@@ -735,8 +765,258 @@ int CheckAndRespondQueueMessage()
     {
 
         printf("SGSlogger Get message:\n%s\n",buf);
+        
+        cmdType = strtok(buf, SPLITTER);
+        
+        if(!strcmp(cmdType, CONTROL))
+        {
+
+            to = strtok(NULL, SPLITTER);
+            from = strtok(NULL, SPLITTER);
+            newDays = strtok(NULL, SPLITTER);
+            newDatatableName = strtok(NULL, SPLITTER);
+
+            ret = SetSetting(newDays, newDatatableName);
+
+            if(ret != 0)
+            {
+
+                printf("SetSetting failed. Logger will use the last setting.\n");
+
+            }
+
+        }
 
     }
+
+    return 0;
+
+}
+
+int DeleteLog(sqlite3 *db, char *dataTable, char* days)
+{
+
+    char buf[MSGBUFFSIZE];
+    char *zErrMsg = 0;
+    int ret = 0;
+
+
+    if(dataTable == NULL)
+    {
+
+        printf(LIGHT_RED"No dataTable to delete the log\n"NONE);
+        return -1;
+
+    }
+
+    memset(buf,0,sizeof(buf));
+
+    snprintf(buf,MSGBUFFSIZE,"DELETE from %s where Timestamp < strftime('%%s','now' ,'localtime' ,'-%s day');", dataTable, days);
+
+    //snprintf(buf,DATAVALUEMAX,"DELETE from %s where Timestamp < strftime('%%s','now' ,'localtime', '-60 seconds');",target->deviceName);
+
+
+    ret = sqlite3_exec(db, buf, NULL, 0, &zErrMsg);
+    
+    if( ret != SQLITE_OK )
+    {
+
+        fprintf(stderr, "SQL error: %s\n", zErrMsg);
+        memset(buf, 0, sizeof(buf));
+        snprintf(buf, MSGBUFFSIZE, "SQL error: %s", zErrMsg);
+        sgsSendQueueMsg(eventHandlerId, buf, logId);
+        sqlite3_free(zErrMsg);
+        return -1;
+    
+    }
+    else
+    {
+
+        fprintf(stdout, "Delete: Operation done successfully\n");
+    
+    }
+
+    return 0;
+
+
+}
+
+int GetSetting()
+{
+
+    FILE *fp = NULL;
+    char buf[128];
+    char *name = NULL;
+    char *config = NULL;
+    int i = 0;
+
+    //Set parameters to default first
+
+    printf("Default LogRetainDays = 60\n");
+    snprintf(databaseConfig.logDays, sizeof(databaseConfig.logDays), "%d", 60);
+    printf("Default DatatableName = SGSDATALOG\n"NONE);
+    snprintf(databaseConfig.dataTableName, sizeof(databaseConfig.dataTableName), "SGSDATALOG");
+
+    fp = fopen(DB_CONFIG, "r");
+
+    if(fp == NULL)
+    {
+
+        printf(YELLOW"SGSlogger can't find %s, use the default setting\n",DB_CONFIG);
+        
+        return 0;
+
+    }
+    else
+    {
+
+        while( i < 5)
+        {
+
+            memset(buf, '\0', sizeof(buf));
+
+            //Read a line from the AutoList
+
+            fgets(buf, 128, fp);
+
+            if(buf[strlen(buf) - 1] == '\n')    buf[strlen(buf) - 1] = '\0';
+
+            printf("buf is [%s]\n",buf);
+
+            //If the buf is "#END" leave this section
+
+            if(!strcmp("#END", buf))    break;
+
+            //If the buf is started with "#", we should skip it
+
+            if(buf[0] == '#')   continue;
+
+            //Prepare the info
+
+            name = strtok(buf,";");
+            config = strtok(NULL,";");
+
+            printf("Configure to %s is %s\n",name,config);
+            if(!strcmp(name, "LogRetainDays"))
+            {
+
+                memset(databaseConfig.logDays, 0, sizeof(databaseConfig.logDays));
+                snprintf(databaseConfig.logDays, sizeof(databaseConfig.logDays), "%s", config);
+
+            }
+            else if(!strcmp(name, "DatatableName"))
+            {
+
+                memset(databaseConfig.dataTableName, 0, sizeof(databaseConfig.dataTableName));
+                snprintf(databaseConfig.dataTableName, sizeof(databaseConfig.dataTableName), "%s", config);
+
+            }
+            else
+            {
+
+                printf("Unknown config %s %s", name, config);
+
+            }
+            i++;
+
+        }
+
+    }
+
+}
+
+int SetSetting(char *newDays, char *newDatatableName)
+{
+
+    FILE *fp = NULL;
+    char fileContent[512];
+    char buf[64];
+    char *name = NULL;
+    char *config = NULL;
+    int i = 0;
+
+    //Change current setting and update the config file
+
+    if(newDays != NULL)
+    {
+
+        printf("New LogRetainDays =%s\n", newDays);
+        snprintf(databaseConfig.logDays, sizeof(databaseConfig.logDays), "%s", newDays);
+
+    }
+
+    if(newDatatableName != NULL)
+    {
+
+        printf("New DatatableName =%s\n"NONE, newDatatableName);
+        snprintf(databaseConfig.dataTableName, sizeof(databaseConfig.dataTableName), "%s", newDatatableName);
+
+    }
+
+    //Open and prepare the config content
+
+    fp = fopen(DB_CONFIG, "w");
+
+    if(fp == NULL)
+    {
+
+        printf(YELLOW"SGSlogger can't open new config file %s. Updating config file failed\n",DB_CONFIG);
+        
+        return -1;
+
+    }
+    else
+    {
+
+        memset(fileContent, 0, sizeof(fileContent));
+        snprintf(fileContent, 511, "#Configuration for sqlite3 db\n");
+
+        if(newDays != NULL)
+        {
+
+            memset(buf, 0, sizeof(buf));
+            snprintf(buf, sizeof(buf) - 1, "LogRetainDays;%s\n",newDays);
+            strcat(fileContent, buf);
+
+        }
+        else
+        {
+
+            memset(buf, 0, sizeof(buf));
+            snprintf(buf, sizeof(buf) - 1, "LogRetainDays;%s\n",databaseConfig.logDays);
+            strcat(fileContent, buf);
+
+        }
+
+        if(newDatatableName != NULL)
+        {
+
+            memset(buf, 0, sizeof(buf));
+            snprintf(buf, sizeof(buf) - 1, "DatatableName;%s\n",newDatatableName);
+            strcat(fileContent, buf);
+
+        }
+        else
+        {
+
+            memset(buf, 0, sizeof(buf));
+            snprintf(buf, sizeof(buf) - 1, "DatatableName;%s\n",databaseConfig.dataTableName);
+            strcat(fileContent, buf);
+
+        }
+
+    }
+
+    //End the content
+
+    memset(buf, 0, sizeof(buf));
+    snprintf(buf, sizeof(buf), "#END\n");
+    strcat(fileContent, buf);
+
+    //Write to the config and close it
+
+    fprintf(fp,"%s",fileContent);
+    fclose(fp);
 
     return 0;
 

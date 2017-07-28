@@ -1273,3 +1273,15 @@ int sgsGetDataInfoFromBufferPool(char *dataName, DataBufferInfo *dest)
 
 
 }
+
+int sgsDeleteDataInfoFromBufferPool(DataBufferInfo *dest)
+{
+
+    memset((dest + i)->dataName, '\0', sizeof((dest)->dataName));
+    (dest)->shmId = -1;
+    (dest)->inUse = 0;
+    (dest)->numberOfData = 0;
+
+    return 0;
+
+}

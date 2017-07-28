@@ -148,8 +148,8 @@ int main(int argc, char *argv[])
             //sgsShowDataInfo(dInfo);
             //printf("got new time\n");
             time(&last);
-            last += 1;
             now = last;
+            now += 1;
 
         }
 

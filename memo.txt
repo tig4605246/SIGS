@@ -45,4 +45,8 @@ Notes:
 
     The db must be clean before any change to Collector's AutoList. 
 
-    
+    make a function about reading configs (with inter process lock) seems reasonable.
+
+    Finish logger's process message then we'll move to real uploader and collector
+
+    tx rx inf ifconfig could be big number, watch out. 
