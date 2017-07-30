@@ -164,9 +164,9 @@ int main()
             else
             {
 
-                printf("SGSEventhandler got unknown message: %s\n",originInfo);
+                printf("SGSEventhandler got message: %s, transmit to Master\n",originInfo);
 
-                sgsSendQueueMsg(mailAgentMsgId, originInfo, ret);
+                sgsSendQueueMsg(sgsMasterId, originInfo, ret);
                 
             }
 
@@ -259,24 +259,24 @@ int SendMailToMaintainer(int msgType, char *content)
         break;
 
         case EnumDataBuffer:
-        snprintf(message,1499,"EventHandler,%s", content);
+        snprintf(message,1499,"EnumDataBuffer,%s", content);
         break;
 
         case EnumCollector:
-        snprintf(message,1499,"EventHandler,%s", content);
+        snprintf(message,1499,"EnumCollector,%s", content);
         break;
 
         case EnumUploader:
-        snprintf(message,1499,"EventHandler,%s", content);
+        snprintf(message,1499,"EnumUploader,%s", content);
         break;
 
         case EnumLogger:
-        snprintf(message,1499,"EventHandler,%s", content);
+        snprintf(message,1499,"EnumLogger,%s", content);
         break;
 
         default:
         printf(LIGHT_RED"Unknown msgtype %d\ncontent:%s\n"NONE,msgType,content);
-        snprintf(message,1499,"EventHandler,%s", content);
+        snprintf(message,1499,"Unknown,%s", content);
         break;
 
     }

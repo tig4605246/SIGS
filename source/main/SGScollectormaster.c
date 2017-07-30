@@ -67,6 +67,7 @@ int main()
     char *name = NULL;          // name of agent
     char *msgType = NULL;       //message type
     char *from = NULL;          //who issue this message
+    char *to = NULL;          //who receive this message
     FILE *fp = NULL;
     struct sigaction act, oldact; 
 
@@ -86,7 +87,7 @@ int main()
         exit(0);
     }
 
-    agentMsgId = sgsCreateMsgQueue(COLLECTOR_AGENT_KEY, 1);
+    agentMsgId = sgsCreateMsgQueue(COLLECTOR_AGENT_KEY, 0);
     if(agentMsgId == -1)
     {
         printf("Open collector agent queue failed...\n");
@@ -231,13 +232,15 @@ int main()
 
         usleep(5000);
         memset(buf,'\0',sizeof(buf));
-        //ret = sgsRecvQueueMsg(collectorMasterId, buf, EnumCollector);
+        ret = sgsRecvQueueMsg(collectorMasterId, buf, EnumCollector);
 
         //Message type: Restart | Leave | Error | Control | Log
         //
         ret = -1;
         if(ret != -1)
         {
+
+            printf("CollectMaster got message:\n%s\n",buf);
 
             memset(originInfo,'\0',sizeof(originInfo));
             strncpy(originInfo, buf, sizeof(originInfo));
@@ -445,6 +448,74 @@ int main()
                         }
 
                     }
+
+                }
+
+            }
+            else if(!strcmp(msgType,CONTROL))
+            {
+
+                //Try to get process name
+
+                to = strtok(NULL,";");
+
+                //If we get the name
+
+                if(to != NULL)
+                {
+
+                    //Find its cpInfo
+
+                    for(i=0;i<5;i++)
+                    {
+
+                        //If we find it, send the original message to it
+
+                        if(!strcmp(cpInfo[i].childName,to))
+                        {
+
+                            sgsSendQueueMsg(agentMsgId, originInfo, i);
+                            break;
+
+                        }
+
+                    }
+
+                    //If we didn't find the target we can do something here
+
+                }
+
+            }
+            else if(!strcmp(msgType,RESULT))
+            {
+
+                //Try to get process name
+
+                to = strtok(NULL,";");
+
+                //If we get the name
+
+                if(to != NULL)
+                {
+
+                    //Find its cpInfo
+
+                    for(i=0;i<5;i++)
+                    {
+
+                        //If we find it, send the original message to it
+
+                        if(!strcmp(cpInfo[i].childName,to))
+                        {
+
+                            sgsSendQueueMsg(agentMsgId, originInfo, i);
+                            break;
+
+                        }
+
+                    }
+
+                    //If we didn't find the target we can do something here
 
                 }
 

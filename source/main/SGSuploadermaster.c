@@ -86,7 +86,7 @@ int main()
         exit(0);
     }
 
-    agentMsgId = sgsCreateMsgQueue(UPLOAD_AGENT_KEY, 1);
+    agentMsgId = sgsCreateMsgQueue(UPLOAD_AGENT_KEY, 0);
     if(agentMsgId == -1)
     {
         printf("Open Uploader agent queue failed...\n");
@@ -442,6 +442,74 @@ int main()
                         }
 
                     }
+
+                }
+
+            }
+            else if(!strcmp(msgType,CONTROL))
+            {
+
+                //Try to get process name
+
+                to = strtok(NULL,";");
+
+                //If we get the name
+
+                if(to != NULL)
+                {
+
+                    //Find its cpInfo
+
+                    for(i=0;i<5;i++)
+                    {
+
+                        //If we find it, send the original message to it
+
+                        if(!strcmp(cpInfo[i].childName,to))
+                        {
+
+                            sgsSendQueueMsg(agentMsgId, originInfo, i);
+                            break;
+
+                        }
+
+                    }
+
+                    //If we didn't find the target we can do something here
+
+                }
+
+            }
+            else if(!strcmp(msgType,RESULT))
+            {
+
+                //Try to get process name
+
+                to = strtok(NULL,";");
+
+                //If we get the name
+
+                if(to != NULL)
+                {
+
+                    //Find its cpInfo
+
+                    for(i=0;i<5;i++)
+                    {
+
+                        //If we find it, send the original message to it
+
+                        if(!strcmp(cpInfo[i].childName,to))
+                        {
+
+                            sgsSendQueueMsg(agentMsgId, originInfo, i);
+                            break;
+
+                        }
+
+                    }
+
+                    //If we didn't find the target we can do something here
 
                 }
 

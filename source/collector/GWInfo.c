@@ -258,7 +258,6 @@ int main(int argc, char argv[])
                         snprintf(buf, sizeof(buf) - 1, "%s;Failed to get Network flow", ERROR);
                         sgsSendQueueMsg(eventHandlerId, buf, msgId);
 
-
                     }
 
                 }
@@ -273,7 +272,7 @@ int main(int argc, char argv[])
 
         //Check message
 
-        //ret = CheckAndRespondQueueMessage();
+        ret = CheckAndRespondQueueMessage();
 
     }
 
@@ -576,6 +575,32 @@ int CollectNetworkFlow(dataInfo *target)
     pclose(to);
 
     return sgsWriteSharedMemory(target,&data);
+
+}
+
+int CheckAndRespondQueueMessage()
+{
+
+    int ret = -1;
+    char buf[MSGBUFFSIZE];
+    char *cmd = NULL;
+    char *to = NULL;
+    char *from = NULL;
+    char *storagePath = NULL;
+    char *networkInterface = NULL;
+
+    sgsRecvQueueMsg(msgId, buf, msgType);
+
+    printf("GWInfo got message: %s\n", buf);
+
+    cmd = strtok(buf, SPLITTER);
+    to  = strtok(NULL, SPLITTER);
+    from = strtok(NULL, SPLITTER);
+    storagePath = strtok(NULL, SPLITTER);
+    networkInterface = strtok(NULL, SPLITTER);    
+
+    return 0;
+
 
 }
 
