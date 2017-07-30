@@ -34,23 +34,19 @@ The following picture is a n explanation of the structure:
     * Run tests with all funtions
     * Test all situations
   * Flexibility :
-    * Compatibility :
-      * Protocols
-      * Functions
-      * Platforms
+    * New Protocols
+    * New Functions
+  * Compatibility :
+    * Cross Platforms
   * Maintainence
     * Version update
-    * Error Report 
+    * More Error-Handling mechanism
     * Source Code Readibility
   * Release:
     * SDK for custimized programs
 
 
-
-[Wiki](https://github.com/tig4605246/SIGS/wiki)
-
-
-## Requirements
+## Requirements 
 
 * External Libraries
   * [libmodbus 3.0.6](https://github.com/stephane/libmodbus)
@@ -61,7 +57,7 @@ The following picture is a n explanation of the structure:
   * [sendmail](https://www.proofpoint.com/us/products/sendmail-sentrion) __Not in use__
   * [OpenSSH](https://www.openssh.com/)
 
-
+After installing the dependencies, cd to ~/source/main, run Makefile to compile into binary files.
 
 
 
