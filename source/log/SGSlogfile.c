@@ -155,9 +155,9 @@ int sgsCreateTable(sqlite3 *db, dataInfo *target)
     {
 
         if(i == (columnCount-1))
-            snprintf(buf,DATAVALUEMAX,"%s    CHAR(%d)    NOT NULL,",data->valueName,DATAVALUEMAX);
+            snprintf(buf,DATAVALUEMAX,"`%s`    CHAR(%d)    NOT NULL,",data->valueName,DATAVALUEMAX);
         else
-            snprintf(buf,DATAVALUEMAX,"%s    CHAR(%d)    NOT NULL,",data->valueName,DATAVALUEMAX);
+            snprintf(buf,DATAVALUEMAX,"`%s`    CHAR(%d)    NOT NULL,",data->valueName,DATAVALUEMAX);
 
         strcat(table,buf);
         data = data->next;

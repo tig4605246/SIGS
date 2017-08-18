@@ -67,6 +67,7 @@ int main()
     char *name = NULL;          // name of agent
     char *msgType = NULL;       //message type
     char *from = NULL;          //who issue this message
+    char *to = NULL;
     FILE *fp = NULL;
     struct sigaction act, oldact; 
 

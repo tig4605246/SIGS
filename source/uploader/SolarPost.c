@@ -38,20 +38,33 @@
 #include <unistd.h>
 #include <signal.h>
 
+#include <error.h>
+#include <errno.h>
+#include <arpa/inet.h>
+#include <assert.h>
+#include <netinet/in.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+
 #include "../ipcs/SGSipcs.h"
 #include "../events/SGSEvent.h"
 #include "../controlling/SGScontrol.h"
 #include "../thirdparty/cJSON.h"
 
-#define MAXLINE 16384
+//Post definitions for max length
 
-//Intent    : get config from conf file. If failed, use the default one
+#define SA      struct sockaddr
+#define MAXLINE 16384
+#define MAXSUB  16384
+
+//Intent    : Get config from conf file. If failed, use the default one
 //Pre       : Nothing
 //Post      : Always return 0
 
 int GetConfig();
 
-//Intent    : get config from conf file. If failed, discard the setting
+//Intent    : Set config to conf file. If failed, discard the setting
 //Pre       : Nothing
 //Post      : On success, return 0, -1 means resend immediately
 
@@ -62,6 +75,12 @@ int SetConfig();
 //Post      : On success, return 0, otherwise return -1
 
 int PostToServer();
+
+ssize_t process_http( char *content, char *address);
+
+int my_write(int fd, void *buffer, int length);
+
+int my_read(int fd, void *buffer, int length);
 
 //Intent    : Process queue message
 //Pre       : Nothing
@@ -78,7 +97,7 @@ int shmId;          // shared memory id
 int msgId;          // created by sgsCreateMessageQueue
 int msgType;        // 0 1 2 3 4 5, one of them
 
-typedef struct
+typedef struct postNode
 {
 
     char GW_ver[16];        //string
@@ -91,7 +110,9 @@ typedef struct
     char Station_ID[16];    //string
     char GW_ID[16];         //string
 
-}postConfig;
+}pNode;
+
+pNode postConfig;
 
 int main(int argc, char *argv[])
 {
@@ -236,21 +257,21 @@ int GetConfig()
     char *value;
     int i = 0;
 
-    memset(&postConfig,0,sizeof(postConfig));
+    memset(&(postConfig),0,sizeof(postConfig));
 
-    snprintf(GW_ver, 15, "Alpha Build V1.0");
+    snprintf(postConfig.GW_ver, 15, "Alpha Build V1.0");
 
-    snprintf(IP[i], 127, "http://connectcloud.fetnet.net:9000/PV_rawdata");
+    snprintf(postConfig.IP[i], 127, "http://connectcloud.fetnet.net:9000/PV_rawdata");
     
-    Send_Rate = 30;
+    postConfig.Send_Rate = 30;
 
-    Gain_Rate = 30;
+    postConfig.Gain_Rate = 30;
 
-    Backup_time = 60;
+    postConfig.Backup_time = 60;
 
-    snprintf(MAC_Address, 31, "7c:b0:c2:4f:76:1c");
-    snprintf(Station_ID, 15, "T910142");
-    snprintf(GW_ID, 15, "01");
+    snprintf(postConfig.MAC_Address, 31, "7c:b0:c2:4f:76:1c");
+    snprintf(postConfig.Station_ID, 15, "T910142");
+    snprintf(postConfig.GW_ID, 15, "01");
 
     fp = fopen("./conf/Upload/SolarPost", "r");
 
@@ -274,67 +295,67 @@ int GetConfig()
             if(!strcmp(name, "GW_ver"))
             {
 
-                snprintf(GW_ver, 15, "%s", value);
+                snprintf(postConfig.GW_ver, 15, "%s", value);
 
             }
             else if(!strcmp(name, "IP_1"))
             {
 
-                snprintf(IP[0], 127, "%s", value);
+                snprintf(postConfig.IP[0], 127, "%s", value);
 
             }
             else if(!strcmp(name, "IP_2"))
             {
 
-                snprintf(IP[1], 127, "%s", value);
+                snprintf(postConfig.IP[1], 127, "%s", value);
 
             }
             else if(!strcmp(name, "IP_3"))
             {
 
-                snprintf(IP[2], 127, "%s", value);
+                snprintf(postConfig.IP[2], 127, "%s", value);
 
             }
             else if(!strcmp(name, "IP_4"))
             {
 
-                snprintf(IP[3], 127, "%s", value);
+                snprintf(postConfig.IP[3], 127, "%s", value);
 
             }
             else if(!strcmp(name, "Send_Rate"))
             {
 
-                Send_Rate = atof(value) * 60;
+                postConfig.Send_Rate = atof(value) * 60;
 
             }
             else if(!strcmp(name, "Gain_Rate"))
             {
 
-                Gain_Rate = atof(value) * 60;
+                postConfig.Gain_Rate = atof(value) * 60;
 
             }
             else if(!strcmp(name, "Backup_time"))
             {
 
-                Backup_time = value;
+                postConfig.Backup_time = atof(value);
 
             }
             else if(!strcmp(name, "MAC_Address"))
             {
 
-                snprintf(MAC_Address, 31, "%s", value);
+                snprintf(postConfig.MAC_Address, 31, "%s", value);
 
             }
             else if(!strcmp(name, "Station_ID"))
             {
 
-                snprintf(Station_ID, 15, "%s", value);
+                snprintf(postConfig.Station_ID, 15, "%s", value);
 
             }
             else if(!strcmp(name, "GW_ID"))
             {
 
-                snprintf(GW_ID, 15, "%s", value);
+                snprintf(postConfig.GW_ID, 15, "%s", value);
 
             }
 
@@ -358,7 +379,7 @@ int SetConfig(char *result)
     char Resend_time_s[32];
     char Resend_time_e[32];
     FILE *fp;
-    int i = 0, resend = 0;
+    int i = 0, resend = 0, ret = -1;
     pid_t pid;
 
     root = cJSON_Parse(result);
@@ -479,7 +500,7 @@ int SetConfig(char *result)
                     memset(Resend_time_s,0,sizeof(Resend_time_s));
                     snprintf(buf, sizeof(buf) -1, "Resend_time_s");
                     temp = cJSON_GetObjectItem(root, buf);
-                    if(temp != NULL ) snprintf(Resend_time_s, sizeof(Resend_time_s) - 1, "%d", temp->valuestring );
+                    if(temp != NULL ) snprintf(Resend_time_s, sizeof(Resend_time_s) - 1, "%s", temp->valuestring );
                     break;
 
                     case 16:
@@ -488,7 +509,7 @@ int SetConfig(char *result)
                     memset(Resend_time_e,0,sizeof(Resend_time_e));
                     snprintf(buf, sizeof(buf) -1, "Resend_time_e");
                     temp = cJSON_GetObjectItem(root, buf);
-                    if(temp != NULL ) snprintf(Resend_time_e, sizeof(Resend_time_e) - 1, "%d", temp->valuestring );
+                    if(temp != NULL ) snprintf(Resend_time_e, sizeof(Resend_time_e) - 1, "%s", temp->valuestring );
                     break;
 
                     case 17:
@@ -562,7 +583,7 @@ int SetConfig(char *result)
     {
 
         memset(buf, 0, sizeof(buf));
-        snprintf(buf, sizeof(buf) - 1, "%s;Rename SolarPost file failed\n", ERROR, result);
+        snprintf(buf, sizeof(buf) - 1, "%s;Rename SolarPost file failed\n", ERROR);
         sgsSendQueueMsg(eventHandlerId, buf, msgType);
 
     }
@@ -572,21 +593,22 @@ int SetConfig(char *result)
 int PostToServer()
 {
 
-    dataInfo *tmpInfo[2] = {dInfo[0], dInfo[1]};
+    dataInfo *tempInfo[2] = {dInfo[0], dInfo[1]};
     dataLog dLog;
     epochTime nowTime;
     char buf[256];
     char *jsonOutput = NULL;
+    char *jsonBuff = NULL;
     cJSON *root = NULL;
-    cJSON *row = NULL;
+    cJSON *rows = NULL;
     cJSON *inverter = NULL;
     cJSON *tempArray = NULL;
     cJSON *tempObj = NULL;
     int irrNum = 0;                 //How many irr we have
-    int irrVl[100] = {0};
+    int irrVal[100] = {0};
     int irrStat[100] = {0};
-    int i = 0;
-    typedef struct
+    int i = 0, count = 10, ret = -1;
+    typedef struct sysNode
     {
 
         int cpuUsage;
@@ -594,7 +616,9 @@ int PostToServer()
         int storageUsage;
         int networkFlow;
 
-    }systemInfo;
+    }sNode;
+
+    sNode systemInfo;
 
 #if 1
 
@@ -650,8 +674,8 @@ int PostToServer()
 
             sgsReadSharedMemory(tempInfo[0], &dLog);
             cJSON_AddItemToArray(tempArray, tempObj = cJSON_CreateObject());
-            cJSON_AddNumberToObject(tempObj, "Temp", Log.values.i);
-            cJSON_AddStringToObject(tempObj, "Temp_Status", Log.status);
+            cJSON_AddNumberToObject(tempObj, "Temp", dLog.value.i);
+            cJSON_AddNumberToObject(tempObj, "Temp_Status", dLog.status);
             memset(buf, 0, sizeof(buf));
             snprintf(buf, sizeof(buf) - 1, "%02d",i++);
             cJSON_AddStringToObject(tempObj, "Temp_ID", buf);
@@ -661,7 +685,7 @@ int PostToServer()
         {
 
             sgsReadSharedMemory(tempInfo[0], &dLog);
-            irrVal[irrNum] = dLog.values.i;
+            irrVal[irrNum] = dLog.value.i;
             irrStat[irrNum] = dLog.status;
             irrNum++;
 
@@ -686,7 +710,7 @@ int PostToServer()
 
     time(&nowTime);
 
-    cJSON_AddNumberToObject(interver, "Timestamp", nowTime);
+    cJSON_AddNumberToObject(inverter, "Timestamp", nowTime);
     cJSON_AddStringToObject(inverter, "MAC_Address", postConfig.MAC_Address);
     cJSON_AddStringToObject(inverter, "GW_ID", postConfig.GW_ID);
     cJSON_AddNumberToObject(inverter, "CPU", systemInfo.cpuUsage);
@@ -702,7 +726,7 @@ int PostToServer()
 
         //If we meet Alarm, put PV_Temp and Irr into inverter obj then create a new object
 
-        if(strcmp(tempInfo[0]->valuename, "Alarm"))
+        if(strcmp(tempInfo[0]->valueName, "Alarm"))
         {
 
             //If it's not the first time, add the temp and irr into it
@@ -715,7 +739,7 @@ int PostToServer()
                 cJSON_AddNumberToObject(inverter, "Irr_Status", irrStat[i]);
 
             }
-            cJSON_AddStringToObject(inverter, "Alarm", dLog.values.s);
+            cJSON_AddStringToObject(inverter, "Alarm", dLog.value.s);
             cJSON_AddStringToObject(inverter, "Station_ID", postConfig.Station_ID);
 
             //Create New inverter obj
@@ -723,7 +747,7 @@ int PostToServer()
             inverter = cJSON_CreateObject();
             cJSON_AddItemToArray(rows, inverter);
 
-            cJSON_AddNumberToObject(interver, "Timestamp", nowTime);
+            cJSON_AddNumberToObject(inverter, "Timestamp", nowTime);
             cJSON_AddStringToObject(inverter, "MAC_Address", postConfig.MAC_Address);
             cJSON_AddStringToObject(inverter, "GW_ID", postConfig.GW_ID);
             cJSON_AddNumberToObject(inverter, "CPU", systemInfo.cpuUsage);
@@ -735,7 +759,7 @@ int PostToServer()
         else
         {
 
-            cJSON_AddNumberToObject(inverter, tempInfo[0]->valueName, dLog.values.i);
+            cJSON_AddNumberToObject(inverter, tempInfo[0]->valueName, dLog.value.i);
 
         }
 
@@ -766,7 +790,7 @@ int PostToServer()
             {
 
                 memset(buf,0,sizeof(buf));
-                snprintf(buf,sizeof(buf) -1, "%s;upload to %s failed",ERROR, IP[i]);
+                snprintf(buf,sizeof(buf) -1, "%s;upload to %s failed",ERROR, postConfig.IP[i]);
                 sgsSendQueueMsg(eventHandlerId, buf, msgId);
 
             }
@@ -912,7 +936,8 @@ int ShutdownSystemBySignal(int sigNum)
 {
 
     printf("SolarPost bye bye\n");
-    sgsDeleteDataInfo(dInfo, -1);
+    sgsDeleteDataInfo(dInfo[0], -1);
+    sgsDeleteDataInfo(dInfo[1], -1);
     exit(0);
 
 }
@@ -928,9 +953,9 @@ ssize_t process_http( char *content, char *address)
 	char sendline[MAXLINE + 1], recvline[MAXLINE + 1];
     int i = 0, ret = 0;
     char *error = NULL;
-    char *hname = NULL;     //IP
-    char *serverPort = NULL;  //port
-    char page[128] = {'\0'};      //rest api
+    char *hname = NULL;             //IP
+    char *serverPort = NULL;        //port
+    char page[128] = {'\0'};        //rest api
     char adrBuf[128] = {'\0'};
     char *tmp = NULL;
 	ssize_t n;
@@ -955,26 +980,26 @@ ssize_t process_http( char *content, char *address)
     if ((hptr = gethostbyname(hname)) == NULL) 
     {
 
-		syslog(LOG_ERR, "[%s:%d] gethostbyname error for host: %s: %s", __FUNCTION__, __LINE__,hname ,hstrerror(h_errno));
+		printf("[%s:%d] gethostbyname error for host: %s: %s", __FUNCTION__, __LINE__,hname ,hstrerror(h_errno));
 
 		return -1;
 
 	}
 
-	syslog(LOG_ERR, "[%s:%d] hostname: %s\n",__FUNCTION__,__LINE__, hptr->h_name);
+	printf("[%s:%d] hostname: %s\n",__FUNCTION__,__LINE__, hptr->h_name);
 
     //Set up address type (FAMILY)
 
 	if (hptr->h_addrtype == AF_INET && (pptr = hptr->h_addr_list) != NULL) 
     {
 
-		syslog(LOG_ERR, "[%s:%d] address: %s\n",__FUNCTION__,__LINE__,inet_ntop( hptr->h_addrtype , *pptr , str , sizeof(str) ));
+		printf("[%s:%d] address: %s\n",__FUNCTION__,__LINE__,inet_ntop( hptr->h_addrtype , *pptr , str , sizeof(str) ));
 
 	} 
     else
     {
 
-		syslog(LOG_ERR, "[%s:%d] Error call inet_ntop \n",__FUNCTION__,__LINE__);
+		printf("[%s:%d] Error call inet_ntop \n",__FUNCTION__,__LINE__);
 
         return -1;
 
@@ -1005,7 +1030,7 @@ ssize_t process_http( char *content, char *address)
     //Fill in the parameters
 
 	servaddr.sin_family = AF_INET;
-	servaddr.sin_port = htons(serverPort);
+	servaddr.sin_port = htons(atoi(serverPort));
 	inet_pton(AF_INET, str, &servaddr.sin_addr);
 
     //Connect to the target server
@@ -1034,7 +1059,7 @@ ssize_t process_http( char *content, char *address)
 		 "Host: %s\r\n"
 		 "Content-type: application/json; charset=UTF-8\r\n"
          "User-Agent: Kelier/0.1\r\n"
-		 "Content-Length: %u\r\n\r\n"
+		 "Content-Length: %lu\r\n\r\n"
 		 "%s", page, hname, strlen(content), content);
 
     //print out the content
@@ -1137,13 +1162,13 @@ int my_write(int fd, void *buffer, int length)
             if(written_bytes<=0)
             {       
 
-                    if(errno==EINTR)
+                if(errno==EINTR)
 
-                        written_bytes=0;
+                    written_bytes=0;
 
-                    else             
+                else             
 
-                        return(-1);
+                    return(-1);
 
             }
 

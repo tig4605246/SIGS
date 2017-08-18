@@ -181,11 +181,11 @@ struct modbusInfo
 
     //Modbus response 
 
-    unsigned char response[DATAVALUEMAX];
+    unsigned char response[64];
 
     //formatted command
 
-    unsigned char cmd[DATAVALUEMAX];
+    unsigned char cmd[64];
 
 };
 

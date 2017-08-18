@@ -94,7 +94,7 @@ struct
 
 int logId = -1;                                     // logger message queue id
 int eventHandlerId = -1;                            // Event-Handler queue id
-int interval = 5;                                   // time between each collecting
+int interval = 30;                                   // time between each collecting
 dataInfo *dInfo[MAXBUFFERINFOBLOCK];                // 0 for inverter, 1 for irr & temp, 2 for GWInfo
 DataBufferInfo bufferInfo[MAXBUFFERINFOBLOCK];      // dataBufferInfo from buffer pool
 sqlite3 *db = NULL;                                 // db file pointer
@@ -293,7 +293,7 @@ int main(int argc, char *argv[])
 
         //check time interval
 
-        if( (now-last) >= interval )
+        if( (now-last) >= (interval + 4) )
         {
 
             //Update data
@@ -520,7 +520,7 @@ int CreateTable()
         while(temp != NULL)
         {
 
-            snprintf(buf,DATAVALUEMAX,"%s    CHAR(%d)    NOT NULL,",temp->valueName,DATAVALUEMAX);
+            snprintf(buf,DATAVALUEMAX,"`%s`    CHAR(%d)    NOT NULL,",temp->valueName,DATAVALUEMAX);
             strcat(table,buf);
             temp = temp->next;
 
@@ -609,7 +609,7 @@ int SaveLog()
             {
 
                 memset(buf,0,sizeof(buf));
-                snprintf(buf,256,"%s,",temp->valueName);
+                snprintf(buf,256,"`%s`,",temp->valueName);
                 strcat(insertBuf,buf);
                 temp = temp->next;
 
