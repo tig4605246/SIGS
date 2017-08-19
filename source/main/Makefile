@@ -7,6 +7,8 @@ PROG6=SGSlogger
 PROG7=SGSmailagent
 PROG8=SolarCollector
 PROG9=SolarPost
+PROG10=SolarPut
+PROG11=GWInfo
 
 
 TEST1=openSql
@@ -49,7 +51,12 @@ all:
 
 	$(CC) -o ../../bin/$(PROG8) ../collector/$(PROG8).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c ../protocol/SGSmodbus.c -pthread -lm -lcurl `pkg-config --cflags --libs libmodbus`
 
-	$(CC) -o ../../bin/$(PROG9) ../uploader/$(PROG9).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c ../thirdparty/cJSON.c -pthread -lm -lcurl `pkg-config --cflags --libs libmodbus`
+	$(CC) -o ../../bin/$(PROG9) ../uploader/$(PROG9).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c ../thirdparty/cJSON.c -pthread -lm -lcurl 
+
+	$(CC) -o ../../bin/$(PROG10) ../uploader/$(PROG10).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c ../thirdparty/cJSON.c ../thirdparty/sqlite3.c -pthread -lm -lcurl -ldl 
+
+	$(CC) -o ../../bin/$(PROG11) ../collector/$(PROG11).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c ../protocol/SGSmodbus.c -pthread -lm  -lcurl
+
 
 #Below is testing functions
 

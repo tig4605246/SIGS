@@ -249,13 +249,13 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int Creat
         if(fscanf(dataConfigFile, "%[^\n]\n", buf) < 0) 
             break;
         line++;
-        printf("[LINE %d]: %s\n", __LINE__, buf);
+        //printf("[LINE %d]: %s\n", __LINE__, buf);
 
         //Skip the empty line
-        printf("[%s,%d]fscanf %s\n",__FUNCTION__,__LINE__,buf);
+        //printf("[%s,%d]fscanf %s\n",__FUNCTION__,__LINE__,buf);
         if(!strlen(buf))
         { 
-            printf("[%s,%d]buf == 0\n",__FUNCTION__,__LINE__);
+            //printf("[%s,%d]buf == 0\n",__FUNCTION__,__LINE__);
             zero++; 
             continue;
             
@@ -265,7 +265,7 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int Creat
 
         if(buf[0] == '#')
         { 
-            printf("[%s,%d]line is commented\n",__FUNCTION__,__LINE__);
+            //printf("[%s,%d]line is commented\n",__FUNCTION__,__LINE__);
             zero++; 
             continue;
         
@@ -679,6 +679,10 @@ void sgsShowDataInfo(dataInfo *dataInfoPtr)
                     printf(LIGHT_GREEN"\t\t\tvalue : %d\n"NONE,dest.value.i);
                     break;
 
+                case LONGLONG_VALUE :
+                    printf(LIGHT_GREEN"\t\t\tvalue : %lld\n"NONE,dest.value.ll);
+                    break;
+
                 case FLOAT_VALUE :
                     printf(LIGHT_GREEN"\t\t\tvalue : %f\n"NONE,dest.value.f);
                     break;
@@ -789,6 +793,10 @@ int sgsReadSharedMemory(dataInfo *dataInfoPtr, dataLog *dest)
                     dest->value.i = shmPtr->value.i;
                     break;
 
+                case LONGLONG_VALUE :
+                    dest->value.ll = shmPtr->value.ll;
+                    break;
+
                 case FLOAT_VALUE :
                     dest->value.f = shmPtr->value.f;
                     break;
@@ -881,6 +889,10 @@ int sgsWriteSharedMemory(dataInfo *dataInfoPtr, dataLog *source)
 
                 case INTEGER_VALUE :
                     shmPtr->value.i = source->value.i;
+                    break;
+
+                case LONGLONG_VALUE :
+                    shmPtr->value.ll = source->value.ll;
                     break;
 
                 case FLOAT_VALUE :
@@ -1182,6 +1194,7 @@ int sgsRegisterDataInfoToBufferPool(char *dataName ,int shmId, int numberOfData)
         {
 
             printf(LIGHT_RED"[%s,%d]%s  is busy\n"NONE, __FUNCTION__, __LINE__, (DataBufferInfoPtr + i)->dataName);
+            pthread_mutex_unlock( &((DataBufferInfoPtr + i)->lock));
             i++;
             continue;
 
@@ -1191,7 +1204,9 @@ int sgsRegisterDataInfoToBufferPool(char *dataName ,int shmId, int numberOfData)
 
             if((DataBufferInfoPtr + i)->inUse == 1)
             {
+
                 printf("block %d is in use\n",i);
+                pthread_mutex_unlock( &((DataBufferInfoPtr + i)->lock));
                 i++;
                 continue;
             }
@@ -1238,6 +1253,8 @@ int sgsGetDataInfoFromBufferPool(char *dataName, DataBufferInfo *dest)
 
             if((DataBufferInfoPtr + i)->inUse == 0)
             {
+
+                pthread_mutex_unlock( &((DataBufferInfoPtr + i)->lock));
                 i++;
                 continue;
             }
@@ -1257,6 +1274,7 @@ int sgsGetDataInfoFromBufferPool(char *dataName, DataBufferInfo *dest)
                 else
                 {
 
+                    pthread_mutex_unlock( &((DataBufferInfoPtr + i)->lock));
                     i++;
                     continue;
 

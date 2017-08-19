@@ -31,14 +31,27 @@
 //We declare our own libraries at below
 
 #include "../ipcs/SGSipcs.h"
+#include "../events/SGSEvent.h"
 
 
 #define CPUFILE "/proc/stat"
 #define MEMFILE "cat /proc/meminfo"
-#define DISKFILE "df /dev/sda2"
+#define DISKFILE "df /dev/sda5"
 
 #define NETFLOWFILE "/proc/net/dev" // path of network log
 #define NETFILEEXT "./log/NetworkFlow" // path of existing network log
+
+int CollectCpuUsage(dataInfo *target);
+
+int CollectDiskUsage(dataInfo *target);
+
+int CollectMemoryUsage(dataInfo *target);
+
+int CollectNetworkFlow(dataInfo *target);
+
+int CheckAndRespondQueueMessage();
+
+void ShutdownSystemBySignal();
 
 typedef struct rxRead
 {
@@ -85,7 +98,7 @@ int msgType;        // 0 1 2 3 4 5, one of them
 char netCard[16] = {'\0'};
 
 
-int main(int argc, char argv[])
+int main(int argc, char *argv[])
 {
 
     int i = 0, ret = 0, numberOfData = 0;
@@ -99,7 +112,7 @@ int main(int argc, char argv[])
 
     memset(buf,'\0',sizeof(buf));
 
-    snprintf(buf,511,"%s;argc is %d, argv 1 %s", LOG, argc, argv[1]);
+    snprintf(buf,511,"%s;argc is %d, argv 1 %s\n", LOG, argc, argv[1]);
 
     msgType = atoi(argv[1]);
 
@@ -128,9 +141,7 @@ int main(int argc, char argv[])
     dInfo = NULL;
     shmId = -1;
 
-
-
-    ret = sgsInitDataInfo(NULL, &dInfo, 1, "./conf/Collect/GWInfo", -1, &numberOfData);
+    ret = sgsInitDataInfo(NULL, &dInfo, 0, "./conf/Collect/SolarCollector", -1, &numberOfData);
 
     if(ret < 0 )
     {
@@ -147,34 +158,11 @@ int main(int argc, char argv[])
 
     shmId = ret;
 
-    //Show data
-
-    //printf("Show dataInfo\n");
-    //sgsShowDataInfo(dInfo);
-
-    //Attach buffer pool
-
-    ret = sgsInitBufferPool(0);
-
-    //Registration
-
-    ret = sgsRegisterDataInfoToBufferPool("GWInfo", shmId, numberOfData);
-    if(ret == -1)
-    {
-
-        printf("Failed to register, return %d\n", ret);
-        sgsDeleteDataInfo(dInfo, shmId);
-        exit(0);
-
-    }
-
-    //update data
-
     //get first timestamp
 
     time(&last);
     now = last;
-    netPeriod = now;
+    netPeriod = now -  605;
 
     //main loop
 
@@ -186,7 +174,7 @@ int main(int argc, char argv[])
 
         //check time interval
 
-        if((now-last) > interval )
+        if((now-last) > interval + 2  )
         {
 
             temp = dInfo;
@@ -195,11 +183,12 @@ int main(int argc, char argv[])
             {
 
                 //Update data
-                printf("Getting system info\n");
+                //printf("Getting system info\n");
 
                 if(!strcmp(temp->valueName, "CPU_Usage"))
                 {
 
+                    printf("Getting CPU\n");
                     ret = CollectCpuUsage(temp);
 
                     if(ret != 0)
@@ -213,10 +202,11 @@ int main(int argc, char argv[])
                     }
 
                 }
-                else if(!strcmp(temp->valueName, "Memory_Usage") && ((now - netPeriod) > 600) )
+                else if(!strcmp(temp->valueName, "Memory_Usage")  )
                 {
 
-                    netPeriod = now;
+                    printf("Getting MEM\n");
+                    
                     ret = CollectMemoryUsage(temp);
 
                     if(ret != 0)
@@ -233,6 +223,7 @@ int main(int argc, char argv[])
                 else if(!strcmp(temp->valueName, "Storage_Usage"))
                 {
 
+                    printf("Getting HDD\n");
                     ret = CollectDiskUsage(temp);
 
                     if(ret != 0)
@@ -246,9 +237,11 @@ int main(int argc, char argv[])
                     }
 
                 }
-                else if(!strcmp(temp->valueName, "Network_Flow"))
+                else if(!strcmp(temp->valueName, "Network_Flow") && ((now - netPeriod) > 600))
                 {
 
+                    printf("Getting Net Flow\n");
+                    netPeriod = now;
                     ret = CollectNetworkFlow(temp);
 
                     if(ret != 0)
@@ -266,7 +259,7 @@ int main(int argc, char argv[])
             }
             time(&last);
             now = last;
-            now += 1;
+            last -= 2;
 
         }
 
@@ -507,7 +500,7 @@ int CollectNetworkFlow(dataInfo *target)
     else
     {
 
-        fgets(buf, 4096, to))
+        if(fgets(buf, 4096, to))
         {
 
             sscanf(buf, xread, &tempRx, &tempTx);
@@ -527,7 +520,7 @@ int CollectNetworkFlow(dataInfo *target)
     if(!fp)
     {
 
-        printf("[%s:%d] There is no such file or path is incorrect\n "__FUNCTION__,__LINE__);
+        printf("[%s:%d] There is no such file or path is incorrect\n ",__FUNCTION__,__LINE__);
         memset(&rx,0,sizeof(rx));
         memset(&tx,0,sizeof(tx));
 
@@ -589,15 +582,21 @@ int CheckAndRespondQueueMessage()
     char *storagePath = NULL;
     char *networkInterface = NULL;
 
-    sgsRecvQueueMsg(msgId, buf, msgType);
+    ret = sgsRecvQueueMsg(msgId, buf, msgType);
 
-    printf("GWInfo got message: %s\n", buf);
+    if(ret != -1)
+    {
 
-    cmd = strtok(buf, SPLITTER);
-    to  = strtok(NULL, SPLITTER);
-    from = strtok(NULL, SPLITTER);
-    storagePath = strtok(NULL, SPLITTER);
-    networkInterface = strtok(NULL, SPLITTER);    
+        printf("GWInfo got message: %s\n", buf);
+
+        cmd = strtok(buf, SPLITTER);
+        to  = strtok(NULL, SPLITTER);
+        from = strtok(NULL, SPLITTER);
+        storagePath = strtok(NULL, SPLITTER);
+        networkInterface = strtok(NULL, SPLITTER);    
+
+    }
+    
 
     return 0;
 
@@ -607,7 +606,7 @@ int CheckAndRespondQueueMessage()
 void ShutdownSystemBySignal()
 {
 
-    sgsDeleteDataInfo(dInfo, shmId);
+    sgsDeleteDataInfo(dInfo, -1);
     printf("[%s,%d] Catched SIGUSR1 successfully\n",__FUNCTION__,__LINE__);
     exit(0);
 

@@ -42,12 +42,13 @@ typedef time_t epochTime;
 
 //defining value type
 
-#define INITIAL_VALUE 0x00000000
-#define INTEGER_VALUE 0x00000010
-#define FLOAT_VALUE   0x00000011
-#define STRING_VALUE  0x00000100
-#define ERROR_VALUE   0x00001000
-#define UNKNOWN_VALUE 0x00001001
+#define INITIAL_VALUE   0x00000000
+#define INTEGER_VALUE   0x00000010
+#define LONGLONG_VALUE      0x00001011
+#define FLOAT_VALUE     0x00000011
+#define STRING_VALUE    0x00000100
+#define ERROR_VALUE     0x00001000
+#define UNKNOWN_VALUE   0x00001001
 
 //define Data size
 
@@ -199,6 +200,8 @@ union dataValue
     int i;
 
     float f;
+
+    long long ll;
 
     char s[DATAVALUEMAX];
 

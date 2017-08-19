@@ -64,8 +64,15 @@ Notes:
 
         1.collector/upload master need to process CONTROL and RESULT command
 
-        2.finish SolarPut, SolarCollect
+        2.
 
-        3.Test run with commands
+            finish SolarPut (data format correction, upload part)
+
+            record Inverter, Irr and temp status, 
+            (May revise the conf file or just use the status in the dLog, for example, add Inv_Status_01 to tags represents inverter status)
+
+            invoke delete function in logger
+
+        3.Test run with commands and Eric
 
         4.Write Readme

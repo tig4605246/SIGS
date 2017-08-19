@@ -224,35 +224,41 @@ int main(int argc, char *argv[])
 
         printf("path to %s is %s\n",name,path);
 
-        //Get data info from pool
+        //If the data name is not "NONE", get data info from pool
 
-        ret = sgsGetDataInfoFromBufferPool(name, &(bufferInfo[i]));
-        if(ret == -1)
+        if(strcmp("NONE", name))
         {
 
-            printf("Failed to get data buffer info, return %d\n", ret);
-            exit(0);
+            ret = sgsGetDataInfoFromBufferPool(name, &(bufferInfo[i]));
+            if(ret == -1)
+            {
+
+                printf("Failed to get data buffer info, return %d\n", ret);
+                exit(0);
+
+            }
+
+            //calculate the number of the data
+
+            dataSize += bufferInfo[i].numberOfData;
+
+            //Attach the shared memory
+
+            memset(buf,'\0',sizeof(buf));
+            snprintf(buf, 511, "./conf/Collect/%s",bufferInfo[i].dataName);
+            ret = sgsInitDataInfo(NULL, &(dInfo[i]), 0, buf, bufferInfo[i].shmId, NULL);
+            if(ret == -1)
+            {
+
+                snprintf(buf, sizeof(buf) - 1, "%s;Attach shmid %d Failed (config path %s)\n", ERROR, bufferInfo[i].shmId, buf);
+                sgsSendQueueMsg(eventHandlerId, buf, EnumLogger);
+                exit(0);
+
+            }
+            i++;
 
         }
-
-        //calculate the number of the data
-
-        dataSize += bufferInfo[i].numberOfData;
-
-        //Attach the shared memory
-
-        memset(buf,'\0',sizeof(buf));
-        snprintf(buf, 511, "./conf/Collect/%s",bufferInfo[i].dataName);
-        ret = sgsInitDataInfo(NULL, &(dInfo[i]), 0, buf, bufferInfo[i].shmId, NULL);
-        if(ret == -1)
-        {
-
-            snprintf(buf, sizeof(buf) - 1, "%s;Attach shmid %d Failed (config path %s)\n", ERROR, bufferInfo[i].shmId, buf);
-            sgsSendQueueMsg(eventHandlerId, buf, EnumLogger);
-            exit(0);
-
-        }
-        i++;
+        
 
     }
 
@@ -679,13 +685,18 @@ int SaveLog()
                         strcat(table,buf);
                     break;
 
+                    case LONGLONG_VALUE:
+                        snprintf(buf,256," '%lld',",dLog.value.ll);
+                        strcat(table,buf);
+                    break;
+
                     case STRING_VALUE:
                         snprintf(buf,256," '%s',",dLog.value.s);
                         strcat(table,buf);
                     break;
                     
                     case FLOAT_VALUE:
-                        snprintf(buf,256," '%s',",dLog.value.s);
+                        snprintf(buf,256," '%f',",dLog.value.f);
                         strcat(table,buf);
                     break;
 

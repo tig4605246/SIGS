@@ -182,7 +182,7 @@ int main(int argc, char *argv[])
 #endif
 
             //printf("show data\n");
-            //sgsShowDataInfo(dInfo);
+            sgsShowDataInfo(dInfo);
 
             time(&last);
             now = last;
@@ -331,9 +331,9 @@ int FetchAndUpdateInfoTable()
                 //Write back to shared memory
 
                 memset(&dLog, 0, sizeof(dLog));
-                dLog.value.i = tmpInfo->modbusInfo.response[3]*256*256*256 + tmpInfo->modbusInfo.response[4]*256*256;
-                dLog.value.i += tmpInfo->modbusInfo.response[5]*256 + tmpInfo->modbusInfo.response[6];
-                dLog.valueType = INTEGER_VALUE;
+                dLog.value.ll = tmpInfo->modbusInfo.response[3]*256*256*256 ;
+                dLog.value.ll += tmpInfo->modbusInfo.response[4]*256*256 + tmpInfo->modbusInfo.response[5]*256 + tmpInfo->modbusInfo.response[6];
+                dLog.valueType = LONGLONG_VALUE;
                 dLog.status = 1;
                 sgsWriteSharedMemory(tmpInfo, &dLog);
 
@@ -596,8 +596,10 @@ int SimulateAndUpdateInfoTable()
                 //Write back to shared memory
 
                 memset(&dLog, 0, sizeof(dLog));
-                dLog.value.i = rand()%256*256*256*256 + rand()%256*256*256 + rand()%256*256 + rand()%256;
-                dLog.valueType = INTEGER_VALUE;
+                dLog.value.ll += (rand()%256 );
+                dLog.value.ll = dLog.value.ll*256*256*256;
+                dLog.value.ll += rand()%256*256*256 + rand()%256*256 + rand()%256;
+                dLog.valueType = LONGLONG_VALUE;
                 dLog.status = 1;
                 sgsWriteSharedMemory(tmpInfo, &dLog);
 
@@ -756,10 +758,8 @@ int SimulateAndUpdateInfoTable()
 
             }
 
-
         }
 
-        
         tmpInfo = tmpInfo->next;
 
     }

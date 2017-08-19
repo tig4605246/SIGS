@@ -68,7 +68,7 @@ int GetConfig();
 //Pre       : Nothing
 //Post      : On success, return 0, -1 means resend immediately
 
-int SetConfig();
+int SetConfig(char *result, char *address);
 
 //Intent    : Post data to server
 //Pre       : Nothing
@@ -369,7 +369,7 @@ int GetConfig()
 
 }
 
-int SetConfig(char *result)
+int SetConfig(char *result, char *address)
 {
 
     cJSON *root;
@@ -567,7 +567,7 @@ int SetConfig(char *result)
                 pid = fork();
                 if(pid == 0)
                 {
-                    execlp("./SolarPut","./SolarPut",Resend_time_s,Resend_time_e,NULL);
+                    execlp("./SolarPut","./SolarPut", Resend_time_s, Resend_time_e, address,NULL);
                     perror("execlp");
                     exit(0);
                 }
@@ -593,7 +593,7 @@ int SetConfig(char *result)
 int PostToServer()
 {
 
-    dataInfo *tempInfo[2] = {dInfo[0], dInfo[1]};
+    dataInfo *tempInfo[2] = {dInfo[0], dInfo[0]};
     dataLog dLog;
     epochTime nowTime;
     char buf[256];
@@ -759,7 +759,18 @@ int PostToServer()
         else
         {
 
+            if(dLog.valueType == INTEGER_VALUE)
             cJSON_AddNumberToObject(inverter, tempInfo[0]->valueName, dLog.value.i);
+
+            if(dLog.valueType == LONGLONG_VALUE)
+            {
+
+                memset(buf,0,sizeof(buf));
+                snprintf(buf,255,"%lld",dLog.value.ll);
+                cJSON_AddStringToObject(inverter, tempInfo[0]->valueName, buf);
+
+            }
+            
 
         }
 
@@ -1119,7 +1130,7 @@ ssize_t process_http( char *content, char *address)
                 if(strcmp(obj->valuestring,"True")) //Set config
                 {
 
-                    SetConfig(recvline);
+                    SetConfig(recvline, address);
                     cJSON_Delete(root);
                     return 0;
 

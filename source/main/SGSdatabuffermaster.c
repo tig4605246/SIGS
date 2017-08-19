@@ -24,7 +24,7 @@ int DataBufferPoolId = -1;
 
 void ShutDownBySignal(int sigNum);
 
-int CheckPoolStatus(DataBufferInfo *ptr);
+int CheckPoolStatus(DataBufferInfo *ptr, int count);
 
 int id = -1;//  id for message queue to event-handler
 
@@ -73,7 +73,7 @@ int main(int argc, char* argv[])
         for(i = 0 ; i < 50 ; i++)
         {
 
-            ret = CheckPoolStatus(&(DataBufferInfoPtr[i]));
+            ret = CheckPoolStatus(&(DataBufferInfoPtr[i]), i);
             if(ret == -1)
             {
 
@@ -103,7 +103,7 @@ void ShutDownBySignal(int sigNum)
 
 }
 
-int CheckPoolStatus(DataBufferInfo *ptr)
+int CheckPoolStatus(DataBufferInfo *ptr, int i)
 {
 
     char buf[MSGBUFFSIZE];
@@ -111,7 +111,7 @@ int CheckPoolStatus(DataBufferInfo *ptr)
     if(pthread_mutex_trylock( &(ptr->lock) ) != 0)
     {
 
-        printf(LIGHT_RED"It's busy, check it next time\n"NONE);
+        printf(LIGHT_RED"[number %d]%s It's busy, check it next time\n"NONE, i, ptr->dataName);
         return 0;
 
     }
