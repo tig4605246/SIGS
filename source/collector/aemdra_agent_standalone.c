@@ -369,6 +369,8 @@ int getInfoToJSONAndUpload(char *buf)
 
     cJSON_Delete(root); 
 
+    free(output);
+
     //Always do clean up
 
     fclose(fpRead);
