@@ -359,7 +359,7 @@ int getInfoToJSONAndUpload(char *buf)
 
     output = cJSON_PrintUnformatted(root);
 
-    printf("aemdra output:\n%s\n",output);
+    //printf("aemdra output:\n%s\n",output);
 
     //format = cJSON_Print(root);
 
@@ -401,14 +401,14 @@ ssize_t process_http( char *content)
 
 	}
 
-	printf("[%s:%d] hostname: %s\n",__FUNCTION__,__LINE__, hptr->h_name);
+	//printf("[%s:%d] hostname: %s\n",__FUNCTION__,__LINE__, hptr->h_name);
 
     //Set up address type (FAMILY)
 
 	if (hptr->h_addrtype == AF_INET && (pptr = hptr->h_addr_list) != NULL) 
     {
 
-		printf("[%s:%d] address: %s\n",__FUNCTION__,__LINE__,inet_ntop( hptr->h_addrtype , *pptr , str , sizeof(str) ));
+		//printf("[%s:%d] address: %s\n",__FUNCTION__,__LINE__,inet_ntop( hptr->h_addrtype , *pptr , str , sizeof(str) ));
 
 	} 
     else
@@ -434,7 +434,7 @@ ssize_t process_http( char *content)
     else
     {
 
-        printf("[%s,%d]socket() done\n",__FUNCTION__,__LINE__);
+        //printf("[%s,%d]socket() done\n",__FUNCTION__,__LINE__);
 
     }
 
@@ -523,7 +523,7 @@ ssize_t process_http( char *content)
     {
 
         //syslog(LOG_ERR, "\033[1;31m""[%s,%d] %s\n""\033[1;37m",__FUNCTION__,__LINE__, recvline);
-        printf("\033[1;31m""[%s,%d] %s\n""\033[1;37m",__FUNCTION__,__LINE__, recvline);
+        //printf("\033[1;31m""[%s,%d] %s\n""\033[1;37m",__FUNCTION__,__LINE__, recvline);
         close(sockfd);
         return -1;
 

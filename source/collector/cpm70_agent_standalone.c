@@ -398,7 +398,7 @@ ssize_t process_http( char *content)
     {
 
         //address = inet_ntop( hptr->h_addrtype , *pptr , str , sizeof(str) );
-		printf( "[%s:%d] address: %s\n",__FUNCTION__,__LINE__,inet_ntop( hptr->h_addrtype , *pptr , str , sizeof(str) ));
+		//printf( "[%s:%d] address: %s\n",__FUNCTION__,__LINE__,inet_ntop( hptr->h_addrtype , *pptr , str , sizeof(str) ));
         
 
 	} 
@@ -425,7 +425,7 @@ ssize_t process_http( char *content)
     else
     {
 
-        printf("[%s,%d]socket() done\n",__FUNCTION__,__LINE__);
+        //printf("[%s,%d]socket() done\n",__FUNCTION__,__LINE__);
 
     }
 
@@ -454,7 +454,7 @@ ssize_t process_http( char *content)
     else
     {
 
-        printf("[%s,%d]connect() done\n",__FUNCTION__,__LINE__);
+        //printf("[%s,%d]connect() done\n",__FUNCTION__,__LINE__);
 
     }
 
@@ -514,7 +514,7 @@ ssize_t process_http( char *content)
     {
 
         //syslog(LOG_ERR, "\033[1;31m""[%s,%d] %s\n""\033[1;37m",__FUNCTION__,__LINE__, recvline);
-        printf("\033[1;31m""[%s,%d] %s\n""\033[1;37m",__FUNCTION__,__LINE__, recvline);
+        //printf("\033[1;31m""[%s,%d] %s\n""\033[1;37m",__FUNCTION__,__LINE__, recvline);
         close(sockfd);
         return -1;
 
