@@ -6,7 +6,7 @@ SGSPATH=/home/ntust/SIGS/
 
 #The name for distinguishing every GW
 
-GWID=ThisIsMyGw
+GWID=ExampleID
 
 case "$1" in
    start)
