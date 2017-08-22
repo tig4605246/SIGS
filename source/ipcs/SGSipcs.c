@@ -120,7 +120,6 @@ void sgsDeleteAll(deviceInfo *deviceInfoPtr, int shmid)
 
 }
 
-
 int sgsInitDeviceInfo(deviceInfo **deviceInfoPtr)
 {
 

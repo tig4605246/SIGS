@@ -546,7 +546,18 @@ int SimulateAndUpdateInfoTable()
                 i++;
 
             memset(&dLog, 0, sizeof(dLog));
-            dLog.value.i = rand()%256*256 + rand()%256;
+
+            //record Irr status
+
+            if(strstr(namePart, "Status"))
+            {
+                dLog.value.i = 1;
+            }
+            else
+            {
+                dLog.value.i = rand()%256*256 + rand()%256;
+            }
+            
             dLog.valueType = INTEGER_VALUE;
             dLog.status = 1;
             sgsWriteSharedMemory(tmpInfo, &dLog);
@@ -585,7 +596,7 @@ int SimulateAndUpdateInfoTable()
                 sgsWriteSharedMemory(tmpInfo, &dLog);
 
             }
-            else if(!strcmp("Today_Wh",namePart) || !strcmp("Life_Wh",namePart))
+            else if(strstr(namePart, "Today_Wh") || strstr(namePart, "Life_Wh"))
             {
 
                 while(strcmp("Deltarpi",iTable[i].infoName))
@@ -604,7 +615,7 @@ int SimulateAndUpdateInfoTable()
                 sgsWriteSharedMemory(tmpInfo, &dLog);
 
             }
-            else if(!strcmp("Inverter_Temp",namePart))
+            else if(strstr(namePart, "Inverter_Temp"))
             {
 
                 while(strcmp("Deltarpi",iTable[i].infoName))
@@ -621,7 +632,7 @@ int SimulateAndUpdateInfoTable()
                 sgsWriteSharedMemory(tmpInfo, &dLog);
 
             }
-            else if(!strcmp("Inverter_Error",namePart))
+            else if(strstr(namePart, "Inverter_Error"))
             {
 
                 while(strcmp("Deltarpi",iTable[i].infoName))
@@ -753,6 +764,24 @@ int SimulateAndUpdateInfoTable()
 
                 //Write back to shared memory
                 dLog.valueType = STRING_VALUE;
+                dLog.status = 1;
+                sgsWriteSharedMemory(tmpInfo, &dLog);
+
+            }
+            else if(strstr(namePart, "Inverter_Status"))
+            {
+
+
+                while(strcmp("Deltarpi",iTable[i].infoName))
+                    i++;
+
+                //Get register value
+
+                //Write back to shared memory
+
+                memset(&dLog, 0, sizeof(dLog));
+                dLog.value.i = 1;
+                dLog.valueType = INTEGER_VALUE;
                 dLog.status = 1;
                 sgsWriteSharedMemory(tmpInfo, &dLog);
 

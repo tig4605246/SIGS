@@ -511,10 +511,12 @@ int PostToServer()
 static int callback(void *data, int argc, char **argv, char **azColName)
 {
 
-    int i, tempID = 1;
+    int i, tempID = 1, firstTempArray = 1, inverterID = 1;
     char *unformatted = NULL;
+    char buf[32] = {0};
     epochTime nowTime;
     cJSON *inverter = NULL;
+    cJSON *tempArray = NULL;
     cJSON *outerObj = NULL;
 
     time(&nowTime);
@@ -533,6 +535,10 @@ static int callback(void *data, int argc, char **argv, char **azColName)
     cJSON_AddStringToObject(inverter, "GW_ID", postConfig.GW_ID);
     cJSON_AddStringToObject(inverter, "MAC_Address", postConfig.MAC_Address);
     cJSON_AddStringToObject(inverter, "Station_ID", postConfig.Station_ID);
+    snprintf(buf, 31, "%02d", inverterID);
+    cJSON_AddStringToObject(inverter, "InverterID", buf);//insert inverterID (count manually by inverterID)
+
+    //fill up the rest of the data with callback datas
 
     for(i=0; i<argc; i++)
     {
@@ -541,18 +547,25 @@ static int callback(void *data, int argc, char **argv, char **azColName)
 
         //Make json object here
 
-        if(strstr(azColName[i], "Inverter_Error") ) //Create a new object after this
+        if(strstr(azColName[i], "Inverter_Status") ) //Create a new object after this
         {
 
-            cJSON_AddStringToObject(inverter, "Alarm", argv[i]);
+            cJSON_AddStringToObject(inverter, "Inverter_Status", argv[i]);
 
             if( i != argc -1)
             {
+
                 cJSON_AddItemToArray(jsonRoot, inverter = cJSON_CreateObject());
                 cJSON_AddNumberToObject(inverter, "Timestamp", nowTime);
                 cJSON_AddStringToObject(inverter, "GW_ID", postConfig.GW_ID);
                 cJSON_AddStringToObject(inverter, "MAC_Address", postConfig.MAC_Address);
                 cJSON_AddStringToObject(inverter, "Station_ID", postConfig.Station_ID);
+                memset(buf, 0, sizeof(buf));
+                inverterID++;                           // Next ID
+                tempID = 1;
+                snprintf(buf, 31, "%02d", inverterID);
+                cJSON_AddStringToObject(inverter, "InverterID", buf);
+
             }
 
         }
@@ -599,21 +612,16 @@ static int callback(void *data, int argc, char **argv, char **azColName)
                 cJSON_AddStringToObject(inverter, "Irr", argv[i]);
 
             }
+            else if(strstr(azColName[i], "IrrStatus"))
+            {
+
+                cJSON_AddStringToObject(inverter, "Irr_Status", argv[i]);
+
+            }
             else if(strstr(azColName[i], "Temperature"))
             {
 
-                cJSON *tmp = NULL;
-                cJSON *obj = NULL;
-                char buf[32] = {0};
-
-                snprintf(buf, 31, "%02d", tempID++);
-
-                cJSON_AddItemToObject(inverter, "PVTemp",tmp = cJSON_CreateArray());
-
-                cJSON_AddItemToArray(tmp, obj = cJSON_CreateObject());
-                cJSON_AddStringToObject(obj, "Temp", argv[i]);
-                cJSON_AddStringToObject(obj, "Temp_Status", "1");
-                cJSON_AddStringToObject(obj, "Temp_ID", buf);
+                cJSON_AddStringToObject(inverter, "Inverter_Temp", argv[i]);
 
             }
             else if(strstr(azColName[i], "Voltage(Vab)"))
@@ -739,7 +747,28 @@ static int callback(void *data, int argc, char **argv, char **azColName)
             else if(strstr(azColName[i], "Inverter_Temp"))
             {
 
-                cJSON_AddStringToObject(inverter, "Inverter_Temp", argv[i]);
+                cJSON *obj = NULL;
+
+                if(firstTempArray)
+                {
+
+                    firstTempArray = 0;
+                    cJSON_AddItemToObject(inverter, "PVTemp",tempArray = cJSON_CreateArray());
+
+                }
+                
+                memset(buf,0,sizeof(buf));
+                snprintf(buf, 31, "%02d", tempID++);
+                cJSON_AddItemToArray(tempArray, obj = cJSON_CreateObject());
+                cJSON_AddStringToObject(obj, "Temp", argv[i]);
+                cJSON_AddStringToObject(obj, "Temp_Status", "1");
+                cJSON_AddStringToObject(obj, "Temp_ID", buf);
+
+            }
+            else if(strstr(azColName[i], "Inverter_Error"))
+            {
+
+                cJSON_AddStringToObject(inverter, "Alarm", argv[i]);
 
             }
 

@@ -44,7 +44,7 @@ Notes:
 
     test/sendmail.c will work, but some libraries are needed (libcurl and libssh2).
 
-    Since printf is not reentrant function, using printf in sigaction callback funtion is not safe.
+    Since printf is not reentrant function, using printf in sigaction callback function is not safe.
 
     The db must be clean before any change to Collector's AutoList. 
 
@@ -76,3 +76,10 @@ Notes:
         3.Test run with commands and Eric
 
         4.Write Readme
+
+
+        Things to be finished:
+
+        Add Status tag in SolarCollect
+
+        if half of the info can't work properly, set the flag to -1

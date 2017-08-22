@@ -526,7 +526,7 @@ int CreateTable()
         while(temp != NULL)
         {
 
-            snprintf(buf,DATAVALUEMAX,"`%s`    CHAR(%d)    NOT NULL,",temp->valueName,DATAVALUEMAX);
+            snprintf(buf,DATAVALUEMAX,"`[%s]%s`    CHAR(%d)    NOT NULL,", temp->sensorName, temp->valueName,DATAVALUEMAX);
             strcat(table,buf);
             temp = temp->next;
 
@@ -615,7 +615,7 @@ int SaveLog()
             {
 
                 memset(buf,0,sizeof(buf));
-                snprintf(buf,256,"`%s`,",temp->valueName);
+                snprintf(buf,256,"`[%s]%s`,", temp->sensorName, temp->valueName);
                 strcat(insertBuf,buf);
                 temp = temp->next;
 
@@ -751,6 +751,8 @@ int SaveLog()
     }
 
     free(table);
+
+    DeleteLog(db, "SOLAR", databaseConfig.logDays);
 
     return 0;
 

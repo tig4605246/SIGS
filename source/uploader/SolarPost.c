@@ -607,7 +607,7 @@ int PostToServer()
     int irrNum = 0;                 //How many irr we have
     int irrVal[100] = {0};
     int irrStat[100] = {0};
-    int i = 0, count = 10, ret = -1;
+    int i = 0, count = 10, ret = -1, firstTempArray = 1, inverterID = 1, tempID = 1;
     typedef struct sysNode
     {
 
@@ -645,19 +645,6 @@ int PostToServer()
 
     }
 
-    while(tempInfo[1] != NULL)
-    {
-
-        sgsReadSharedMemory(tempInfo[1], &dLog);
-        if(!strcmp(tempInfo[1]->valueName, "CPU_Usage"))    systemInfo.cpuUsage = dLog.value.i;
-        else if(!strcmp(tempInfo[1]->valueName, "Memory_Usage"))    systemInfo.memoryUsage = dLog.value.i;
-        else if(!strcmp(tempInfo[1]->valueName, "Storage_Usage"))    systemInfo.storageUsage = dLog.value.i;
-        else if(!strcmp(tempInfo[1]->valueName, "Network_Flow"))    systemInfo.networkFlow = dLog.value.i;
-
-        tempInfo[1] = tempInfo[1]->next;
-
-    }
-
     //2. get solar info & form JSON at the same time
 
     //First, get irr and temp, They'll be the firsts in dataInfo linked list
@@ -665,11 +652,11 @@ int PostToServer()
     tempArray = cJSON_CreateArray();
 
     i = 0;
-
-    while(tempInfo[0] != NULL && (!strcmp(tempInfo[0]->sensorName, "Temperature") || !strcmp(tempInfo[0]->sensorName, "Irradiation")) )
+    /*
+    while(tempInfo[0] != NULL && (strstr("Temp", tempInfo[0]->sensorName) || strstr("Irr", tempInfo[0]->sensorName)) )
     {
 
-        if(!strcmp(tempInfo[0]->valueName, "Temperature"))
+        if(strstr("Temperature", tempInfo[0]->valueName))
         {
 
             sgsReadSharedMemory(tempInfo[0], &dLog);
@@ -681,7 +668,7 @@ int PostToServer()
             cJSON_AddStringToObject(tempObj, "Temp_ID", buf);
 
         }
-        else if(!strcmp(tempInfo[0]->valueName, "Irradiation"))
+        else if(strstr("Irradiation", tempInfo[0]->valueName))
         {
 
             sgsReadSharedMemory(tempInfo[0], &dLog);
@@ -693,6 +680,7 @@ int PostToServer()
         tempInfo[0] = tempInfo[0]->next;
 
     }
+    */
 
     //Second, Get inverter info & form JSON
 
@@ -713,10 +701,10 @@ int PostToServer()
     cJSON_AddNumberToObject(inverter, "Timestamp", nowTime);
     cJSON_AddStringToObject(inverter, "MAC_Address", postConfig.MAC_Address);
     cJSON_AddStringToObject(inverter, "GW_ID", postConfig.GW_ID);
-    cJSON_AddNumberToObject(inverter, "CPU", systemInfo.cpuUsage);
-    cJSON_AddNumberToObject(inverter, "Storage", systemInfo.storageUsage);
-    cJSON_AddNumberToObject(inverter, "Memory", systemInfo.memoryUsage);
-    cJSON_AddNumberToObject(inverter, "Network_flow", systemInfo.networkFlow);
+    cJSON_AddStringToObject(inverter, "Station_ID", postConfig.Station_ID);
+    memset(buf, 0, sizeof(buf));
+    snprintf(buf, sizeof(buf) - 1, "%02d", inverterID);
+    cJSON_AddStringToObject(inverter, "InverterID", buf);//insert inverterID (count manually by inverterID)
 
 
     while(tempInfo[0] != NULL)
@@ -726,21 +714,10 @@ int PostToServer()
 
         //If we meet Alarm, put PV_Temp and Irr into inverter obj then create a new object
 
-        if(strcmp(tempInfo[0]->valueName, "Alarm"))
+        if(strstr(tempInfo[0]->valueName, "Inverter_Status"))
         {
 
-            //If it's not the first time, add the temp and irr into it
-
-            cJSON_AddItemToObject(inverter, "PV_Temp", tempArray);
-            for(i = 0 ; i < irrNum ; i++)
-            {
-
-                cJSON_AddNumberToObject(inverter, "Irr", irrVal[i]);
-                cJSON_AddNumberToObject(inverter, "Irr_Status", irrStat[i]);
-
-            }
-            cJSON_AddStringToObject(inverter, "Alarm", dLog.value.s);
-            cJSON_AddStringToObject(inverter, "Station_ID", postConfig.Station_ID);
+            cJSON_AddNumberToObject(inverter, "Inverter_Status", dLog.value.i);
 
             //Create New inverter obj
 
@@ -748,29 +725,215 @@ int PostToServer()
             cJSON_AddItemToArray(rows, inverter);
 
             cJSON_AddNumberToObject(inverter, "Timestamp", nowTime);
-            cJSON_AddStringToObject(inverter, "MAC_Address", postConfig.MAC_Address);
             cJSON_AddStringToObject(inverter, "GW_ID", postConfig.GW_ID);
-            cJSON_AddNumberToObject(inverter, "CPU", systemInfo.cpuUsage);
-            cJSON_AddNumberToObject(inverter, "Storage", systemInfo.storageUsage);
-            cJSON_AddNumberToObject(inverter, "Memory", systemInfo.memoryUsage);
-            cJSON_AddNumberToObject(inverter, "Network_flow", systemInfo.networkFlow);
+            cJSON_AddStringToObject(inverter, "MAC_Address", postConfig.MAC_Address);
+            cJSON_AddStringToObject(inverter, "Station_ID", postConfig.Station_ID);
+            firstTempArray = 1;
+            memset(buf, 0, sizeof(buf));
+            inverterID++; //Next Inverter ID
+            tempID = 1; 
+            snprintf(buf, sizeof(buf) - 1, "%02d", inverterID);
+            cJSON_AddStringToObject(inverter, "InverterID", buf);//insert inverterID (count manually by inverterID)
 
         }
-        else
+        else    //keep filling in current object
         {
 
-            if(dLog.valueType == INTEGER_VALUE)
-            cJSON_AddNumberToObject(inverter, tempInfo[0]->valueName, dLog.value.i);
 
-            if(dLog.valueType == LONGLONG_VALUE)
+            if(strstr(tempInfo[0]->valueName, "CPU_Usage"))
+            {
+
+                cJSON_AddNumberToObject(inverter, "CPU", dLog.value.i);
+
+            }
+            else if(strstr(tempInfo[0]->valueName, "Storage_Usage"))
+            {
+
+                cJSON_AddNumberToObject(inverter, "Storage", dLog.value.i);
+
+            }
+            else if(strstr(tempInfo[0]->valueName, "Memory_Usage"))
+            {
+
+                cJSON_AddNumberToObject(inverter, "Memory", dLog.value.i);
+
+            }
+            else if(strstr(tempInfo[0]->valueName, "Network_Flow"))
+            {
+
+                cJSON_AddNumberToObject(inverter, "Network_flow", dLog.value.i);
+
+            }
+            else if(strstr(tempInfo[0]->valueName, "Irradiation"))
+            {
+
+                cJSON_AddNumberToObject(inverter, "Irr", dLog.value.i);
+
+            }
+            else if(strstr(tempInfo[0]->valueName, "IrrStatus"))
+            {
+
+                cJSON_AddNumberToObject(inverter, "Irr_Status", dLog.value.i);
+
+            }
+            else if(strstr(tempInfo[0]->valueName, "Temperature"))
+            {
+
+                cJSON_AddNumberToObject(inverter, "Inverter_Temp", dLog.value.i);
+
+            }
+            else if(strstr(tempInfo[0]->valueName, "Voltage(Vab)"))
+            {
+
+                cJSON_AddNumberToObject(inverter, "L1_ACV", dLog.value.i);
+
+            }
+            else if(strstr(tempInfo[0]->valueName, "CurrentA"))
+            {
+
+                cJSON_AddNumberToObject(inverter, "L1_ACA", dLog.value.i);
+
+            }
+            else if(strstr(tempInfo[0]->valueName, "WattageA"))
+            {
+
+                cJSON_AddNumberToObject(inverter, "L1_ACP", dLog.value.i);
+
+            }
+            else if(strstr(tempInfo[0]->valueName, "FrequencyA"))
+            {
+
+                cJSON_AddNumberToObject(inverter, "L1_AC_Freq", dLog.value.i);
+
+            }
+            else if(strstr(tempInfo[0]->valueName, "Voltage(Vbc)"))
+            {
+
+                cJSON_AddNumberToObject(inverter, "L2_ACV", dLog.value.i);
+
+            }
+            else if(strstr(tempInfo[0]->valueName, "CurrentB"))
+            {
+
+                cJSON_AddNumberToObject(inverter, "L2_ACA", dLog.value.i);
+
+            }
+            else if(strstr(tempInfo[0]->valueName, "WattageB"))
+            {
+
+                cJSON_AddNumberToObject(inverter, "L2_ACP", dLog.value.i);
+
+            }
+            else if(strstr(tempInfo[0]->valueName, "FrequencyB"))
+            {
+
+                cJSON_AddNumberToObject(inverter, "L2_AC_Freq", dLog.value.i);
+
+            }
+            else if(strstr(tempInfo[0]->valueName, "Voltage(Vca)"))
+            {
+
+                cJSON_AddNumberToObject(inverter, "L3_ACV", dLog.value.i);
+
+            }
+            else if(strstr(tempInfo[0]->valueName, "CurrentC"))
+            {
+
+                cJSON_AddNumberToObject(inverter, "L3_ACA", dLog.value.i);
+
+            }
+            else if(strstr(tempInfo[0]->valueName, "WattageC"))
+            {
+
+                cJSON_AddNumberToObject(inverter, "L3_ACP", dLog.value.i);
+
+            }
+            else if(strstr(tempInfo[0]->valueName, "FrequencyC"))
+            {
+
+                cJSON_AddNumberToObject(inverter, "L3_AC_Freq", dLog.value.i);
+
+            }
+            else if(strstr(tempInfo[0]->valueName, "VoltageDA"))
+            {
+
+                cJSON_AddNumberToObject(inverter, "DC1_DCV", dLog.value.i);
+
+            }
+            else if(strstr(tempInfo[0]->valueName, "CurrentDA"))
+            {
+
+                cJSON_AddNumberToObject(inverter, "DC1_DCA", dLog.value.i);
+
+            }
+            else if(strstr(tempInfo[0]->valueName, "WattageDA"))
+            {
+
+                cJSON_AddNumberToObject(inverter, "DC1_DCP", dLog.value.i);
+
+            }
+            else if(strstr(tempInfo[0]->valueName, "VoltageDB"))
+            {
+
+                cJSON_AddNumberToObject(inverter, "DC2_DCV", dLog.value.i);
+
+            }
+            else if(strstr(tempInfo[0]->valueName, "CurrentDB"))
+            {
+
+                cJSON_AddNumberToObject(inverter, "DC2_DCA", dLog.value.i);
+
+            }
+            else if(strstr(tempInfo[0]->valueName, "WattageDB"))
+            {
+
+                cJSON_AddNumberToObject(inverter, "DC2_DCP", dLog.value.i);
+
+            }
+            else if(strstr(tempInfo[0]->valueName, "Today_Wh"))
             {
 
                 memset(buf,0,sizeof(buf));
-                snprintf(buf,255,"%lld",dLog.value.ll);
-                cJSON_AddStringToObject(inverter, tempInfo[0]->valueName, buf);
+                snprintf(buf, sizeof(buf) - 1, "%lld", dLog.value.ll);
+                cJSON_AddStringToObject(inverter, "ACP_Daily", buf);
 
             }
-            
+            else if(strstr(tempInfo[0]->valueName, "Life_Wh"))
+            {
+
+                memset(buf,0,sizeof(buf));
+                snprintf(buf, sizeof(buf) - 1, "%lld", dLog.value.ll);
+                cJSON_AddStringToObject(inverter, "ACP_Life", buf);
+
+            }
+            else if(strstr(tempInfo[0]->valueName, "Inverter_Temp"))
+            {
+
+                cJSON *obj = NULL;
+
+                if(firstTempArray)
+                {
+
+                    firstTempArray = 0;
+                    cJSON_AddItemToObject(inverter, "PVTemp",tempArray = cJSON_CreateArray());
+
+                }
+                
+                memset(buf,0,sizeof(buf));
+                snprintf(buf, 31, "%02d", tempID++);
+                cJSON_AddItemToArray(tempArray, obj = cJSON_CreateObject());
+                cJSON_AddNumberToObject(obj, "Temp", dLog.value.i);
+                cJSON_AddStringToObject(obj, "Temp_Status", "1");
+                cJSON_AddStringToObject(obj, "Temp_ID", buf);
+
+            }
+            else if(strstr(tempInfo[0]->valueName, "Inverter_Error"))
+            {
+
+                cJSON_AddStringToObject(inverter, "Alarm", dLog.value.s);
+
+            }
+
 
         }
 
