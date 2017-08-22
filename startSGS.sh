@@ -4,8 +4,14 @@
 
 SGSPATH=/home/ntust/SIGS/
 
+#The name for distinguishing every GW
+
+GWID=ThisIsMyGw
+
 case "$1" in
    start)
+
+  echo ${GWID}>/run/GW_ID
 
  	echo -n "Starting cpm70 and aemdra agents: \n"
         cd ${SGSPATH}bin/
