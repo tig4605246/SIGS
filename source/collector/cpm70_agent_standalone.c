@@ -295,34 +295,34 @@ int getInfoToJSONAndUpload(char *buf)
                 cJSON_AddStringToObject(field,"ub",raw[i++]);
 
                 cJSON_AddStringToObject(field,"uc",raw[i++]);
-                cJSON_AddStringToObject(field,"u.avg",raw[i++]);
+                cJSON_AddStringToObject(field,"u_avg",raw[i++]);
                 cJSON_AddStringToObject(field,"uab",raw[i++]);
                 cJSON_AddStringToObject(field,"ubc",raw[i++]);
                 cJSON_AddStringToObject(field,"uca",raw[i++]);
 
-                cJSON_AddStringToObject(field,"uln.avg",raw[i++]);
+                cJSON_AddStringToObject(field,"uln_avg",raw[i++]);
                 cJSON_AddStringToObject(field,"ia",raw[i++]);
                 cJSON_AddStringToObject(field,"ib",raw[i++]);
                 cJSON_AddStringToObject(field,"ic",raw[i++]);
-                cJSON_AddStringToObject(field,"i.avg",raw[i++]);
+                cJSON_AddStringToObject(field,"i_avg",raw[i++]);
 
                 cJSON_AddStringToObject(field,"pa",raw[i++]);
                 cJSON_AddStringToObject(field,"pb",raw[i++]);
                 cJSON_AddStringToObject(field,"pc",raw[i++]);
-                cJSON_AddStringToObject(field,"p.sum",raw[i++]);
+                cJSON_AddStringToObject(field,"p_sum",raw[i++]);
                 cJSON_AddStringToObject(field,"sa",raw[i++]);
 
                 cJSON_AddStringToObject(field,"sb",raw[i++]);
                 cJSON_AddStringToObject(field,"sc",raw[i++]);
-                cJSON_AddStringToObject(field,"s.sum",raw[i++]);
+                cJSON_AddStringToObject(field,"s_sum",raw[i++]);
                 cJSON_AddStringToObject(field,"pfa",raw[i++]);
                 cJSON_AddStringToObject(field,"pfb",raw[i++]);
 
                 cJSON_AddStringToObject(field,"pfc",raw[i++]);
-                cJSON_AddStringToObject(field,"pf.avg",raw[i++]);
-                cJSON_AddStringToObject(field,"ae.tot",raw[i++]);
-                cJSON_AddStringToObject(field,"uavg.thd",raw[i++]);
-                cJSON_AddStringToObject(field,"iavg.thd",raw[i++]);
+                cJSON_AddStringToObject(field,"pf_avg",raw[i++]);
+                cJSON_AddStringToObject(field,"ae_tot",raw[i++]);
+                cJSON_AddStringToObject(field,"uavg_thd",raw[i++]);
+                cJSON_AddStringToObject(field,"iavg_thd",raw[i++]);
                 
 
             }
