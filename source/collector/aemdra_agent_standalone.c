@@ -450,7 +450,7 @@ ssize_t process_http( char *content)
 
     //Connect to the target server
 
-	ret = connect(sockfd, (SA *) & servaddr, sizeof(servaddr))
+	ret = connect(sockfd, (SA *) & servaddr, sizeof(servaddr));
 
     if(ret == -1)
     {
