@@ -408,7 +408,8 @@ ssize_t process_http( char *content)
 	if (hptr->h_addrtype == AF_INET && (pptr = hptr->h_addr_list) != NULL) 
     {
 
-		//printf("[%s:%d] address: %s\n",__FUNCTION__,__LINE__,inet_ntop( hptr->h_addrtype , *pptr , str , sizeof(str) ));
+        inet_ntop( hptr->h_addrtype , *pptr , str , sizeof(str) );
+		//printf("[%s:%d] address: %s\n",__FUNCTION__,__LINE__,);
 
 	} 
     else
