@@ -289,7 +289,7 @@ int getInfoToJSONAndUpload(char *buf)
                 cJSON_AddStringToObject(field,"devID",buf);
 
                 cJSON_AddStringToObject(field,"lastReportTime",raw[i++]);
-                cJSON_AddStringToObject(field,"blockid",raw[i++]);
+                cJSON_AddStringToObject(field,"blockId",raw[i++]);
                 cJSON_AddStringToObject(field,"wire",raw[i++]);
                 cJSON_AddStringToObject(field,"freq",raw[i++]);
                 cJSON_AddStringToObject(field,"ua",raw[i++]);
@@ -450,7 +450,7 @@ ssize_t process_http( char *content)
 
     //Connect to the target server
 
-	ret = connect(sockfd, (SA *) & servaddr, sizeof(servaddr));
+	ret = connect(sockfd, (SA *) & servaddr, sizeof(servaddr))
 
     if(ret == -1)
     {
@@ -522,8 +522,8 @@ ssize_t process_http( char *content)
     else
     {
 
-        syslog(LOG_ERR, "\033[1;31m""[%s,%d] %s\n""\033[1;37m",__FUNCTION__,__LINE__, recvline);
-        //printf("\033[1;31m""[%s,%d] %s\n""\033[1;37m",__FUNCTION__,__LINE__, recvline);
+        //syslog(LOG_ERR, "\033[1;31m""[%s,%d] %s\n""\033[1;37m",__FUNCTION__,__LINE__, recvline);
+        printf("\033[1;31m""[%s,%d] %s\n""\033[1;37m",__FUNCTION__,__LINE__, recvline);
         close(sockfd);
         return -1;
 
