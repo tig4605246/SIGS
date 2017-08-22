@@ -155,7 +155,7 @@ int main(int argc, char *argv[])
 
         ret = getInfoToJSONAndUpload(buf);
 
-        printf("function return %d\n",ret);
+        //printf("function return %d\n",ret);
 
         sleep(upload_interval);
 

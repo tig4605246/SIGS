@@ -9,25 +9,26 @@ SGSPATH=/home/ntust/SIGS/
 GWID=ExampleID
 
 case "$1" in
-   start)
 
-  echo ${GWID}>/run/GW_ID
+  start)
 
- 	echo -n "Starting cpm70 and aemdra agents: \n"
-        cd ${SGSPATH}bin/
+    echo ${GWID}>/run/GW_ID
 
-        ./cpm70_agent &
+    echo -n "Starting cpm70 and aemdra agents: \n"
+          cd ${SGSPATH}bin/
 
-        ./aemdra_agent &
+          ./cpm70_agent &
+
+          ./aemdra_agent &
 
  	;;
 
-   stop)
+  stop)
 
- 	echo -n "Stoping cpm70 and aemdra agents: \n"
-        cpm70_PID=`cat ${SGSPATH}bin/pid/cpm70_agent.pid`
-        aemdra_PID=`cat ${SGSPATH}bin/pid/aemdra_agent.pid`
-        kill -15 ${cpm70_PID} ${aemdra_PID}
+    echo -n "Stoping cpm70 and aemdra agents: \n"
+          cpm70_PID=`cat ${SGSPATH}bin/pid/cpm70_agent.pid`
+          aemdra_PID=`cat ${SGSPATH}bin/pid/aemdra_agent.pid`
+          kill -15 ${cpm70_PID} ${aemdra_PID}
          
 
  	;;
