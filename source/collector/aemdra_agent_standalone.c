@@ -286,7 +286,7 @@ int getInfoToJSONAndUpload(char *buf)
             {
 
                 cJSON_AddStringToObject(field,"GWID",gwId);
-                cJSON_AddStringToObject(field,"ID",buf);
+                cJSON_AddStringToObject(field,"devID",buf);
 
                 cJSON_AddStringToObject(field,"lastReportTime",raw[i++]);
                 cJSON_AddStringToObject(field,"blockid",raw[i++]);
@@ -401,14 +401,14 @@ ssize_t process_http( char *content)
 
 	}
 
-	//syslog(LOG_ERR, "[%s:%d] hostname: %s\n",__FUNCTION__,__LINE__, hptr->h_name);
+	printf("[%s:%d] hostname: %s\n",__FUNCTION__,__LINE__, hptr->h_name);
 
     //Set up address type (FAMILY)
 
 	if (hptr->h_addrtype == AF_INET && (pptr = hptr->h_addr_list) != NULL) 
     {
 
-		//syslog(LOG_ERR, "[%s:%d] address: %s\n",__FUNCTION__,__LINE__,inet_ntop( hptr->h_addrtype , *pptr , str , sizeof(str) ));
+		printf("[%s:%d] address: %s\n",__FUNCTION__,__LINE__,inet_ntop( hptr->h_addrtype , *pptr , str , sizeof(str) ));
 
 	} 
     else
@@ -434,7 +434,7 @@ ssize_t process_http( char *content)
     else
     {
 
-        //printf("[%s,%d]socket() done\n",__FUNCTION__,__LINE__);
+        printf("[%s,%d]socket() done\n",__FUNCTION__,__LINE__);
 
     }
 

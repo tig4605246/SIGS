@@ -286,7 +286,7 @@ int getInfoToJSONAndUpload(char *buf)
             {
 
                 cJSON_AddStringToObject(field,"GWID",gwId);
-                cJSON_AddStringToObject(field,"ID",buf);
+                cJSON_AddStringToObject(field,"devID",buf);
 
                 cJSON_AddStringToObject(field,"lastReportTime",raw[i++]);
                 cJSON_AddStringToObject(field,"wire",raw[i++]);
