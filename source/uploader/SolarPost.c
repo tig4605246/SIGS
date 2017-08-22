@@ -129,6 +129,14 @@ int main(int argc, char *argv[])
     .sa_flags = SA_NOCLDWAIT
     };
 
+    /*************** Debug Variables Start ***********************/
+    
+    
+
+
+    /*************** Debug Variables End   ***********************/
+
+
     //This sigaction prevents zombie children while forking PUT agent
 
     sigaction(SIGCHLD, &sigchld_action, NULL);
@@ -162,6 +170,8 @@ int main(int argc, char *argv[])
         printf("Open Upload Agent queue failed...\n");
         exit(0);
     }
+
+#if 0  //Dealing with real data
 
     //Attach buffer pool
 
@@ -245,6 +255,13 @@ int main(int argc, char *argv[])
         ret = CheckAndRespondQueueMessage();
 
     }
+
+#else //Debug build, providing test functions for message and revising configs
+
+
+
+
+#endif
 
 }
 

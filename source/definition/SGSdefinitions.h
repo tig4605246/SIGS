@@ -44,7 +44,7 @@ typedef time_t epochTime;
 
 #define INITIAL_VALUE   0x00000000
 #define INTEGER_VALUE   0x00000010
-#define LONGLONG_VALUE      0x00001011
+#define LONGLONG_VALUE  0x00001011
 #define FLOAT_VALUE     0x00000011
 #define STRING_VALUE    0x00000100
 #define ERROR_VALUE     0x00001000
@@ -84,7 +84,7 @@ typedef time_t epochTime;
 
 //Codename 
 
-enum {EnumEventHandler = 1, EnumDataBuffer, EnumCollector, EnumUploader, EnumLogger};
+enum {EnumEventHandler = 1, EnumDataBuffer, EnumCollector, EnumUploader, EnumLogger, EnumUploadAgent, EnumCollectAgent};
 
 //Data Splitter
 

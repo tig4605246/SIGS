@@ -111,6 +111,8 @@ typedef struct postNode
 
 pNode postConfig;
 
+char serverIp[64] = {0};
+
 int main(int argc, char* argv[])
 {
     sqlite3 *db;
@@ -118,6 +120,15 @@ int main(int argc, char* argv[])
     int rc;
     char sql[256], *unformatted = NULL;
     
+    if(argc < 3)
+    {
+
+        printf(LIGHT_RED"SolarPut [Start Date] [End Date] [target server ip]\n"NONE);
+        exit(0);
+
+    }
+
+    snprintf(serverIp, sizeof(serverIp) - 1, "%s", argv[3]);
 
     /* Open database */
     rc = sqlite3_open("./log/SGSdb.db", &db);
@@ -779,7 +790,12 @@ static int callback(void *data, int argc, char **argv, char **azColName)
 
     jsonRoot = outerObj;
 
-    printf(LIGHT_RED"Callback function end\n"NONE);
+    printf(LIGHT_RED"Callback function ends. We should call process_http here.\n"NONE);
+
+    //unformatted = cJSON_Print(jsonRoot);
+    //ret = process_http(unformatted, serverIp);
+    //free(unformatted);
+
     return 0;
 
 }
