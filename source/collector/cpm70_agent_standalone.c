@@ -8,7 +8,7 @@
 
 
 */
-
+#define _GNU_SOURCE
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -100,11 +100,15 @@ char *hname = "140.118.70.136";
 
 //Which port server is using
 
-#define SERVERPORT 9000
+#define SERVERPORT 9110
 
 //the RESTAPI 
 
-char *page = "/smartTest";
+char *page = "/cpm70/rawdata/post/";
+
+//the gw id
+
+char gwId[64] = {0};
 
 
 int main(int argc, char *argv[])
@@ -113,6 +117,7 @@ int main(int argc, char *argv[])
     int ret = 0;
     struct sigaction act, oldact;
     char buf[BUFLEN];
+    FILE *fp = NULL;
     
 
     //Recording program's pid
@@ -132,6 +137,18 @@ int main(int argc, char *argv[])
     act.sa_handler = (__sighandler_t)stopAndLeave;
     act.sa_flags = SA_ONESHOT|SA_NOMASK;
     sigaction(SIGUSR1, &act, &oldact);
+
+    fp = fopen("/run/GW_ID","r");
+
+    if(fp != NULL)
+    {
+        fscanf(fp,"%s",gwId);
+        fclose(fp);
+    }
+    else
+    {
+        snprintf(gwId, sizeof(gwId) - 1, "There's no gw id at /run/GW_ID");
+    }
 
     while(1)
     {
@@ -268,6 +285,7 @@ int getInfoToJSONAndUpload(char *buf)
             if(1)
             {
 
+                cJSON_AddStringToObject(field,"GWID",gwId);
                 cJSON_AddStringToObject(field,"ID",buf);
 
                 cJSON_AddStringToObject(field,"lastReportTime",raw[i++]);
@@ -379,8 +397,8 @@ ssize_t process_http( char *content)
 	if (hptr->h_addrtype == AF_INET && (pptr = hptr->h_addr_list) != NULL) 
     {
 
-        affress = inet_ntop( hptr->h_addrtype , *pptr , str , sizeof(str) );
-		printf( "[%s:%d] address: %s\n",__FUNCTION__,__LINE__);
+        //address = inet_ntop( hptr->h_addrtype , *pptr , str , sizeof(str) );
+		printf( "[%s:%d] address: \n",__FUNCTION__,__LINE__);
         
 
 	} 
@@ -447,7 +465,7 @@ ssize_t process_http( char *content)
 		 "Host: %s\r\n"
 		 "Content-type: application/json; charset=UTF-8\r\n"
          "User-Agent: Kelier/0.1\r\n"
-		 "Content-Length: %u\r\n\r\n"
+		 "Content-Length: %lu\r\n\r\n"
 		 "%s", page, hname, strlen(content), content);
 
     //print out the content
