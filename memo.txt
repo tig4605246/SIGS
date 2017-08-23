@@ -42,7 +42,7 @@ B. Solar Project
 
 Notes:
 
-    test/sendmail.c will work, but some libraries are needed (libcurl and libssh2).
+    test/sendmail.c will work, but some libraries are needed (libcurl and libssh2, libssl-dev).
 
     Since printf is not reentrant function, using printf in sigaction callback function is not safe.
 
@@ -59,6 +59,37 @@ Notes:
     sqlitebrowser needs libqt4-dev package
 
     timer will +4 on its own. If there are some timing issues, check them first.
+
+    * All codes (Current Status)
+  * Core:
+    * SGSmaster         [done]
+    * UploaderMaster    [done]
+    * DataBufferMaster  [done]
+    * CollectorMaster   [done]
+    * EventHandler      [done]
+    * MailingAgent      [done]
+    * Logger            [done]
+  * Agents:
+    * SolarPost         [done]
+    * SolarPut          [undone]
+    * GWInfo            [done]
+    * SolarCollect      [undone]
+
+* Future Plan:
+  * Stability :
+    * Run tests with all funtions
+    * Test all situations
+  * Flexibility :
+    * New Protocols
+    * New Functions
+  * Compatibility :
+    * Cross Platforms
+  * Maintainence
+    * Version update
+    * More Error-Handling mechanism
+    * Source Code Readibility
+  * Release:
+    * SDK for custimized programs
 
     Final list:
 

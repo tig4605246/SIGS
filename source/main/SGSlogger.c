@@ -488,77 +488,88 @@ int CreateTable()
     char sensorName[DATAVALUEMAX];
     char *table = NULL;
     char *zErrMsg = NULL;
-    int i = 0, ret = -1;
+    int i = 0, j = 0, ret = -1;
     dataInfo *temp;
 
-    //Construct the sql command buffer
+    i = 0;// Init i
 
-    table = (char *)malloc(sizeof(char ) * DATAVALUEMAX * (dataSize));
-
-    //Clear the char array
-
-    memset(table,'\0',sizeof(table));
-    memset(buf,'\0',sizeof(buf));
-
-    //Start to fill the command for creating table
-
-    snprintf(buf,DATAVALUEMAX,"CREATE TABLE SOLAR(");
-
-    strcat(table,buf);
-
-    snprintf(buf,DATAVALUEMAX,"Timestamp NUMERIC         NOT NULL,");
-
-    strcat(table,buf);
-
-    snprintf(buf,DATAVALUEMAX,"sensorName    CHAR(%d)    NOT NULL,",DATAVALUEMAX);
-
-    strcat(table,buf);
-
-    i = 0;
-
-    while(i < MAXBUFFERINFOBLOCK)
+    while(dInfo[i] != NULL) //Loop will be ternaminated when dInfo[i] is NULL
     {
 
-        temp = dInfo[i];
+        //Construct the sql command buffer
 
-        if(temp == NULL) break;
-
-        while(temp != NULL)
+        table = (char *)malloc(sizeof(char ) * DATAVALUEMAX * (dataSize));
+    
+        //Clear the char array
+    
+        memset(table,'\0',sizeof(table));
+        memset(buf,'\0',sizeof(buf));
+    
+        //Start to fill the command for creating table
+    
+        snprintf(buf,DATAVALUEMAX,"CREATE TABLE %s(", bufferInfo[i].dataName);
+    
+        strcat(table,buf);
+    
+        snprintf(buf,DATAVALUEMAX,"Timestamp NUMERIC         NOT NULL,");
+    
+        strcat(table,buf);
+    
+        snprintf(buf,DATAVALUEMAX,"sensorName    CHAR(%d)    NOT NULL,",DATAVALUEMAX);
+    
+        strcat(table,buf);
+    
+        
+    
+        while(j < MAXBUFFERINFOBLOCK)
         {
-
-            snprintf(buf,DATAVALUEMAX,"`[%s]%s`    CHAR(%d)    NOT NULL,", temp->sensorName, temp->valueName,DATAVALUEMAX);
-            strcat(table,buf);
-            temp = temp->next;
-
+    
+            temp = dInfo[j];
+    
+            if(temp == NULL) break;
+    
+            while(temp != NULL)
+            {
+    
+                snprintf(buf,DATAVALUEMAX,"`[%s]%s`    CHAR(%d)    NOT NULL,", temp->sensorName, temp->valueName,DATAVALUEMAX);
+                strcat(table,buf);
+                temp = temp->next;
+    
+            }
+           
+            j++;
+    
         }
-       
+    
+        snprintf(buf,DATAVALUEMAX,"PRIMARY KEY (Timestamp, sensorName));");
+    
+        strcat(table,buf);
+    
+        printf("table is : \n%s\n\n",table);
+    
+        ret = sqlite3_exec(db, table, NULL, 0, &zErrMsg);
+        if( ret != SQLITE_OK )
+        {
+    
+            fprintf(stderr, "SQL error: %s\n", zErrMsg);
+            snprintf(buf,sizeof(buf),"%s;%s, Logger creates table failed",ERROR, zErrMsg);
+            sgsSendQueueMsg(eventHandlerId, buf, EnumLogger);
+            sqlite3_free(zErrMsg);
+    
+        }else
+        {
+    
+            fprintf(stdout, "Table created successfully\n");
+    
+        }
+    
+        free(table);
+
+
         i++;
-
     }
 
-    snprintf(buf,DATAVALUEMAX,"PRIMARY KEY (Timestamp, sensorName));");
-
-    strcat(table,buf);
-
-    printf("table is : \n%s\n\n",table);
-
-    ret = sqlite3_exec(db, table, NULL, 0, &zErrMsg);
-    if( ret != SQLITE_OK )
-    {
-
-        fprintf(stderr, "SQL error: %s\n", zErrMsg);
-        snprintf(buf,sizeof(buf),"%s;%s, Logger creates table failed",ERROR, zErrMsg);
-        sgsSendQueueMsg(eventHandlerId, buf, EnumLogger);
-        sqlite3_free(zErrMsg);
-
-    }else
-    {
-
-        fprintf(stdout, "Table created successfully\n");
-
-    }
-
-    free(table);
+    
     return 0;
 
 }
@@ -571,188 +582,160 @@ int SaveLog()
     char insertBuf[DATAVALUEMAX];
     char *table = NULL;
     char *zErrMsg = NULL;
-    int i = 0, ret = -1;
+    int i = 0, j = 0, ret = -1;
     dataInfo *temp;
     dataLog dLog;
 
-    //Prepare the INSERT datatable
+    i = 0;
+
+    while(dInfo[i] != NULL)
+    {
+
+        //Prepare the INSERT datatable
     
-    table = malloc(sizeof(char ) * DATAVALUEMAX * dataSize);
-    memset(table, 0, sizeof(sizeof(char ) * DATAVALUEMAX * dataSize));
+        table = malloc(sizeof(char ) * DATAVALUEMAX * dataSize);
+        memset(table, 0, sizeof(sizeof(char ) * DATAVALUEMAX * dataSize));
 
-    memset(buf,0,sizeof(buf));
+        memset(buf,0,sizeof(buf));
 
-    memset(insertBuf,0,sizeof(insertBuf));
+        memset(insertBuf,0,sizeof(insertBuf));
 
-    snprintf(buf,256,"INSERT INTO SOLAR (");
-    strcat(insertBuf,buf);
+        snprintf(buf,256,"INSERT INTO %s (", bufferInfo[i].dataName);
+        strcat(insertBuf,buf);
 
-    memset(buf,0,sizeof(buf));
+        memset(buf,0,sizeof(buf));
 
-    snprintf(buf,256,"Timestamp,");
+        snprintf(buf,256,"Timestamp,");
 
-    strcat(insertBuf,buf);
+        strcat(insertBuf,buf);
 
-    memset(buf,0,sizeof(buf));
+        memset(buf,0,sizeof(buf));
 
-    snprintf(buf,256,"sensorName,");
+        snprintf(buf,256,"sensorName,");
 
-    strcat(insertBuf,buf);
+        strcat(insertBuf,buf);
 
-    i = 0;
+        temp = dInfo[i];
 
-    while(i < MAXBUFFERINFOBLOCK)
-    {
-
-        //Create table header
-
-        if(dInfo[i] != NULL)
+        while(temp != NULL)
         {
 
-            temp = dInfo[i];
+            //Create table header
 
-            while(temp != NULL)
-            {
+            memset(buf,0,sizeof(buf));
+            snprintf(buf,256,"`[%s]%s`,", temp->sensorName, temp->valueName);
+            strcat(insertBuf,buf);
+            temp = temp->next;
 
-                memset(buf,0,sizeof(buf));
-                snprintf(buf,256,"`[%s]%s`,", temp->sensorName, temp->valueName);
-                strcat(insertBuf,buf);
-                temp = temp->next;
 
-            }
 
         }
-        else
-        {
-            break;
-        }
 
-        i++;
+        if(strlen(insertBuf) > 0) insertBuf[strlen(insertBuf) - 1] = 0;
 
-    }
+        //Finished the INSERT table shape
 
-    if(strlen(insertBuf) > 0) insertBuf[strlen(insertBuf) - 1] = 0;
+        memset(buf,0,sizeof(buf));
 
-    //Finished the INSERT table shape
+        snprintf(buf,256,")");
 
-    memset(buf,0,sizeof(buf));
+        strcat(insertBuf,buf);
 
-    snprintf(buf,256,")");
+        //Traverse through every data buffer and collect the data
 
-    strcat(insertBuf,buf);
+        //Get record time
 
-    //Traverse through every data buffer and collect the data
+        memset(buf,0,sizeof(buf));
 
-    //Get record time
+        snprintf(buf,256,"VALUES (strftime('%%s','now','localtime'),");
 
-    memset(buf,0,sizeof(buf));
+        strcat(insertBuf,buf);
 
-    snprintf(buf,256,"VALUES (strftime('%%s','now','localtime'),");
+        //Get sensorName
 
-    strcat(insertBuf,buf);
+        memset(buf,0,sizeof(buf));
 
-    //Get sensorName
+        snprintf(buf,256," '%s',",bufferInfo[i].dataName);
 
-    memset(buf,0,sizeof(buf));
+        strcat(insertBuf,buf);
 
-    snprintf(buf,256," 'Solar',");
+        strcat(table, insertBuf);
 
-    strcat(insertBuf,buf);
+        temp = dInfo[i];
 
-    strcat(table, insertBuf);
-
-    i = 0;
-
-    while(i < MAXBUFFERINFOBLOCK)
-    {
-
-        //Check Availability
-
-        if(dInfo[i] != NULL)
+        while(temp != NULL)
         {
 
-            temp = dInfo[i];
-            while(temp != NULL)
+            sgsReadSharedMemory(temp, &dLog);
+            memset(buf,0,sizeof(buf));
+            switch(dLog.valueType)
             {
 
-                sgsReadSharedMemory(temp, &dLog);
-                memset(buf,0,sizeof(buf));
-                switch(dLog.valueType)
-                {
+                case INTEGER_VALUE:
+                    snprintf(buf,256," '%d',",dLog.value.i);
+                    strcat(table,buf);
+                break;
 
-                    case INTEGER_VALUE:
-                        snprintf(buf,256," '%d',",dLog.value.i);
-                        strcat(table,buf);
-                    break;
+                case LONGLONG_VALUE:
+                    snprintf(buf,256," '%lld',",dLog.value.ll);
+                    strcat(table,buf);
+                break;
 
-                    case LONGLONG_VALUE:
-                        snprintf(buf,256," '%lld',",dLog.value.ll);
-                        strcat(table,buf);
-                    break;
-
-                    case STRING_VALUE:
-                        snprintf(buf,256," '%s',",dLog.value.s);
-                        strcat(table,buf);
-                    break;
-                    
-                    case FLOAT_VALUE:
-                        snprintf(buf,256," '%f',",dLog.value.f);
-                        strcat(table,buf);
-                    break;
-
-                    default:
-                        snprintf(buf,256,"%s;Logger [%s,%d] UNKNOWN VALUE Occured in %s, valueType %d", ERROR, __FUNCTION__, __LINE__, temp->sensorName, dLog.valueType);
-                        sgsSendQueueMsg(eventHandlerId,buf,EnumLogger);
-                        free(table);
-                        return -1;
-                    break;
-
-                }
+                case STRING_VALUE:
+                    snprintf(buf,256," '%s',",dLog.value.s);
+                    strcat(table,buf);
+                break;
                 
-                temp = temp->next;
+                case FLOAT_VALUE:
+                    snprintf(buf,256," '%f',",dLog.value.f);
+                    strcat(table,buf);
+                break;
+
+                default:
+                    snprintf(buf,256,"%s;Logger [%s,%d] UNKNOWN VALUE Occured in %s, valueType %d", ERROR, __FUNCTION__, __LINE__, temp->sensorName, dLog.valueType);
+                    sgsSendQueueMsg(eventHandlerId,buf,EnumLogger);
+                    free(table);
+                    return -1;
+                break;
 
             }
+            
+            temp = temp->next;
 
         }
-        else
+
+        //Complete the command with );
+
+        memset(buf, 0, sizeof(buf));
+        snprintf(buf, 256, ");");
+        if(strlen(table) > 0) table[strlen(table) - 1] = 0;
+        strcat(table, buf);
+
+        printf("New data, table is:\n%s\n", table);
+
+        ret = sqlite3_exec(db, table, NULL, 0, &zErrMsg);
+        if( ret != SQLITE_OK )
         {
 
-            snprintf(buf,256,"%s;Logger [%s,%d] dInfo %d is empty", ERROR, __FUNCTION__, __LINE__, i);
-            break;
-            
+            fprintf(stderr, "SQL error: %s\n", zErrMsg);
+            snprintf(buf,256,"%s;Logger [%s,%d] SQL error: %s", ERROR, __FUNCTION__, __LINE__, zErrMsg);
+            sgsSendQueueMsg(eventHandlerId, buf, EnumLogger);
+            sqlite3_free(zErrMsg);
+
+        }else
+        {
+
+            fprintf(stdout, "New record successfully\n");
+
         }
+
+        free(table);
+
+        DeleteLog(db, bufferInfo[i].dataName,  databaseConfig.logDays);
+
         i++;
-
     }
-
-    //Complete the command with );
-
-    memset(buf, 0, sizeof(buf));
-    snprintf(buf, 256, ");");
-    if(strlen(table) > 0) table[strlen(table) - 1] = 0;
-    strcat(table, buf);
-
-    printf("New data, table is:\n%s\n", table);
-
-    ret = sqlite3_exec(db, table, NULL, 0, &zErrMsg);
-    if( ret != SQLITE_OK )
-    {
-
-        fprintf(stderr, "SQL error: %s\n", zErrMsg);
-        snprintf(buf,256,"%s;Logger [%s,%d] SQL error: %s", ERROR, __FUNCTION__, __LINE__, zErrMsg);
-        sgsSendQueueMsg(eventHandlerId, buf, EnumLogger);
-        sqlite3_free(zErrMsg);
-
-    }else
-    {
-
-        fprintf(stdout, "New record successfully\n");
-
-    }
-
-    free(table);
-
-    DeleteLog(db, "SOLAR", databaseConfig.logDays);
+    
 
     return 0;
 

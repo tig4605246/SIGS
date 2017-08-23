@@ -21,7 +21,7 @@
 //Build version of the SIGS
 
 #define PROJECTSTATUS  "Solar Alpha Build"
-#define PROJECTVERSION "0.7"
+#define PROJECTVERSION "1.0"
 
 //defines the log system type
 
