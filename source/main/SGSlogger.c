@@ -682,7 +682,7 @@ int SaveLog()
                 break;
 
                 case STRING_VALUE:
-                    snprintf(buf,256," '%s',",dLog.value.s);
+                    snprintf(buf,DATAVALUEMAX - 1," '%s',",dLog.value.s);
                     strcat(table,buf);
                 break;
                 
@@ -711,7 +711,7 @@ int SaveLog()
         if(strlen(table) > 0) table[strlen(table) - 1] = 0;
         strcat(table, buf);
 
-        printf("New data, table is:\n%s\n", table);
+        //printf("New data, table is:\n%s\n", table);
 
         ret = sqlite3_exec(db, table, NULL, 0, &zErrMsg);
         if( ret != SQLITE_OK )
@@ -725,7 +725,7 @@ int SaveLog()
         }else
         {
 
-            fprintf(stdout, "New record successfully\n");
+            //fprintf(stdout, "New record successfully\n");
 
         }
 
@@ -770,14 +770,27 @@ int CheckAndRespondQueueMessage()
             to = strtok(NULL, SPLITTER);
             from = strtok(NULL, SPLITTER);
             newDays = strtok(NULL, SPLITTER);
-            newDatatableName = strtok(NULL, SPLITTER);
+            
 
-            ret = SetSetting(newDays, newDatatableName);
-
-            if(ret != 0)
+            if(!strcmp(newDays, "SaveLogNow"))
             {
 
-                printf("SetSetting failed. Logger will use the last setting.\n");
+                SaveLog();
+
+            }
+            else
+            {
+
+                ret = SetSetting(newDays, newDatatableName);
+                
+                newDatatableName = strtok(NULL, SPLITTER);
+    
+                if(ret != 0)
+                {
+    
+                    printf("SetSetting failed. Logger will use the last setting.\n");
+    
+                }
 
             }
 

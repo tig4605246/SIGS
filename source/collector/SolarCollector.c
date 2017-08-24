@@ -182,7 +182,7 @@ int main(int argc, char *argv[])
 #endif
 
             //printf("show data\n");
-            sgsShowDataInfo(dInfo);
+            //sgsShowDataInfo(dInfo);
 
             time(&last);
             now = last;
@@ -754,6 +754,7 @@ int SimulateAndUpdateInfoTable()
                         {
 
                             snprintf(buf, 4, "%c%02d", codeName, (bitPos + shift));
+                            //printf("j = %d error got %s\n", j, buf);
                             strcat(dLog.value.s,buf);
 
                         }

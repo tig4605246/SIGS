@@ -801,18 +801,18 @@ int sgsReadSharedMemory(dataInfo *dataInfoPtr, dataLog *dest)
                     break;
 
                 case STRING_VALUE :
-                    strncpy(dest->value.s, shmPtr->value.s, 128);
-                    dest->value.s[127] = '\0';
+                    strncpy(dest->value.s, shmPtr->value.s, DATAVALUEMAX);
+                    dest->value.s[DATAVALUEMAX - 1] = '\0';
                     break;
 
                 case ERROR_VALUE :
-                    strncpy(dest->value.s, shmPtr->value.s, 128);
-                    dest->value.s[127] = '\0';
+                    strncpy(dest->value.s, shmPtr->value.s, DATAVALUEMAX);
+                    dest->value.s[DATAVALUEMAX - 1] = '\0';
                     break;
 
                 default:
-                    strncpy(dest->value.s,shmPtr->value.s,128);
-                    dest->value.s[127] = '\0';
+                    strncpy(dest->value.s,shmPtr->value.s,DATAVALUEMAX);
+                    dest->value.s[DATAVALUEMAX - 1] = '\0';
                     printf("Unknown valueType %d\n",shmPtr->valueType);
                     break;
 
@@ -899,18 +899,18 @@ int sgsWriteSharedMemory(dataInfo *dataInfoPtr, dataLog *source)
                     break;
 
                 case STRING_VALUE :
-                    strncpy(shmPtr->value.s, source->value.s, 128);
-                    shmPtr->value.s[127] = '\0';
+                    strncpy(shmPtr->value.s, source->value.s, DATAVALUEMAX);
+                    shmPtr->value.s[DATAVALUEMAX - 1] = '\0';
                     break;
 
                 case ERROR_VALUE :
-                    strncpy(shmPtr->value.s, source->value.s, 128);
-                    shmPtr->value.s[127] = '\0';
+                    strncpy(shmPtr->value.s, source->value.s, DATAVALUEMAX);
+                    shmPtr->value.s[DATAVALUEMAX - 1] = '\0';
                     break;
 
                 default:
-                    strncpy(shmPtr->value.s, source->value.s, 128);
-                    shmPtr->value.s[127] = '\0';
+                    strncpy(shmPtr->value.s, source->value.s, DATAVALUEMAX);
+                    shmPtr->value.s[DATAVALUEMAX - 1] = '\0';
                     printf("Unknown valueType %d\n",source->valueType);
                     break;
 
@@ -1282,6 +1282,7 @@ int sgsGetDataInfoFromBufferPool(char *dataName, DataBufferInfo *dest)
             }
 
         }
+        usleep(10000);
         i++;
 
     }

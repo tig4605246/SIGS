@@ -188,7 +188,7 @@ int main(int argc, char *argv[])
                 if(!strcmp(temp->valueName, "CPU_Usage"))
                 {
 
-                    printf("Getting CPU\n");
+                    //printf("Getting CPU\n");
                     ret = CollectCpuUsage(temp);
 
                     if(ret != 0)
@@ -205,7 +205,7 @@ int main(int argc, char *argv[])
                 else if(!strcmp(temp->valueName, "Memory_Usage")  )
                 {
 
-                    printf("Getting MEM\n");
+                    //printf("Getting MEM\n");
                     
                     ret = CollectMemoryUsage(temp);
 
@@ -223,7 +223,7 @@ int main(int argc, char *argv[])
                 else if(!strcmp(temp->valueName, "Storage_Usage"))
                 {
 
-                    printf("Getting HDD\n");
+                    //printf("Getting HDD\n");
                     ret = CollectDiskUsage(temp);
 
                     if(ret != 0)
@@ -281,7 +281,7 @@ int CollectCpuUsage(dataInfo *target)
     jiffy_counts_t p_jif, c_jif;
     static const char fmt[] = "cpu %llu %llu %llu %llu %llu %llu %llu %llu";    
 
-    printf("[%s:%d] Function started\n",__FUNCTION__, __LINE__);
+    //printf("[%s:%d] Function started\n",__FUNCTION__, __LINE__);
 
     //Try to get CPU usage by reading cpu status in twice with small delay
     //Try to open up the cpu file
@@ -391,7 +391,7 @@ int CollectMemoryUsage(dataInfo *target)
     
 	struct timeb tp;
 
-    printf("[%s:%d] Function started\n",__FUNCTION__, __LINE__);
+    //printf("[%s:%d] Function started\n",__FUNCTION__, __LINE__);
 
 
     //Try to read memory file
@@ -482,7 +482,7 @@ int CollectNetworkFlow(dataInfo *target)
 
     //Shows function has been called
 
-    printf("[%s:%d] Function started\n",__FUNCTION__, __LINE__);
+    //printf("[%s:%d] Function started\n",__FUNCTION__, __LINE__);
 
     //Try to open the network interfaces file
 
@@ -593,7 +593,7 @@ int CheckAndRespondQueueMessage()
         to  = strtok(NULL, SPLITTER);
         from = strtok(NULL, SPLITTER);
         storagePath = strtok(NULL, SPLITTER);
-        networkInterface = strtok(NULL, SPLITTER);    
+        networkInterface = strtok(NULL, SPLITTER);   
 
     }
     

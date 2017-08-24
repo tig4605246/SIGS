@@ -206,7 +206,7 @@ int main(int argc, char *argv[])
         ShutdownSystemByInput();
 
     }
-    //ret = InitChild(&(cpInfo[3]), UPLOADER_SUBMASTER_PATH, UPLOADER_SUBMASTER_KEY, "UploaderSubmaster", EnumUploader);
+    ret = InitChild(&(cpInfo[3]), UPLOADER_SUBMASTER_PATH, UPLOADER_SUBMASTER_KEY, "UploaderSubmaster", EnumUploader);
     if(ret == -1)
     {
 
