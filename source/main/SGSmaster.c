@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
 {
 
     int i, ret = 0;                             //  functional variables                   
-    char input[128];                            //  input buffer for manual mode
+    char input[2048];                            //  input buffer for manual mode
     char buf[MSGBUFFSIZE];                      //  buffer used to catch queue message
     char *msgType = NULL, *msgContent = NULL;   //  for process messages
     struct sigaction act, oldact;               //  for sigaction
@@ -277,38 +277,40 @@ int main(int argc, char *argv[])
         {
             
             memset(buf,'\0',sizeof(buf));
-            ret = sgsRecvQueueMsg(sgsMasterId,buf,1);
+            ret = sgsRecvQueueMsg(sgsMasterId,buf,0);
 
             if(ret != -1)
             {
 
+                printf("Master message relay: %s\n", buf);
                 switch(ret)
                 {
 
                     case EnumEventHandler:
-                    sgsSendQueueMsg(cpInfo[0].msgId, input, EnumEventHandler);
+                    sgsSendQueueMsg(cpInfo[0].msgId, buf, EnumEventHandler);
                     break;
 
                     case EnumDataBuffer:
-                    sgsSendQueueMsg(cpInfo[1].msgId, input, EnumDataBuffer);
+                    sgsSendQueueMsg(cpInfo[1].msgId, buf, EnumDataBuffer);
                     break;
 
                     case EnumCollector:
-                    sgsSendQueueMsg(cpInfo[2].msgId, input, EnumCollector);
+                    sgsSendQueueMsg(cpInfo[2].msgId, buf, EnumCollector);
                     break;
 
                     case EnumUploader:
-                    sgsSendQueueMsg(cpInfo[3].msgId, input, EnumUploader);
+                    sgsSendQueueMsg(cpInfo[3].msgId, buf, EnumUploader);
                     break;
 
                     case EnumLogger:
-                    sgsSendQueueMsg(cpInfo[4].msgId, input, EnumLogger);
+                    printf("Master Sending msg to logger\n");
+                    sgsSendQueueMsg(cpInfo[4].msgId, buf, EnumLogger);
                     break;
 
                     default:
                     printf(LIGHT_RED"Unknown msgtype %d\ncontent:%s\n"NONE,ret,buf);
                     memset(input,'\0',sizeof(input));
-                    snprintf(input,127,"Master got an unknown type message");
+                    snprintf(input,2047,"Master got an unknown type message :%s",buf);
                     sgsSendQueueMsg(mailAgentMsgId, input, 10);
                     break;
 

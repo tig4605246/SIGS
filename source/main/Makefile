@@ -35,7 +35,7 @@ CC=gcc
 
 all:
 
-	#$(CC) -o ../../bin/$(PROG1) $(PROG1).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c -pthread -lm -lcurl #`pkg-config --cflags --libs libmodbus`
+	$(CC) -o ../../bin/$(PROG1) $(PROG1).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c -pthread -lm -lcurl #`pkg-config --cflags --libs libmodbus`
 
 	#$(CC) -o ../../bin/$(PROG2) $(PROG2).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c -pthread -lm -lcurl
 

@@ -169,12 +169,7 @@ int main(int argc, char *argv[])
 
 #ifndef DEBUG  //Dealing with real data
 
-    eventHandlerId = sgsCreateMsgQueue(EVENT_HANDLER_KEY, 0);
-    if(eventHandlerId == -1)
-    {
-        printf("Open eventHandler queue failed...\n");
-        exit(0);
-    }
+    
 
     msgId = sgsCreateMsgQueue(UPLOAD_AGENT_KEY, 0);
     if(msgId == -1)
@@ -251,6 +246,13 @@ int main(int argc, char *argv[])
 
 #else //Debug build, providing test functions for message and revising configs
 
+    eventHandlerId = sgsCreateMsgQueue(EVENT_HANDLER_KEY, 0);
+    if(eventHandlerId == -1)
+    {
+        printf("Open eventHandler queue failed...\n");
+        exit(0);
+    }
+
     //Attach buffer pool
 
     ret = sgsInitBufferPool(0);
@@ -296,7 +298,8 @@ int main(int argc, char *argv[])
 
             //Update data
 
-            ret = PostToServer();
+            //ret = PostToServer();
+            sgsSendQueueMsg(eventHandlerId, "[Control];SGSlogger;SolarCollector;SaveLogNow", EnumLogger);
 
         }
 
