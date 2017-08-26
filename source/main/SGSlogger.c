@@ -294,7 +294,7 @@ int main(int argc, char *argv[])
     while(1) 
     {
 
-        usleep(100000);
+        usleep(10000);
         time(&now);
 
         //check time interval
