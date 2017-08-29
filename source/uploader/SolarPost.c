@@ -29,7 +29,7 @@
 
 */
 
-
+#define _GNU_SOURCE /* for tm_gmtoff and tm_zone */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -313,6 +313,25 @@ int main(int argc, char *argv[])
     time(&last);
     now = last;
 
+    printf("Old now %ld\n", now);
+
+    struct tm *timeStruct;
+
+    timeStruct = localtime(&now);
+
+    now = mktime(timeStruct);
+
+    printf("now %ld\n", now);
+
+    time_t t = time(NULL);
+    struct tm lt = {0};
+
+    localtime_r(&t, &lt);
+    
+    printf("Offset to GMT is %lds.\n", lt.tm_gmtoff);
+    printf("The time zone is '%s'.\n", lt.tm_zone);
+
+
     //main loop
 
     if(1) 
@@ -324,7 +343,7 @@ int main(int argc, char *argv[])
         {
 
             //Update data
-
+#if 0
             ret = PostToServer();
 
             if(ret == -3)
@@ -333,6 +352,14 @@ int main(int argc, char *argv[])
             }
 
             //sgsSendQueueMsg(eventHandlerId, "[Control];SGSlogger;SolarCollector;SaveLogNow", EnumLogger);
+#else
+            
+            fp = fopen("./simPostSetting", "r");
+            char buf[1024] = {0};
+            fgets(buf, 1023, fp);
+            printf("buf is \n%s\n",buf);
+            SetConfig(buf, "203.73.24.133:9000/PV_rawdata");
+#endif
 
         }
 
@@ -514,7 +541,7 @@ int SetConfig(char *result, char *address)
 
     temp = cJSON_GetObjectItem(root, "Upload_data");
 
-    if(temp != NULL && !strcmp(temp->valuestring, "False"))
+    if(temp != NULL && temp->type == 1)
     {
 
 
@@ -524,7 +551,7 @@ int SetConfig(char *result, char *address)
 
     flag = cJSON_GetObjectItem(root, "Config_flag");
 
-    if(flag != NULL && !strcmp(flag->valuestring, "True"))
+    if(flag != NULL && temp->type == 2)
     {
 
         fp = fopen("./conf/Upload/SolarPost_tmp", "w");
@@ -542,6 +569,7 @@ int SetConfig(char *result, char *address)
             for(i = 1 ; i <= 17 ; i++)
             {
 
+                printf("Loop i = %d\n", i);
                 switch(i)
                 {
 
@@ -577,7 +605,7 @@ int SetConfig(char *result, char *address)
 
                     case 7:
                     memset(buf,0,sizeof(buf));
-                    snprintf(buf, sizeof(buf) -1, "Date_time");
+                    snprintf(buf, sizeof(buf) -1, "DateTime");
                     break;
 
                     case 8:
@@ -616,19 +644,21 @@ int SetConfig(char *result, char *address)
                     break;
 
                     case 15:
-                    if(resend) break;
+                    if(!resend) break;
                     memset(buf,0,sizeof(buf));
                     memset(Resend_time_s,0,sizeof(Resend_time_s));
                     snprintf(buf, sizeof(buf) -1, "Resend_time_s");
+                    printf("time_s type %d\n", temp->type);
                     temp = cJSON_GetObjectItem(root, buf);
                     if(temp != NULL ) snprintf(Resend_time_s, sizeof(Resend_time_s) - 1, "%s", temp->valuestring );
                     break;
 
                     case 16:
-                    if(resend) break;
+                    if(!resend) break;
                     memset(buf,0,sizeof(buf));
                     memset(Resend_time_e,0,sizeof(Resend_time_e));
                     snprintf(buf, sizeof(buf) -1, "Resend_time_e");
+                    printf("time_e type %d\n", temp->type);
                     temp = cJSON_GetObjectItem(root, buf);
                     if(temp != NULL ) snprintf(Resend_time_e, sizeof(Resend_time_e) - 1, "%s", temp->valuestring );
                     break;
@@ -648,13 +678,13 @@ int SetConfig(char *result, char *address)
 
                     if(i == 10 && temp != NULL )
                     {
-                        if(temp->valuestring != NULL)
+
+                        printf("resend type is %d\n", temp->type);  
+                        if(temp->type == 2);
                         {
-                            if(!strcmp(temp->valuestring, "True"));
-                            {
-                                resend = 1;
-                            }
+                            resend = 1;
                         }
+                        
                     }
                     else
                     {
@@ -681,20 +711,7 @@ int SetConfig(char *result, char *address)
                 }
                 
             }
-            fclose(fp);
-            if(resend)
-            {
-
-                pid = fork();
-                if(pid == 0)
-                {
-                    execlp("./SolarPut","./SolarPut", Resend_time_s, Resend_time_e, address,NULL);
-                    perror("execlp");
-                    exit(0);
-                }
-
-            }
-
+            
         }
 
     }
@@ -706,6 +723,20 @@ int SetConfig(char *result, char *address)
         memset(buf, 0, sizeof(buf));
         snprintf(buf, sizeof(buf) - 1, "%s;Rename SolarPost file failed\n", ERROR);
         sgsSendQueueMsg(eventHandlerId, buf, msgType);
+
+    }
+    printf("resend = %d, time_s = %s, time_e = %s\n", resend, Resend_time_s, Resend_time_e);
+    fclose(fp);
+    if(resend)
+    {
+
+        pid = fork();
+        if(pid == 0)
+        {
+            execlp("./SolarPut","./SolarPut", Resend_time_s, Resend_time_e, address,NULL);
+            perror("execlp");
+            exit(0);
+        }
 
     }
 
@@ -1083,25 +1114,26 @@ int PostToServer()
         printf(LIGHT_GREEN"postConfig.IP[%d] is %s\n"NONE, i, postConfig.IP[i]);
 
         ret = process_http(jsonBuff, postConfig.IP[i]);
-        if(ret !=0 && count > 0)
+        if(ret < 0 && count > 0)
         {
  
             count--;
             continue;
 
         }
-        else
+        else if(ret >= 0)
         {
 
-            if(count == 0)
-            {
-
-                memset(buf,0,sizeof(buf));
-                snprintf(buf,sizeof(buf) -1, "%s;upload to %s failed",ERROR, postConfig.IP[i]);
-                sgsSendQueueMsg(eventHandlerId, buf, msgId);
-
-            }
             i++;
+            count = 10;
+
+        }
+        else if(count < 0)
+        {
+
+            memset(buf,0,sizeof(buf));
+            snprintf(buf,sizeof(buf) -1, "%s;upload to %s failed",ERROR, postConfig.IP[i]);
+            sgsSendQueueMsg(eventHandlerId, buf, msgId);
             count = 10;
 
         }
@@ -1467,7 +1499,7 @@ ssize_t process_http( char *content, char *address)
                 {
 
                     printf("Setting new config\n");
-                    SetConfig(recvline, address);
+                    SetConfig(tmp, address);
                     cJSON_Delete(root);
                     return 0;
 
@@ -1483,7 +1515,7 @@ ssize_t process_http( char *content, char *address)
     //close the socket
     close(sockfd);
 
-	return n;
+	return ret;
 
 }
 

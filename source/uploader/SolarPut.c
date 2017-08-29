@@ -65,12 +65,6 @@ static int callback(void *data, int argc, char **argv, char **azColName);
 
 int GetConfig();
 
-//Intent    : Post data to server
-//Pre       : Nothing
-//Post      : On success, return 0, otherwise return -1
-
-int PostToServer();
-
 ssize_t process_http( char *content, char *address);
 
 int my_write(int fd, void *buffer, int length);
@@ -142,12 +136,15 @@ cJSON *obj = NULL;
 
 char serverIp[64] = {0};
 
+char errResult[256] = {0};
+
 int main(int argc, char* argv[])
 {
     sqlite3 *db;
-    char *zErrMsg = 0;
-    int rc;
-    char sql[256], *unformatted = NULL;
+    char *zErrMsg = 0, buf[256] = {0};
+    int rc, ret, count = 10;
+    char sql[256] = {0}, *unformatted = NULL;
+    int eventHandlerId = -1;
     
     if(argc < 3)
     {
@@ -173,10 +170,12 @@ int main(int argc, char* argv[])
     memset(sql, 0, sizeof(sql));
     snprintf(sql, 255,  "SELECT * from SolarCollector where Timestamp BETWEEN %s AND %s; ", argv[1], argv[2]);
     printf("command : %s \n",sql);
+    printf("Before GetConfig\n");
 
     /* Get Config from setting file */
 
     rc = GetConfig(); 
+    printf("GetConfig done.\n");
 
     /* Execute SQL statement */
     rc = sqlite3_exec(db, sql, callback, ((void*)(NULL)), &zErrMsg);
@@ -189,8 +188,29 @@ int main(int argc, char* argv[])
 
     unformatted =  cJSON_PrintUnformatted(jsonRoot);
 
-    process_http(unformatted, serverIp);
+    count = 10;
+    printf("Ready to send log data to %s\n",serverIp);
+    do{
+        
+        ret = process_http(unformatted, serverIp);
+        count--;
+    }while(ret < 0 && count > 0);
 
+    if(ret < 0 && count < 0)
+    {
+        //Open signal queue
+
+        eventHandlerId = sgsCreateMsgQueue(EVENT_HANDLER_KEY, 0);
+        if(eventHandlerId == -1)
+        {
+            printf("Open eventHandler queue failed...\n");
+            exit(0);
+        }
+        snprintf(buf,sizeof(buf),"%s;Failed to send log data to %s", ERROR, serverIp);
+        ret = sgsSendQueueMsg(eventHandlerId, buf, EnumUploadAgent);
+
+    }
+    
     free(unformatted);
 
     cJSON_Delete(jsonRoot);
@@ -212,7 +232,7 @@ int GetConfig()
 
     snprintf(postConfig.GW_ver, 15, "Alpha Build V1.0");
 
-    snprintf(postConfig.IP[i], 127, "http://connectcloud.fetnet.net:9000/PV_rawdata");
+    snprintf(postConfig.IP[i], 127, "203.73.24.133:9000/PV_rawdata");
     
     postConfig.Send_Rate = 30;
 
@@ -226,6 +246,7 @@ int GetConfig()
 
     fp = fopen("./conf/Upload/SolarPost", "r");
 
+    printf("Ho Hi\n");
     if(fp == NULL)
     {
 
@@ -242,73 +263,83 @@ int GetConfig()
             fgets(buf, 127, fp);
 
             name = strtok(buf, SPLITTER);
+            value = strtok(NULL, SPLITTER);
 
-            if(!strcmp(name, "GW_ver"))
+            if(value != NULL)
             {
-
-                snprintf(postConfig.GW_ver, 15, "%s", value);
-
+                if(value[strlen(value) - 1] == '\n')
+                {
+                    value[strlen(value) - 1] = '\0';
+                }
+                if(!strcmp(name, "GW_ver"))
+                {
+    
+                    snprintf(postConfig.GW_ver, 15, "%s", value);
+    
+                }
+                else if(!strcmp(name, "IP_1"))
+                {
+    
+                    snprintf(postConfig.IP[0], 127, "%s", value);
+    
+                }
+                else if(!strcmp(name, "IP_2"))
+                {
+    
+                    snprintf(postConfig.IP[1], 127, "%s", value);
+    
+                }
+                else if(!strcmp(name, "IP_3"))
+                {
+    
+                    snprintf(postConfig.IP[2], 127, "%s", value);
+    
+                }
+                else if(!strcmp(name, "IP_4"))
+                {
+    
+                    snprintf(postConfig.IP[3], 127, "%s", value);
+    
+                }
+                else if(!strcmp(name, "Send_Rate"))
+                {
+    
+                    postConfig.Send_Rate = atof(value) * 60;
+    
+                }
+                else if(!strcmp(name, "Gain_Rate"))
+                {
+    
+                    postConfig.Gain_Rate = atof(value) * 60;
+    
+                }
+                else if(!strcmp(name, "Backup_time"))
+                {
+    
+                    postConfig.Backup_time = atof(value);
+    
+                }
+                else if(!strcmp(name, "MAC_Address"))
+                {
+    
+                    printf("Mac is %s\n",value);
+                    snprintf(postConfig.MAC_Address, 31, "%s", value);
+    
+                }
+                else if(!strcmp(name, "Station_ID"))
+                {
+    
+                    snprintf(postConfig.Station_ID, 15, "%s", value);
+    
+                }
+                else if(!strcmp(name, "GW_ID"))
+                {
+    
+                    snprintf(postConfig.GW_ID, 15, "%s", value);
+    
+                }
             }
-            else if(!strcmp(name, "IP_1"))
-            {
-
-                snprintf(postConfig.IP[0], 127, "%s", value);
-
-            }
-            else if(!strcmp(name, "IP_2"))
-            {
-
-                snprintf(postConfig.IP[1], 127, "%s", value);
-
-            }
-            else if(!strcmp(name, "IP_3"))
-            {
-
-                snprintf(postConfig.IP[2], 127, "%s", value);
-
-            }
-            else if(!strcmp(name, "IP_4"))
-            {
-
-                snprintf(postConfig.IP[3], 127, "%s", value);
-
-            }
-            else if(!strcmp(name, "Send_Rate"))
-            {
-
-                postConfig.Send_Rate = atof(value) * 60;
-
-            }
-            else if(!strcmp(name, "Gain_Rate"))
-            {
-
-                postConfig.Gain_Rate = atof(value) * 60;
-
-            }
-            else if(!strcmp(name, "Backup_time"))
-            {
-
-                postConfig.Backup_time = atof(value);
-
-            }
-            else if(!strcmp(name, "MAC_Address"))
-            {
-
-                snprintf(postConfig.MAC_Address, 31, "%s", value);
-
-            }
-            else if(!strcmp(name, "Station_ID"))
-            {
-
-                snprintf(postConfig.Station_ID, 15, "%s", value);
-
-            }
-            else if(!strcmp(name, "GW_ID"))
-            {
-
-                snprintf(postConfig.GW_ID, 15, "%s", value);
-
-            }
+            
 
         }
 
@@ -316,234 +347,6 @@ int GetConfig()
 
     fclose(fp);
     
-    return 0;
-
-}
-
-int PostToServer()
-{
-
-    dataInfo *tempInfo[2] = {dInfo[0], dInfo[0]};
-    dataLog dLog;
-    epochTime nowTime;
-    char buf[256];
-    char *jsonOutput = NULL;
-    char *jsonBuff = NULL;
-    cJSON *root = NULL;
-    cJSON *rows = NULL;
-    cJSON *inverter = NULL;
-    cJSON *tempArray = NULL;
-    cJSON *tempObj = NULL;
-    int irrNum = 0;                 //How many irr we have
-    int irrVal[100] = {0};
-    int irrStat[100] = {0};
-    int i = 0, count = 10, ret = -1;
-    typedef struct sysNode
-    {
-
-        int cpuUsage;
-        int memoryUsage;
-        int storageUsage;
-        int networkFlow;
-
-    }sNode;
-
-    sNode systemInfo;
-
-    //The best steps to match the format is 
-    //1. get system info
-    //2. get solar info & form JSON at the same time
-    //3. Post them
-    //4. Process the return value
-
-    systemInfo.cpuUsage = 0;
-    systemInfo.memoryUsage = 0;
-    systemInfo.storageUsage = 0;
-    systemInfo.networkFlow = 0;
-
-    //1. get system info
-
-    if(tempInfo[1] == NULL)
-    {
-
-        printf(LIGHT_RED"Encounter some problem while accessing GWInfo's data buffer\n"NONE);
-        memset(buf, 0, sizeof(buf));
-        snprintf(buf, 255, "%s;Encounter some problem while accessing GWInfo's data buffer", ERROR);
-        sgsSendQueueMsg(eventHandlerId, buf, msgId);
-
-    }
-
-    while(tempInfo[1] != NULL)
-    {
-
-        sgsReadSharedMemory(tempInfo[1], &dLog);
-        if(!strcmp(tempInfo[1]->valueName, "CPU_Usage"))    systemInfo.cpuUsage = dLog.value.i;
-        else if(!strcmp(tempInfo[1]->valueName, "Memory_Usage"))    systemInfo.memoryUsage = dLog.value.i;
-        else if(!strcmp(tempInfo[1]->valueName, "Storage_Usage"))    systemInfo.storageUsage = dLog.value.i;
-        else if(!strcmp(tempInfo[1]->valueName, "Network_Flow"))    systemInfo.networkFlow = dLog.value.i;
-
-        tempInfo[1] = tempInfo[1]->next;
-
-    }
-
-    //2. get solar info & form JSON at the same time
-
-    //First, get irr and temp, They'll be the firsts in dataInfo linked list
-
-    tempArray = cJSON_CreateArray();
-
-    i = 0;
-
-    while(tempInfo[0] != NULL && (!strcmp(tempInfo[0]->sensorName, "Temperature") || !strcmp(tempInfo[0]->sensorName, "Irradiation")) )
-    {
-
-        if(!strcmp(tempInfo[0]->valueName, "Temperature"))
-        {
-
-            sgsReadSharedMemory(tempInfo[0], &dLog);
-            cJSON_AddItemToArray(tempArray, tempObj = cJSON_CreateObject());
-            cJSON_AddNumberToObject(tempObj, "Temp", dLog.value.i);
-            cJSON_AddNumberToObject(tempObj, "Temp_Status", dLog.status);
-            memset(buf, 0, sizeof(buf));
-            snprintf(buf, sizeof(buf) - 1, "%02d",i++);
-            cJSON_AddStringToObject(tempObj, "Temp_ID", buf);
-
-        }
-        else if(!strcmp(tempInfo[0]->valueName, "Irradiation"))
-        {
-
-            sgsReadSharedMemory(tempInfo[0], &dLog);
-            irrVal[irrNum] = dLog.value.i;
-            irrStat[irrNum] = dLog.status;
-            irrNum++;
-
-        }
-        tempInfo[0] = tempInfo[0]->next;
-
-    }
-
-    //Second, Get inverter info & form JSON
-
-    //Init JSON
-
-    root = cJSON_CreateObject();
-
-    //create rows, inverter obj and do the first time insert
-
-    cJSON_AddItemToObject(root, "rows", rows = cJSON_CreateArray());
-
-    inverter = cJSON_CreateObject();
-
-    cJSON_AddItemToArray(rows, inverter);
-
-    time(&nowTime);
-
-    cJSON_AddNumberToObject(inverter, "Timestamp", nowTime);
-    cJSON_AddStringToObject(inverter, "MAC_Address", postConfig.MAC_Address);
-    cJSON_AddStringToObject(inverter, "GW_ID", postConfig.GW_ID);
-    cJSON_AddNumberToObject(inverter, "CPU", systemInfo.cpuUsage);
-    cJSON_AddNumberToObject(inverter, "Storage", systemInfo.storageUsage);
-    cJSON_AddNumberToObject(inverter, "Memory", systemInfo.memoryUsage);
-    cJSON_AddNumberToObject(inverter, "Network_flow", systemInfo.networkFlow);
-
-
-    while(tempInfo[0] != NULL)
-    {
-
-        sgsReadSharedMemory(tempInfo[0], &dLog);
-
-        //If we meet Alarm, put PV_Temp and Irr into inverter obj then create a new object
-
-        if(strcmp(tempInfo[0]->valueName, "Alarm"))
-        {
-
-            //If it's not the first time, add the temp and irr into it
-
-            cJSON_AddItemToObject(inverter, "PV_Temp", tempArray);
-            for(i = 0 ; i < irrNum ; i++)
-            {
-
-                cJSON_AddNumberToObject(inverter, "Irr", irrVal[i]);
-                cJSON_AddNumberToObject(inverter, "Irr_Status", irrStat[i]);
-
-            }
-            cJSON_AddStringToObject(inverter, "Alarm", dLog.value.s);
-            cJSON_AddStringToObject(inverter, "Station_ID", postConfig.Station_ID);
-
-            //Create New inverter obj
-
-            inverter = cJSON_CreateObject();
-            cJSON_AddItemToArray(rows, inverter);
-
-            cJSON_AddNumberToObject(inverter, "Timestamp", nowTime);
-            cJSON_AddStringToObject(inverter, "MAC_Address", postConfig.MAC_Address);
-            cJSON_AddStringToObject(inverter, "GW_ID", postConfig.GW_ID);
-            cJSON_AddNumberToObject(inverter, "CPU", systemInfo.cpuUsage);
-            cJSON_AddNumberToObject(inverter, "Storage", systemInfo.storageUsage);
-            cJSON_AddNumberToObject(inverter, "Memory", systemInfo.memoryUsage);
-            cJSON_AddNumberToObject(inverter, "Network_flow", systemInfo.networkFlow);
-
-        }
-        else
-        {
-
-            if(dLog.valueType == INTEGER_VALUE)
-            cJSON_AddNumberToObject(inverter, tempInfo[0]->valueName, dLog.value.i);
-
-            if(dLog.valueType == LONGLONG_VALUE)
-            {
-
-                memset(buf,0,sizeof(buf));
-                snprintf(buf,255,"%lld",dLog.value.ll);
-                cJSON_AddStringToObject(inverter, tempInfo[0]->valueName, buf);
-
-            }
-            
-
-        }
-
-    }
-
-    //3. Post them
-
-    jsonBuff = cJSON_PrintUnformatted(root);
-
-    i = 0;
-    count = 10;
-
-    while(i < 4)
-    {
-
-        ret = process_http(jsonBuff, postConfig.IP[i]);
-        if(ret !=0 && count > 0)
-        {
- 
-            count--;
-            continue;
-
-        }
-        else
-        {
-
-            if(count == 0)
-            {
-
-                memset(buf,0,sizeof(buf));
-                snprintf(buf,sizeof(buf) -1, "%s;upload to %s failed",ERROR, postConfig.IP[i]);
-                sgsSendQueueMsg(eventHandlerId, buf, msgId);
-
-            }
-            i++;
-            count = 10;
-
-        }
-        
-
-    }
-
-    free(jsonBuff);
-    cJSON_Delete(root);
-
     return 0;
 
 }
@@ -998,51 +801,62 @@ ssize_t process_http( char *content, char *address)
     }
     printf("[%s,%d]Read done receive:\n%s\n",__FUNCTION__,__LINE__,recvline);
 
-    return 0;
+    printf("return string:\n%s\n",recvline);
+    
+    tmp = strstr(recvline, "{");
 
+    if(tmp == 0) 
+    {
+
+        memset(errResult, 0, sizeof(errResult));
+        snprintf(errResult, sizeof(errResult), "%s;Return string:\n%s\n", ERROR, recvline);
+        return -3;
+    
+    }
+    
     //Check the result with cJSON
 
-    root = cJSON_Parse(recvline);
+    root = cJSON_Parse(tmp);
+    if(root == NULL)
+    {
+        
+        memset(errResult, 0, sizeof(errResult));
+        snprintf(errResult, sizeof(errResult), "%s;Parse to JSON failed:\n%s\n", ERROR, tmp);
+        return -3;
+            
+    }
+
+    tmp = cJSON_Print(root);
+
+    printf("tmp : \n%s\n",tmp);
+
+    free(tmp);
+
+    //Check the result with cJSON
 
     obj = cJSON_GetObjectItem(root, "Upload_data");
 
     if( obj != NULL)
     {
 
-        if(strcmp(obj->valuestring,"True")) //upload unsuccessfully
+        if(obj->type == 1) //upload unsuccessfully
         {
+
+            //close the socket
+            close(sockfd);
             return -2; //tell PostToServer() to resend the data
-        }
-        else
-        {
-
-            obj = cJSON_GetObjectItem(root, "Config_flag");
-            if( obj != NULL)
-            {
-
-                if(strcmp(obj->valuestring,"True")) //Set config
-                {
-
-                    cJSON_Delete(root);
-                    return 0;
-
-                }
-                else
-                {
-                    cJSON_Delete(root);
-                    return 0;
-                }
-
-            }
 
         }
+        cJSON_Delete(root);
 
     }
     //close the socket
 
     close(sockfd);
 
-	return n;
+    printf("End of process_http\n");
+
+	return ret;
 
 }
 

@@ -26,7 +26,7 @@
 //defines the log system type
 
 #define SQLITE3
-#define BUFFERPERIOD 60
+#define BUFFERPERIOD 60    //days
 
 //defines the time variable
 
@@ -94,7 +94,7 @@ enum {EnumEventHandler = 1, EnumDataBuffer, EnumCollector, EnumUploader, EnumLog
 
 #define MAXLOGSIZE 32000000
 
-//Data buffer pool 
+//Max number for uploader children / collector children / buffer pool size 
 
 #define MAXBUFFERINFOBLOCK 5
 

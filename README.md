@@ -5,6 +5,12 @@
 
 SIGS Alpha build v1.0 
 
+## Features
+
+* Flexible with different protocol agents
+* Sqlite3 database implemented
+* Error reporting via mails; Local error & log files  
+
 ## Requirements 
 
 * Required dependencies
@@ -16,3 +22,5 @@ SIGS Alpha build v1.0
   * [libssh2](https://www.libssh2.org/)
 
 After installing the dependencies, cd to ~/source/main, run Makefile to compile into binary files.
+
+

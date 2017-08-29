@@ -50,7 +50,7 @@ typedef struct{
 
 void ShutDownBySignal(int sigNum);
 
-childProcessInfo cpInfo[5]; //  All info about sub-masters are here, be caredul with it
+childProcessInfo cpInfo[MAXBUFFERINFOBLOCK]; //  All info about sub-masters are here, be caredul with it
 int agentMsgId = -1;
 
 int main()
@@ -136,7 +136,7 @@ int main()
         //Open upload agents
 
         i = 0;
-        while(i < 5 || !feof(fp))
+        while(i < MAXBUFFERINFOBLOCK || !feof(fp))
         {
 
             memset(buf, '\0', sizeof(buf));

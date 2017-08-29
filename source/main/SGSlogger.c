@@ -665,7 +665,7 @@ int SaveLog()
 
         memset(buf,0,sizeof(buf));
 
-        snprintf(buf,256,"VALUES (strftime('%%s','now','localtime'),");
+        snprintf(buf,256,"VALUES (strftime('%%s','now'),");
 
         strcat(insertBuf,buf);
 
@@ -895,7 +895,7 @@ int GetSetting()
     //Set parameters to default first
 
     printf("Default LogRetainDays = 60\n");
-    snprintf(databaseConfig.logDays, sizeof(databaseConfig.logDays), "%d", 60);
+    snprintf(databaseConfig.logDays, sizeof(databaseConfig.logDays), "%d", BUFFERPERIOD);
     printf("Default DatatableName = SGSDATALOG\n"NONE);
     snprintf(databaseConfig.dataTableName, sizeof(databaseConfig.dataTableName), "SGSDATALOG");
     databaseConfig.autoLogging = 1;

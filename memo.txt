@@ -117,6 +117,6 @@ Notes:
 
 
         20170829
-        Add a function about turn on/off logger's auto log feature.
+        Add a function about turn on/off logger's auto log feature. [done]
         
-        Stress test on LEC-3030     
+        Stress test on LEC-3030     [done]
