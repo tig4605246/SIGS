@@ -285,6 +285,17 @@ int main(int argc, char *argv[])
 
     }
 
+    //Get init setting
+
+    ret = GetSetting();
+    if(ret != 0)
+    {
+
+        printf(LIGHT_RED"[%s,%d] GetSetting failed\n"NONE,__FUNCTION__,__LINE__);
+        forceQuit(15);
+
+    }
+
     //get first timestamp
 
     time(&last);
@@ -307,7 +318,10 @@ int main(int argc, char *argv[])
             //printf("generate new data\n");
             if(databaseConfig.autoLogging)
                 ret = SaveLog();
-
+            else
+            {
+                printf("databaseConfig.autoLogging is %d\n", databaseConfig.autoLogging);
+            }
             //printf("show data\n");
             //sgsShowDataInfo(dInfo);
 
@@ -675,7 +689,7 @@ int SaveLog()
                 ret = sgsReadSharedMemory(temp, &dLog);
                 retry--;
 
-            }while(ret == -1 && retry > 0)
+            }while(ret == -1 && retry > 0);
 
             if(ret == -1)
             {

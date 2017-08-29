@@ -36,7 +36,7 @@
 
 #define CPUFILE "/proc/stat"
 #define MEMFILE "cat /proc/meminfo"
-#define DISKFILE "df /dev/sda5"
+#define DISKFILE "df /dev/sda1"
 
 #define NETFLOWFILE "/proc/net/dev" // path of network log
 #define NETFILEEXT "./log/NetworkFlow" // path of existing network log

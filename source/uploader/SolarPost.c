@@ -95,7 +95,7 @@ int CheckAndRespondQueueMessage();
 int ShutdownSystemBySignal(int sigNum);
 
 dataInfo *dInfo[2] = {NULL,NULL};    // pointer to the shared memory
-int interval = 10;  // time period between last and next collecting section
+int interval = 60;  // time period between last and next collecting section
 int eventHandlerId; // Message queue id for event-handler
 int shmId;          // shared memory id
 int msgId;          // created by sgsCreateMessageQueue
@@ -148,6 +148,8 @@ int main(int argc, char *argv[])
     snprintf(buf, 511, "%s;argc is %d, argv 1 %s", LOG, argc, argv[1]);
 
     msgType = atoi(argv[1]);
+
+    sleep(10);
 
 #else
 
@@ -203,12 +205,24 @@ int main(int argc, char *argv[])
 
     //Attach the dataInfo
 
-    ret = sgsInitDataInfo(NULL, &(dInfo[0]), 1, "./conf/Collect/SolarCollector", bufferInfo[0].shmId, &numberOfData[0]);
+    ret = sgsInitDataInfo(NULL, &(dInfo[0]), 0, "./conf/Collect/SolarCollector", bufferInfo[0].shmId, &numberOfData[0]);
     if(ret == -1)
     {
 
         printf("Attach shmid %d Failed\n",bufferInfo[0].shmId);
         exit(0);
+
+    }
+    else
+    {
+        if(dInfo[0] != NULL)
+        printf("dInfo[0] is not NULL\n");
+        else
+        {
+            printf("dInfo[0] is NULL!\n");
+            exit(0);
+        }
+
 
     }
 
@@ -238,6 +252,9 @@ int main(int argc, char *argv[])
             {
                 sgsSendQueueMsg(eventHandlerId, errResult, EnumUploadAgent);
             }
+
+            printf("[%s:%d]Post return %d\n", __FUNCTION__, __LINE__, ret);
+
 
             //printf("show data\n");
             //sgsShowDataInfo(dInfo);
@@ -755,6 +772,7 @@ int PostToServer()
         memset(buf, 0, sizeof(buf));
         snprintf(buf, 255, "%s;Encounter some problem while accessing GWInfo's data buffer", ERROR);
         sgsSendQueueMsg(eventHandlerId, buf, msgId);
+        return -1;
 
     }
 
@@ -1407,21 +1425,34 @@ ssize_t process_http( char *content, char *address)
     //Check the result with cJSON
 
     root = cJSON_Parse(tmp);
+    if(root == NULL)
+    {
+        
+        memset(errResult, 0, sizeof(errResult));
+        snprintf(errResult, sizeof(errResult), "%s;Parse to JSON failed:\n%s\n", ERROR, tmp);
+        return -3;
+            
+    }
 
     tmp = cJSON_Print(root);
 
     printf("tmp : \n%s\n",tmp);
 
+    free(tmp);
+
     obj = cJSON_GetObjectItem(root, "Upload_data");
-    
-    printf("Get Upload_data attribute %s type %d \n", obj->string, obj->type );
 
     if( obj != NULL)
     {
 
+        printf("Get Upload_data attribute %s type %d \n", obj->string, obj->type );
+
         if(obj->type == 1) //upload unsuccessfully
         {
+
+            cJSON_Delete(root);
             return -2; //tell PostToServer() to resend the data
+            
         }
         else
         {
@@ -1441,21 +1472,15 @@ ssize_t process_http( char *content, char *address)
                     return 0;
 
                 }
-                else
-                {
-                    cJSON_Delete(root);
-                    return 0;
-                }
 
             }
-            cJSON_Delete(root);
-            return 0;
 
         }
+        cJSON_Delete(root);
 
     }
+    
     //close the socket
-
     close(sockfd);
 
 	return n;

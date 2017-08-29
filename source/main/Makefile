@@ -37,25 +37,25 @@ all:
 
 	$(CC) -o ../../bin/$(PROG1) $(PROG1).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c -pthread -lm -lcurl #`pkg-config --cflags --libs libmodbus`
 
-	#$(CC) -o ../../bin/$(PROG2) $(PROG2).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c -pthread -lm -lcurl
+	$(CC) -o ../../bin/$(PROG2) $(PROG2).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c -pthread -lm -lcurl
 
-	#$(CC) -o ../../bin/$(PROG3) $(PROG3).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c -pthread -lm # `pkg-config --cflags --libs libmodbus`
+	$(CC) -o ../../bin/$(PROG3) $(PROG3).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c -pthread -lm # `pkg-config --cflags --libs libmodbus`
 
-	#$(CC) -o ../../bin/$(PROG4) $(PROG4).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c -pthread -lm -lcurl 
+	$(CC) -o ../../bin/$(PROG4) $(PROG4).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c -pthread -lm -lcurl 
 
-	#$(CC) -o ../../bin/$(PROG5) $(PROG5).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c -pthread -lm -lcurl 
+	$(CC) -o ../../bin/$(PROG5) $(PROG5).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c -pthread -lm -lcurl 
 
-	#$(CC) -o ../../bin/$(PROG6) ../events/SGSEvent.c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../log/SGSlogfile.c ../thirdparty/sqlite3.c $(PROG6).c -pthread -lm -ldl -lcurl
+	$(CC) -o ../../bin/$(PROG6) ../events/SGSEvent.c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../log/SGSlogfile.c ../thirdparty/sqlite3.c $(PROG6).c -pthread -lm -ldl -lcurl
 
-	#$(CC) -o ../../bin/$(PROG7) ./$(PROG7).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c -pthread -lm -lcurl
+	$(CC) -o ../../bin/$(PROG7) ./$(PROG7).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c -pthread -lm -lcurl
 
-	#$(CC) -o ../../bin/$(PROG8) ../collector/$(PROG8).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c ../protocol/SGSmodbus.c -pthread -lm -lcurl `pkg-config --cflags --libs libmodbus`
+	$(CC) -o ../../bin/$(PROG8) ../collector/$(PROG8).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c ../protocol/SGSmodbus.c -pthread -lm -lcurl `pkg-config --cflags --libs libmodbus`
 
 	$(CC) -o ../../bin/$(PROG9) ../uploader/$(PROG9).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c ../thirdparty/cJSON.c -pthread -lm -lcurl 
 
 	$(CC) -o ../../bin/$(PROG10) ../uploader/$(PROG10).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c ../thirdparty/cJSON.c ../thirdparty/sqlite3.c -pthread -lm -lcurl -ldl 
 
-	#$(CC) -o ../../bin/$(PROG11) ../collector/$(PROG11).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c ../protocol/SGSmodbus.c -pthread -lm  -lcurl
+	$(CC) -o ../../bin/$(PROG11) ../collector/$(PROG11).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c ../protocol/SGSmodbus.c -pthread -lm  -lcurl
 
 
 #Below is testing functions
