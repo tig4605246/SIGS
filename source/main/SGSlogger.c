@@ -586,7 +586,7 @@ int SaveLog()
     char insertBuf[DATAVALUEMAX];
     char *table = NULL;
     char *zErrMsg = NULL;
-    int i = 0, j = 0, ret = -1;
+    int i = 0, j = 0, ret = -1, retry = 10;
     dataInfo *temp;
     dataLog dLog;
 
@@ -670,7 +670,19 @@ int SaveLog()
         while(temp != NULL)
         {
 
-            sgsReadSharedMemory(temp, &dLog);
+            do{
+
+                ret = sgsReadSharedMemory(temp, &dLog);
+                retry--;
+
+            }while(ret == -1 && retry > 0)
+
+            if(ret == -1)
+            {
+                dLog.valueType = STRING_VALUE;
+                snprintf(dLog.value.s, sizeof(dLog.value.s), "temporary unavailable after 10 retries.");
+            }
+
             memset(buf,0,sizeof(buf));
             switch(dLog.valueType)
             {
@@ -872,6 +884,7 @@ int GetSetting()
     snprintf(databaseConfig.logDays, sizeof(databaseConfig.logDays), "%d", 60);
     printf("Default DatatableName = SGSDATALOG\n"NONE);
     snprintf(databaseConfig.dataTableName, sizeof(databaseConfig.dataTableName), "SGSDATALOG");
+    databaseConfig.autoLogging = 1;
 
     fp = fopen(DB_CONFIG, "r");
 

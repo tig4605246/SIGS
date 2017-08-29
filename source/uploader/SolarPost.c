@@ -52,7 +52,9 @@
 #include "../controlling/SGScontrol.h"
 #include "../thirdparty/cJSON.h"
 
-#define DEBUG
+//Flag for debugging
+
+//#define DEBUG
 
 //Post definitions for max length
 
@@ -231,6 +233,12 @@ int main(int argc, char *argv[])
             //Update data
             //printf("generate new data\n");
             ret = PostToServer();
+            
+            if(ret == -3)
+            {
+                sgsSendQueueMsg(eventHandlerId, errResult, EnumUploadAgent);
+            }
+
             //printf("show data\n");
             //sgsShowDataInfo(dInfo);
             //printf("got new time\n");
@@ -320,6 +328,8 @@ int main(int argc, char *argv[])
     sgsDeleteDataInfo(dInfo[0], -1);
 
 #endif
+
+    return 0;
 
 }
 
@@ -1433,10 +1443,13 @@ ssize_t process_http( char *content, char *address)
                 }
                 else
                 {
+                    cJSON_Delete(root);
                     return 0;
                 }
 
             }
+            cJSON_Delete(root);
+            return 0;
 
         }
 

@@ -16,6 +16,3 @@ SIGS Alpha build v1.0
   * [libssh2](https://www.libssh2.org/)
 
 After installing the dependencies, cd to ~/source/main, run Makefile to compile into binary files.
-
-
-
