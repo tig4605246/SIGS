@@ -99,6 +99,8 @@ int shmId;          // shared memory id
 int msgId;          // created by sgsCreateMessageQueue
 int msgType;        // 0 1 2 3 4 5, one of them
 
+char errResult[256];
+
 typedef struct postNode
 {
 
@@ -298,8 +300,14 @@ int main(int argc, char *argv[])
 
             //Update data
 
-            //ret = PostToServer();
-            sgsSendQueueMsg(eventHandlerId, "[Control];SGSlogger;SolarCollector;SaveLogNow", EnumLogger);
+            ret = PostToServer();
+
+            if(ret == -3)
+            {
+                sgsSendQueueMsg(eventHandlerId, errResult, EnumUploadAgent);
+            }
+
+            //sgsSendQueueMsg(eventHandlerId, "[Control];SGSlogger;SolarCollector;SaveLogNow", EnumLogger);
 
         }
 
@@ -1374,31 +1382,50 @@ ssize_t process_http( char *content, char *address)
     printf("[%s,%d]Read done\n",__FUNCTION__,__LINE__);
 
     printf("return string:\n%s\n",recvline);
-    return 0;
 
+    tmp = strstr(recvline, "{");
+
+    if(tmp == 0) 
+    {
+
+        memset(errResult, 0, sizeof(errResult));
+        snprintf(errResult, sizeof(errResult), "%s;Return string:\n%s\n", ERROR, recvline);
+        return -3;
+    
+    }
+    
     //Check the result with cJSON
 
-    root = cJSON_Parse(recvline);
+    root = cJSON_Parse(tmp);
+
+    tmp = cJSON_Print(root);
+
+    printf("tmp : \n%s\n",tmp);
 
     obj = cJSON_GetObjectItem(root, "Upload_data");
+    
+    printf("Get Upload_data attribute %s type %d \n", obj->string, obj->type );
 
     if( obj != NULL)
     {
 
-        if(strcmp(obj->valuestring,"True")) //upload unsuccessfully
+        if(obj->type == 1) //upload unsuccessfully
         {
             return -2; //tell PostToServer() to resend the data
         }
         else
         {
 
+            printf("Upload success\n");
             obj = cJSON_GetObjectItem(root, "Config_flag");
             if( obj != NULL)
             {
 
-                if(strcmp(obj->valuestring,"True")) //Set config
+                printf("Get Config_flag attribute\n");
+                if(obj->type == 2) //Set config
                 {
 
+                    printf("Setting new config\n");
                     SetConfig(recvline, address);
                     cJSON_Delete(root);
                     return 0;

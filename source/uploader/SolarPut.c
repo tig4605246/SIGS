@@ -111,6 +111,35 @@ typedef struct postNode
 
 pNode postConfig;
 
+typedef struct sysNode
+{
+
+    int cpuUsage;
+    int memoryUsage;
+    int storageUsage;
+    int networkFlow;
+
+}sNode;
+
+sNode systemInfo;
+
+typedef struct irrNode
+{
+
+    int irr;
+    int status;
+
+}iNode;
+
+iNode irrInfo;
+
+
+cJSON *duplicatTempArray = NULL;
+cJSON *tempObj = NULL;
+
+int firstTempArray = 1, inverterID = 1, tempID = 1;
+cJSON *obj = NULL;
+
 char serverIp[64] = {0};
 
 int main(int argc, char* argv[])
@@ -142,7 +171,7 @@ int main(int argc, char* argv[])
     /* Create SQL statement */
 
     memset(sql, 0, sizeof(sql));
-    snprintf(sql, 255,  "SELECT * from SOLAR where Timestamp BETWEEN %s AND %s; ", argv[1], argv[2]);
+    snprintf(sql, 255,  "SELECT * from SolarCollector where Timestamp BETWEEN %s AND %s; ", argv[1], argv[2]);
     printf("command : %s \n",sql);
 
     /* Get Config from setting file */
@@ -158,9 +187,9 @@ int main(int argc, char* argv[])
         fprintf(stdout, "Operation done successfully\n");
     }
 
-    unformatted =  cJSON_Print(jsonRoot);
+    unformatted =  cJSON_PrintUnformatted(jsonRoot);
 
-    printf("json:\n %s \n", unformatted);
+    process_http(unformatted, serverIp);
 
     free(unformatted);
 
@@ -523,8 +552,10 @@ static int callback(void *data, int argc, char **argv, char **azColName)
 {
 
     int i, tempID = 1, firstTempArray = 1, inverterID = 1;
+    dataLog dLog;
     char *unformatted = NULL;
     char buf[32] = {0};
+    char uploadTimestamp[64] = {0};
     epochTime nowTime;
     cJSON *inverter = NULL;
     cJSON *tempArray = NULL;
@@ -561,7 +592,17 @@ static int callback(void *data, int argc, char **argv, char **azColName)
         if(strstr(azColName[i], "Inverter_Status") ) //Create a new object after this
         {
 
+            cJSON_AddNumberToObject(inverter, "Network_flow", systemInfo.networkFlow);
+            cJSON_AddNumberToObject(inverter, "Memory", systemInfo.memoryUsage);
+            cJSON_AddNumberToObject(inverter, "Storage", systemInfo.storageUsage);
+            cJSON_AddNumberToObject(inverter, "CPU", systemInfo.cpuUsage);
+            cJSON_AddNumberToObject(inverter, "Irr", irrInfo.irr);
+            cJSON_AddNumberToObject(inverter, "Irr_Status", irrInfo.status);
+            duplicatTempArray = cJSON_Duplicate(tempArray, 1);
+            cJSON_AddItemToObject(inverter, "PVTemp", duplicatTempArray);
             cJSON_AddStringToObject(inverter, "Inverter_Status", argv[i]);
+            cJSON_AddStringToObject(inverter, "upload_timestamp", uploadTimestamp);
+
 
             if( i != argc -1)
             {
@@ -579,6 +620,7 @@ static int callback(void *data, int argc, char **argv, char **azColName)
 
             }
 
+
         }
         else    //keep filling in current object
         {
@@ -590,49 +632,62 @@ static int callback(void *data, int argc, char **argv, char **azColName)
             else if(strstr(azColName[i], "Timestamp"))
             {
 
-                cJSON_AddStringToObject(inverter, "upload_timestamp", argv[i]);
+                strncpy(uploadTimestamp, argv[i], sizeof(uploadTimestamp));
 
             }
             else if(strstr(azColName[i], "CPU_Usage"))
             {
 
-                cJSON_AddStringToObject(inverter, "CPU", argv[i]);
+                systemInfo.cpuUsage = dLog.value.i;
 
             }
             else if(strstr(azColName[i], "Storage_Usage"))
             {
 
-                cJSON_AddStringToObject(inverter, "Storage", argv[i]);
+                systemInfo.storageUsage = dLog.value.i;
 
             }
             else if(strstr(azColName[i], "Memory_Usage"))
             {
 
-                cJSON_AddStringToObject(inverter, "Memory", argv[i]);
+                systemInfo.memoryUsage = dLog.value.i;
 
             }
             else if(strstr(azColName[i], "Network_Flow"))
             {
 
-                cJSON_AddStringToObject(inverter, "Network_flow", argv[i]);
+                systemInfo.networkFlow = dLog.value.i;
 
             }
             else if(strstr(azColName[i], "Irradiation"))
             {
 
-                cJSON_AddStringToObject(inverter, "Irr", argv[i]);
+                irrInfo.irr = dLog.value.i;
 
             }
             else if(strstr(azColName[i], "IrrStatus"))
             {
 
-                cJSON_AddStringToObject(inverter, "Irr_Status", argv[i]);
+                irrInfo.status = dLog.value.i;
 
             }
             else if(strstr(azColName[i], "Temperature"))
             {
 
-                cJSON_AddStringToObject(inverter, "Inverter_Temp", argv[i]);
+                if(firstTempArray)
+                {
+
+                    firstTempArray = 0;
+                    tempArray = cJSON_CreateArray();
+
+                }
+                
+                memset(buf,0,sizeof(buf));
+                snprintf(buf, 31, "%02d", tempID++);
+                cJSON_AddItemToArray(tempArray, obj = cJSON_CreateObject());
+                cJSON_AddNumberToObject(obj, "Temp", dLog.value.i);
+                cJSON_AddStringToObject(obj, "Temp_Status", "1");
+                cJSON_AddStringToObject(obj, "TempID", buf);
 
             }
             else if(strstr(azColName[i], "Voltage(Vab)"))
@@ -746,34 +801,23 @@ static int callback(void *data, int argc, char **argv, char **azColName)
             else if(strstr(azColName[i], "Today_Wh"))
             {
 
-                cJSON_AddStringToObject(inverter, "ACP_Daily", argv[i]);
+                memset(buf,0,sizeof(buf));
+                snprintf(buf, sizeof(buf) - 1, "%lld", dLog.value.ll);
+                cJSON_AddStringToObject(inverter, "ACP_Daily", buf);
 
             }
             else if(strstr(azColName[i], "Life_Wh"))
             {
 
-                cJSON_AddStringToObject(inverter, "ACP_Life", argv[i]);
+                memset(buf,0,sizeof(buf));
+                snprintf(buf, sizeof(buf) - 1, "%lld", dLog.value.ll);
+                cJSON_AddStringToObject(inverter, "ACP_Life", buf);
 
             }
             else if(strstr(azColName[i], "Inverter_Temp"))
             {
 
-                cJSON *obj = NULL;
-
-                if(firstTempArray)
-                {
-
-                    firstTempArray = 0;
-                    cJSON_AddItemToObject(inverter, "PVTemp",tempArray = cJSON_CreateArray());
-
-                }
-                
-                memset(buf,0,sizeof(buf));
-                snprintf(buf, 31, "%02d", tempID++);
-                cJSON_AddItemToArray(tempArray, obj = cJSON_CreateObject());
-                cJSON_AddStringToObject(obj, "Temp", argv[i]);
-                cJSON_AddStringToObject(obj, "Temp_Status", "1");
-                cJSON_AddStringToObject(obj, "Temp_ID", buf);
+                cJSON_AddNumberToObject(inverter, "Inverter_Temp", dLog.value.i);
 
             }
             else if(strstr(azColName[i], "Inverter_Error"))
@@ -952,7 +996,9 @@ ssize_t process_http( char *content, char *address)
         return -1;
 
     }
-    printf("[%s,%d]Read done\n",__FUNCTION__,__LINE__);
+    printf("[%s,%d]Read done receive:\n%s\n",__FUNCTION__,__LINE__,recvline);
+
+    return 0;
 
     //Check the result with cJSON
 

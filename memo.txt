@@ -114,3 +114,9 @@ Notes:
         Add Status tag in SolarCollect
 
         if half of the info can't work properly, set the flag to -1
+
+
+        20170829
+        Add a function about turn on/off logger's auto log feature.
+        
+        Stress test on LEC-3030     

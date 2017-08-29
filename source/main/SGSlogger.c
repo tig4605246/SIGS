@@ -89,6 +89,7 @@ struct
 
     char logDays[32];
     char dataTableName[32];
+    int  autoLogging;
 
 }databaseConfig;
 
@@ -304,9 +305,12 @@ int main(int argc, char *argv[])
 
             //Update data
             //printf("generate new data\n");
-            ret = SaveLog();
+            if(databaseConfig.autoLogging)
+                ret = SaveLog();
+
             //printf("show data\n");
             //sgsShowDataInfo(dInfo);
+
             //printf("got new time\n");
             time(&last);
             last += 4;
@@ -752,6 +756,7 @@ int CheckAndRespondQueueMessage()
     char *to = NULL;
     char *newDays = NULL;
     char *newDatatableName = NULL;
+    char *newAutoLogging = NULL;
 
     memset(buf,0,sizeof(buf));
 
@@ -781,9 +786,11 @@ int CheckAndRespondQueueMessage()
             else
             {
 
-                ret = SetSetting(newDays, newDatatableName);
-                
                 newDatatableName = strtok(NULL, SPLITTER);
+
+                newAutoLogging = strtok(NULL, SPLITTER);
+
+                ret = SetSetting(newDays, newDatatableName, newAutoLogging);
     
                 if(ret != 0)
                 {
@@ -920,6 +927,12 @@ int GetSetting()
                 snprintf(databaseConfig.dataTableName, sizeof(databaseConfig.dataTableName), "%s", config);
 
             }
+            else if(!strcmp(name, "AutoLogging"))
+            {
+
+                databaseConfig.autoLogging = atoi(config);
+
+            }
             else
             {
 
@@ -934,7 +947,7 @@ int GetSetting()
 
 }
 
-int SetSetting(char *newDays, char *newDatatableName)
+int SetSetting(char *newDays, char *newDatatableName, char *newAutoLogging)
 {
 
     FILE *fp = NULL;
@@ -959,6 +972,14 @@ int SetSetting(char *newDays, char *newDatatableName)
 
         printf("New DatatableName =%s\n"NONE, newDatatableName);
         snprintf(databaseConfig.dataTableName, sizeof(databaseConfig.dataTableName), "%s", newDatatableName);
+
+    }
+
+    if(newAutoLogging != NULL)
+    {
+
+        printf("New DatatableName =%s\n"NONE, newAutoLogging);
+        databaseConfig.autoLogging = atoi(newAutoLogging);
 
     }
 
