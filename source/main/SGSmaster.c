@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
         ShutdownSystemByInput();
 
     }
-    ret = InitChild(&(cpInfo[4]), LOGGER_PATH, LOGGER_KEY, "Logger", EnumLogger);
+    //ret = InitChild(&(cpInfo[4]), LOGGER_PATH, LOGGER_KEY, "Logger", EnumLogger);
     if(ret == -1)
     {
 

@@ -5,8 +5,8 @@ PROG4=SGSuploadermaster
 PROG5=SGScollectormaster
 PROG6=SGSlogger
 PROG7=SGSmailagent
-PROG8=SolarCollector
-PROG9=SolarPost
+PROG8=ZKWZKSCollector
+PROG9=ZKWZKSPost
 PROG10=SolarPut
 PROG11=GWInfo
 
@@ -35,7 +35,7 @@ CC=gcc
 
 all:
 
-	#$(CC) -o ../../bin/$(PROG1) $(PROG1).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c -pthread -lm -lcurl #`pkg-config --cflags --libs libmodbus`
+	$(CC) -o ../../bin/$(PROG1) $(PROG1).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c -pthread -lm -lcurl #`pkg-config --cflags --libs libmodbus`
 
 	#$(CC) -o ../../bin/$(PROG2) $(PROG2).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c -pthread -lm -lcurl
 
@@ -49,7 +49,7 @@ all:
 
 	#$(CC) -o ../../bin/$(PROG7) ./$(PROG7).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c -pthread -lm -lcurl
 
-	#$(CC) -o ../../bin/$(PROG8) ../collector/$(PROG8).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c ../protocol/SGSmodbus.c -pthread -lm -lcurl `pkg-config --cflags --libs libmodbus`
+	$(CC) -o ../../bin/$(PROG8) ../collector/$(PROG8).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c ../protocol/SGSmodbus.c -pthread -lm -lcurl `pkg-config --cflags --libs libmodbus`
 
 	$(CC) -o ../../bin/$(PROG9) ../uploader/$(PROG9).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c ../thirdparty/cJSON.c -pthread -lm -lcurl 
 

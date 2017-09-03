@@ -39,7 +39,6 @@ B. Solar Project
         |   SolarPut   [undone]
         |   SolarCollect [undone]
 
-
 Notes:
 
     test/sendmail.c will work, but some libraries are needed (libcurl and libssh2, libssl-dev).

@@ -248,7 +248,7 @@ int sgsInitDataInfo(deviceInfo *deviceInfoPtr, dataInfo **dataInfoPtr, int Creat
         if(fscanf(dataConfigFile, "%[^\n]\n", buf) < 0) 
             break;
         line++;
-        //printf("[LINE %d]: %s\n", __LINE__, buf);
+        printf("[LINE %d]: %s\n", __LINE__, buf);
 
         //Skip the empty line
         //printf("[%s,%d]fscanf %s\n",__FUNCTION__,__LINE__,buf);
@@ -1234,7 +1234,7 @@ int sgsRegisterDataInfoToBufferPool(char *dataName ,int shmId, int numberOfData)
 int sgsGetDataInfoFromBufferPool(char *dataName, DataBufferInfo *dest)
 {
 
-    int i = 0;
+    int i = 0, retry = 0;
 
     while(i < 50)
     {
@@ -1243,8 +1243,16 @@ int sgsGetDataInfoFromBufferPool(char *dataName, DataBufferInfo *dest)
         {
 
             printf(LIGHT_RED"[%s,%d]%s is busy\n"NONE, __FUNCTION__, __LINE__, (DataBufferInfoPtr + i)->dataName);
-            i++;
-            continue;
+            if(retry > 20)
+            {
+                i++;
+                retry = 0;
+                continue;
+            }
+            else
+            {
+                retry++;
+            }
 
         }
         else
