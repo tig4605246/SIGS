@@ -35,6 +35,12 @@
 
 #endif
 
+#ifndef LIB_CURL
+
+#define LIB_CURL
+
+#endif
+
 unsigned int sgsErrNum;
 char sgsErrMsg[1024];
 
@@ -50,9 +56,11 @@ char sgsErrMsg[1024];
     return
 
 */
+#ifdef LIB_CURL
 
 void sgsSendEmail(char *message);
 
+#endif
 
 //Intent : print out the stored the error message and the error flag.
 //Pre    : Nothing

@@ -61,7 +61,9 @@ int main(int argc, char *argv[])
         {
 
             printf(YELLOW"MailAgent got message type %d\n"NONE, ret);
+#ifdef LIB_CURL
             sgsSendEmail(buf);
+#endif
 
         }
 

@@ -70,6 +70,8 @@ static size_t payload_source(void *ptr, size_t size, size_t nmemb, void *userp)
  *
 */ 
 
+#ifdef LIB_CURL
+
 void sgsSendEmail(char *message)
 {
 
@@ -306,6 +308,8 @@ void sgsSendEmail(char *message)
     exit(0);
 
 }
+
+#endif
 
 void sgsShowErrMsg()
 {

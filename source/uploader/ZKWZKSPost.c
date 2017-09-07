@@ -791,6 +791,7 @@ int PostToServer()
     //Init JSON
 
     root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "GW_ID", postConfig.GW_ID);
 
     time(&nowTime);
 
