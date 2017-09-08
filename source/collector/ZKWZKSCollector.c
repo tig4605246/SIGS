@@ -471,7 +471,7 @@ int CheckAndRespondQueueMessage()
 
     memset(buf,'\0',sizeof(buf));
 
-    ret = sgsRecvQueueMsg(msgId, buf, msgType);
+    ret = sgsRecvQueueMsg(msgId, buf, (msgType));
 
     if(ret != -1)
     {
@@ -503,7 +503,7 @@ int CheckAndRespondQueueMessage()
 
         snprintf(result,MSGBUFFSIZE - 1,"%s;%s;%s;command done.",RESULT,from,to);
 
-        sgsSendQueueMsg(eventHandlerId, result, msgId);
+        sgsSendQueueMsg(eventHandlerId, result, EnumUploader);
 
         return 0;
     

@@ -1010,7 +1010,7 @@ int sgsSendQueueMsg(int msgid, char *message, int msgtype )
 	if(result == -1)
     {
 
-		perror("error");
+		perror("sgsSendQueueMsg error");
 		return -1;
 
 	}

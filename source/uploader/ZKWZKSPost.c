@@ -54,7 +54,7 @@
 
 //Flag for debugging
 
-//#define DEBUG
+#define DEBUG
 
 //Post definitions for max length
 
@@ -342,16 +342,17 @@ int main(int argc, char *argv[])
         usleep(100000);
         time(&now);
 
-        if((now-last) >= interval + 4 )
+        if(1)//(now-last) >= interval + 4 )
         {
 
             //Update data
 #if 1
-            ret = PostToServer();
+            //ret = PostToServer();
 
-            if(ret == -3)
+            if(1)
             {
-                sgsSendQueueMsg(eventHandlerId, errResult, EnumUploadAgent);
+                sgsSendQueueMsg(eventHandlerId, "[Control];ZKWZKSCollector;ZKWZKSPost;ZZZ", EnumCollector);
+                exit(0);
             }
             time(&last);
             now = last;

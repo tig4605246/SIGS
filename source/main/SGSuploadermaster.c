@@ -184,7 +184,7 @@ int main()
             {
 
                 memset(buf,'\0',sizeof(buf));
-                snprintf(buf,MSGBUFFSIZE,"%d",i);
+                snprintf(buf,MSGBUFFSIZE,"%d",i+1);
                 execlp(cpInfo[i].childPath, cpInfo[i].childPath, buf, NULL);
                 perror("fork()");
                 exit(0);
@@ -469,7 +469,7 @@ int main()
                         if(!strcmp(cpInfo[i].childName,to))
                         {
 
-                            sgsSendQueueMsg(agentMsgId, originInfo, i);
+                            sgsSendQueueMsg(agentMsgId, originInfo, i+1);
                             break;
 
                         }
@@ -503,7 +503,7 @@ int main()
                         if(!strcmp(cpInfo[i].childName,to))
                         {
 
-                            sgsSendQueueMsg(agentMsgId, originInfo, i);
+                            sgsSendQueueMsg(agentMsgId, originInfo, i+1);
                             break;
 
                         }

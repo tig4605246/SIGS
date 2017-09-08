@@ -90,7 +90,7 @@ int main()
     agentMsgId = sgsCreateMsgQueue(COLLECTOR_AGENT_KEY, 0);
     if(agentMsgId == -1)
     {
-        printf("Open collector agent queue failed...\n");
+        printf(LIGHT_RED"Open collector agent queue failed...\n"NONE);
         exit(0);
     }
 
@@ -187,7 +187,7 @@ int main()
             {
 
                 memset(buf,'\0',sizeof(buf));
-                snprintf(buf,MSGBUFFSIZE,"%d",i);
+                snprintf(buf,MSGBUFFSIZE,"%d",i+1);
                 execlp(cpInfo[i].childPath, cpInfo[i].childPath, buf, NULL);
                 perror("fork()");
                 exit(0);
@@ -235,8 +235,7 @@ int main()
         ret = sgsRecvQueueMsg(collectorMasterId, buf, EnumCollector);
 
         //Message type: Restart | Leave | Error | Control | Log
-        //
-        ret = -1;
+
         if(ret != -1)
         {
 
@@ -246,6 +245,8 @@ int main()
             strncpy(originInfo, buf, sizeof(originInfo));
 
             msgType = strtok(buf,";");
+
+            printf("msgType is %s\n",msgType);
 
             if(!strcmp(msgType,LOG))
             {
@@ -471,10 +472,18 @@ int main()
 
                         //If we find it, send the original message to it
 
+                        
                         if(!strcmp(cpInfo[i].childName,to))
                         {
 
-                            sgsSendQueueMsg(agentMsgId, originInfo, i);
+                            printf("Got target %s, sending msg\n",cpInfo[i].childName);
+                            ret = sgsSendQueueMsg(agentMsgId, originInfo, i+1);
+                            if(ret == -1)
+                            {
+
+                                printf(LIGHT_RED"Send msg failed\n"NONE);
+
+                            }
                             break;
 
                         }
@@ -508,7 +517,9 @@ int main()
                         if(!strcmp(cpInfo[i].childName,to))
                         {
 
-                            sgsSendQueueMsg(agentMsgId, originInfo, i);
+                            printf("Got target %s, sending msg\n",cpInfo[i].childName);
+                            ret = sgsSendQueueMsg(agentMsgId, originInfo, i+1);
+                            
                             break;
 
                         }
