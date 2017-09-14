@@ -157,6 +157,17 @@ int main(int argc, char *argv[])
     act.sa_flags = SA_ONESHOT|SA_NOMASK;
     sigaction(SIGINT, &act, &oldact);
 
+    //Recording program's pid
+
+    ret = sgsInitControl("SGSmaster");
+    if(ret < 0)
+    {
+
+        printf("SGSmaster aborting\n");
+        return -1;
+
+    }
+
     if(!strcmp(argv[1], "--SmartCampus"))
     {
 
@@ -220,7 +231,7 @@ int main(int argc, char *argv[])
                     //Write log
 
                     memset(buf, '\0', sizeof(buf));
-                    snprintf(buf, sizeof(buf) - 1, "%s donw (%d), getting it back right now.\n", agentName[i], agentPid[i]);
+                    snprintf(buf, sizeof(buf) - 1, "%s is downed (%d), getting it back right now.\n", agentName[i], agentPid[i]);
                     AddToLogFile(logPath,buf);
 
                     //Reset agentPid
@@ -251,13 +262,14 @@ int main(int argc, char *argv[])
                 {
 
                     memset(buf, '\0', sizeof(buf));
-                    snprintf(buf, sizeof(buf) - 1, "%s donw (%d), getting it back right now.\n", agentName[i], agentPid[i]);
+                    snprintf(buf, sizeof(buf) - 1, "%s is alive and running (%d).\n", agentName[i], agentPid[i]);
                     AddToLogFile(logPath,buf);
 
                 }
 
             }
-            
+            CheckLogFileSize(logPath);
+
         }
 
     }
@@ -588,13 +600,40 @@ int InitChild(childProcessInfo *infoPtr, char *childPath, int key, char *name, i
 void ShutdownSystemByInput()
 {
 
-    int ret = 0, i = 0;
+    int ret = 0, i = 0, count = 10;
     char buf[MSGBUFFSIZE];
     FILE *ptr = NULL;
     childProcessInfo *infoPtr = cpInfo;
     printf("shutdown by input\n");//Not safe
 
 #ifdef SMARTCAMPUS
+
+    for(i = 0 ; i < 2 ; i++)
+    {
+
+        if(agentPid[i] != -1)
+        {
+
+            kill(agentPid[i], SIGUSR1);
+            count = 10;
+            do
+            {
+
+                ret = waitpid(agentPid[i], NULL, WNOHANG);
+                if(ret == 0)
+                {
+
+                    snprintf(buf, 32, "No child exited\n");//Not safe
+
+                }
+                count--;
+                sleep(1);
+
+            }while(ret == 0 && count > 0);
+
+        }
+
+    }
 
 #else
 

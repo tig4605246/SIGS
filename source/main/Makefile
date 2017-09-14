@@ -51,11 +51,11 @@ all:
 
 	#$(CC) -o ../../bin/$(PROG8) ../collector/$(PROG8).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c ../protocol/SGSmodbus.c -pthread -lm -lcurl #`pkg-config --cflags --libs libmodbus`
 
-	#$(CC) -o ../../bin/$(PROG9) ../uploader/$(PROG9).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c ../thirdparty/cJSON.c -pthread -lm -lcurl 
+	#$(CC) -o ../../bin/$(PROG9) ../uploader/$(PROG9).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c ../thirdparty/cJSON.c -pthread -lm `pkg-config --cflags --libs libcurl`
 
 	$(CC) -o ../../bin/aemdra_agent ../collector/$(PROG10).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c  ../thirdparty/cJSON.c  -pthread -lm  
 
-	$(CC) -o ../../bin/cpm_agent ../collector/$(PROG11).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c  ../thirdparty/cJSON.c -pthread -lm
+	$(CC) -o ../../bin/cpm70_agent ../collector/$(PROG11).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c  ../thirdparty/cJSON.c -pthread -lm
 
 
 #Below is testing functions

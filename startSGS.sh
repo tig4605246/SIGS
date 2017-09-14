@@ -2,26 +2,31 @@
 
 #set up directories and start up the SEG 
 
-SGSPATH=/home/SGS/SGS/
+SGSPATH=/home/kelier-nb/SGS/
+
+#The name for distinguishing every GW
+
+GWID=TestGateway
 
 case "$1" in
-   start)
 
- 	echo -n "Starting SGSmaster: \n"
-        cd ${SGSPATH}bin/
+  start)
 
-        ./cpm70_agent &
+    echo ${GWID}>/run/GW_ID
 
-        ./aemdra_agent &
+    echo -n "Starting cpm70 and aemdra agents: \n"
+          cd ${SGSPATH}bin/
+
+          ./SGSmaster --SmartCampus &
+
 
  	;;
 
-   stop)
+  stop)
 
- 	echo -n "Stoping SGSmaster: \n"
-        cpm70_PID=`cat ${SGSPATH}bin/pid/cpm70_agent.pid`
-        aemdra_PID=`cat ${SGSPATH}bin/pid/aemdra_agent.pid`
-        kill -15 ${cpm70_PID} ${aemdra_PID}
+    echo -n "Stoping cpm70 and aemdra agents: \n"
+          SGSmaster_PID=`cat ${SGSPATH}bin/pid/SGSmaster.pid`
+          kill -2 ${SGSmaster_PID}
          
 
  	;;

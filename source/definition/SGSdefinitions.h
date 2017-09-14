@@ -92,7 +92,7 @@ enum {EnumEventHandler = 1, EnumDataBuffer, EnumCollector, EnumUploader, EnumLog
 
 //Max process Log size
 
-#define MAXLOGSIZE 32000000
+#define MAXLOGSIZE 10000000
 
 //Max number for uploader children / collector children / buffer pool size 
 
