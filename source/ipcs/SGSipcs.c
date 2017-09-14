@@ -1001,7 +1001,7 @@ int sgsSendQueueMsg(int msgid, char *message, int msgtype )
 	ptr.mtype=(long)msgtype;
 
 	strncpy(ptr.mtext, message, sizeof(ptr.mtext) - 1 );
-	printf("ptr %ld %s\n",ptr.mtype,ptr.mtext);
+	printf("ptr.mtype %ld, ptr.mtext %s\n",ptr.mtype,ptr.mtext);
 
     //Send the message to the queue
 

@@ -31,7 +31,6 @@
 #include "../controlling/SGScontrol.h"
 #include "../protocol/SGSmodbus.h"
 
-#define SIMULATION
 
 int RegisterDataBuffer(char *infoName, int sharedMemoryId, int numberOfInfo);
 
@@ -183,7 +182,7 @@ int main(int argc, char *argv[])
 #endif
 
             //printf("show data\n");
-            //sgsShowDataInfo(dInfo);
+            sgsShowDataInfo(dInfo);
 
             time(&last);
             now = last;
@@ -227,13 +226,30 @@ int FetchAndUpdateInfoTable()
 
     dataInfo *tmpInfo = NULL;
     dataLog dLog;
-    int ret = -1, i = 0, j = 0, shift = 0, bitPos = 0;
-    char buf[5] = {0}, codeName = 'E', stringBuf[128];
-    unsigned char preCmd[8] = {0}, cmd[8] = {0}, res[64] = {0}, bit = 0x01;
-    unsigned int crc = 0;
+    int ret = -1, i = 0, j = 0, shift = 3;
+    char buf[5] = {0}, stringBuf[128];
+    unsigned char cmd[8] = {0}, bit = 0x01, response[1024] = {0x00};
+    unsigned short crc = 0;
     long long resultValue = 0;
 
-    
+    unsigned char getAll[8] = {0x01,0x04,0x10,0x00,0x00,0x23,0x00,0x00};
+
+    crc = sgsCaculateCRC(getAll, 6);
+
+    getAll[0x06] = (crc & 0xff00) >> 8;
+    getAll[0x07] = crc & 0x00ff;
+
+    ret = sgsSendModbusCommandRTU(getAll, 8, 330000, response);
+
+    if(ret < 0)
+    {
+
+        printf(LIGHT_RED"Read failed\n"NONE);
+
+    }
+
+    printf(LIGHT_GREEN"Hello Fetching\n"NONE);
+
     //Loop all info tags
 
     tmpInfo = dInfo ;
@@ -246,6 +262,8 @@ int FetchAndUpdateInfoTable()
 
         memset(&dLog, 0, sizeof(dLog));
         memset(stringBuf, 0, sizeof(stringBuf));
+
+        //The prasing process of Control needs to be fixed
 
         if(!strcmp(tmpInfo->deviceName, "ZKWZKS_Control"))
         {
@@ -262,26 +280,24 @@ int FetchAndUpdateInfoTable()
             {
 
                 dLog.valueType = STRING_VALUE;
-                ret = sgsSendModbusCommandRTU(tmpInfo->modbusInfo.cmd, 8, 330000, tmpInfo->modbusInfo.response);
 
                 //Put raw things in, because I don't know how to parse it
 
-                for(j = 0 ; j < tmpInfo->modbusInfo.response[2] ; j++)
+                for(j = 0 ; j < 2; j++)
                 {
 
-                    snprintf(stringBuf, sizeof(stringBuf) -1, "%u ", tmpInfo->modbusInfo.response[j+3]);
+                    snprintf(stringBuf, sizeof(stringBuf) -1, "%u ", response[shift + j]);
 
                 }
+                shift += j;
                 sgsWriteSharedMemory(tmpInfo, &dLog);
 
             }
 
         }
-        else if(!strcmp(tmpInfo->valueName, "ZKWZKS_Info"))
+        else if(!strcmp(tmpInfo->deviceName, "ZKWZKS_Info"))
         {
 
-            
-            ret = sgsSendModbusCommandRTU(tmpInfo->modbusInfo.cmd, 8, 330000, tmpInfo->modbusInfo.response);
             if(ret == -1 )
             {
 
@@ -308,10 +324,11 @@ int FetchAndUpdateInfoTable()
                     for(j = 0; j < 4 ; j++)
                     {
 
-                        resultValue = tmpInfo->modbusInfo.response[j + 3];
+                        resultValue = response[shift + j];
                         dLog.value.ll  += resultValue * pow(256, 3 - j);
                         
                     }
+                    shift += j;
                     sgsWriteSharedMemory(tmpInfo, &dLog);
 
                 }
@@ -322,10 +339,11 @@ int FetchAndUpdateInfoTable()
                     for(j = 0; j < 4 ; j++)
                     {
 
-                        resultValue = tmpInfo->modbusInfo.response[j + 3];
+                        resultValue = response[shift + j];
                         dLog.value.ll  += resultValue * pow(256, 3 - j);
                         
                     }
+                    shift += j;
                     sgsWriteSharedMemory(tmpInfo, &dLog);
 
                 }
@@ -336,10 +354,11 @@ int FetchAndUpdateInfoTable()
                     for(j = 0; j < 4 ; j++)
                     {
 
-                        resultValue = tmpInfo->modbusInfo.response[j + 3];
+                        resultValue = response[shift + j];
                         dLog.value.ll  += resultValue * pow(256, 3 - j);
                         
                     }
+                    shift += j;
                     sgsWriteSharedMemory(tmpInfo, &dLog);
 
                 }
@@ -347,7 +366,8 @@ int FetchAndUpdateInfoTable()
                 {
 
                     dLog.valueType = INTEGER_VALUE;
-                    dLog.value.i = tmpInfo->modbusInfo.response[3];
+                    dLog.value.i = response[shift];
+                    shift++;
                     sgsWriteSharedMemory(tmpInfo, &dLog);
 
                 }
@@ -355,7 +375,8 @@ int FetchAndUpdateInfoTable()
                 {
 
                     dLog.valueType = INTEGER_VALUE;
-                    dLog.value.i = tmpInfo->modbusInfo.response[4];
+                    dLog.value.i = response[shift];
+                    shift++;
                     sgsWriteSharedMemory(tmpInfo, &dLog);
 
                 }
@@ -363,7 +384,8 @@ int FetchAndUpdateInfoTable()
                 {
 
                     dLog.valueType = INTEGER_VALUE;
-                    dLog.value.i = tmpInfo->modbusInfo.response[3];
+                    dLog.value.i = response[shift];
+                    shift++;
                     sgsWriteSharedMemory(tmpInfo, &dLog);
 
                 }
@@ -371,7 +393,8 @@ int FetchAndUpdateInfoTable()
                 {
 
                     dLog.valueType = INTEGER_VALUE;
-                    dLog.value.i = tmpInfo->modbusInfo.response[4];
+                    dLog.value.i = response[shift];
+                    shift++;
                     sgsWriteSharedMemory(tmpInfo, &dLog);
 
                 }
@@ -379,7 +402,8 @@ int FetchAndUpdateInfoTable()
                 {
 
                     dLog.valueType = INTEGER_VALUE;
-                    dLog.value.i = tmpInfo->modbusInfo.response[3];
+                    dLog.value.i = response[shift];
+                    shift++;
                     sgsWriteSharedMemory(tmpInfo, &dLog);
 
                 }
@@ -387,7 +411,8 @@ int FetchAndUpdateInfoTable()
                 {
 
                     dLog.valueType = INTEGER_VALUE;
-                    dLog.value.i = tmpInfo->modbusInfo.response[4];
+                    dLog.value.i = response[shift];
+                    shift++;
                     sgsWriteSharedMemory(tmpInfo, &dLog);
 
                 }
@@ -395,7 +420,8 @@ int FetchAndUpdateInfoTable()
                 {
 
                     dLog.valueType = INTEGER_VALUE;
-                    dLog.value.i = tmpInfo->modbusInfo.response[3];
+                    dLog.value.i = response[shift];
+                    shift++;
                     sgsWriteSharedMemory(tmpInfo, &dLog);
 
                 }
@@ -406,10 +432,11 @@ int FetchAndUpdateInfoTable()
                     for(j = 0; j < 2 ; j++)
                     {
 
-                        resultValue = tmpInfo->modbusInfo.response[j + 3];
+                        resultValue = response[shift + j];
                         dLog.value.ll  += resultValue * pow(256, 1 - j);
                         
                     }
+                    shift += j;
                     sgsWriteSharedMemory(tmpInfo, &dLog);
 
                 }
@@ -687,7 +714,7 @@ int OpenPorts()
 
     int i = 0;
 
-    for(i = 0 ; i < 2 ; i++)
+    for(i = 0 ; i < 1 ; i++)
     {
 
         iTable[i].fd =  sgsSetupModbusRTU(iTable[i].portPath, iTable[i].portParam);
