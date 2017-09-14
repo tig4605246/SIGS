@@ -228,8 +228,10 @@ int CheckLogFileSize(char *filePath)
     if(ret == -1)
     {
 
-        printf("No log file detected\n");
-        return -1;
+        fp = fopen(filePath,"w");
+        fprintf(fp,"No log file detected. Create one here\n");
+        fclose(fp);
+        return 0;
 
     }
 

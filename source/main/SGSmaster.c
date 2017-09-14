@@ -20,12 +20,15 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 
 //We declare own libraries at below
 
 #include "../ipcs/SGSipcs.h"
 #include "../events/SGSEvent.h"
 #include "../controlling/SGScontrol.h"
+
+#define SMARTCAMPUS
 
 //This structure is used for storing child process info
 
@@ -79,6 +82,10 @@ void ShutdownSystemByInput();
 
 int ReportToServer();
 
+int AddToLogFile(char *filePath, char *log);
+
+int CheckLogFileSize(char *filePath);
+
 childProcessInfo cpInfo[5]; //  All info about sub-masters are here, be caredul with it
 
 int sgsMasterId         = -1;       //  SGSmaster's queue id
@@ -89,6 +96,11 @@ int collectorAgentMsgId = -1;       //  collectorAgent's queue id
 
 int uploadAgentMsgId    = -1;       //  uploadAgentAgent's queue id
 
+/* Only for smart campus */
+#ifdef SMARTCAMPUS 
+pid_t agentPid[2] = {-1};
+#endif
+
 int main(int argc, char *argv[])
 {
 
@@ -97,6 +109,11 @@ int main(int argc, char *argv[])
     char buf[MSGBUFFSIZE];                      //  buffer used to catch queue message
     char *msgType = NULL, *msgContent = NULL;   //  for process messages
     struct sigaction act, oldact;               //  for sigaction
+    /* Only for smart campus */ 
+    struct stat st;
+    char agentName[2][64] = {{"./cpm70_agent"}, {"./aemdra_agent"}};
+    FILE *fp = NULL;
+    char logPath[32] = {"/var/log/SGSmasterLog"};
 
     //Help
 
@@ -105,9 +122,9 @@ int main(int argc, char *argv[])
 
         printf("Usage: SGSmaster [options]\n");
         printf("Options:\n");
-        printf("  -m     manual mode\n");
-        printf("  -a     auto mode\n");
-        printf("  -p     show default config path\n");
+        printf("  -m     Manual mode (Under maintainence)\n");
+        printf("  -a     Auto mode\n");
+        printf("  -p     Show default config path\n");
         exit(0);
 
     }
@@ -119,8 +136,141 @@ int main(int argc, char *argv[])
         printf("mail address: ~/mail/CC, ~/mail/FROM, ~/mail/TO\n");
         printf("processs' pid: ~/pid/\n");
         printf("Logs: ~/log/");
+        exit(0);
 
     }
+
+#ifdef SMARTCAMPUS
+
+    //Version Info
+
+    AddToLogFile(logPath, "Starting SGSmaster in smart campus mode\n");
+
+    memset(buf, 0, sizeof(buf));
+    snprintf(buf, sizeof(buf) -1, "agentNameList: \n%s\n%s\n", agentName[0], agentName[1]);
+
+    AddToLogFile(logPath, buf);
+
+    //Set signal action
+
+    act.sa_handler = (__sighandler_t)ShutdownSystemByInput;
+    act.sa_flags = SA_ONESHOT|SA_NOMASK;
+    sigaction(SIGINT, &act, &oldact);
+
+    if(!strcmp(argv[1], "--SmartCampus"))
+    {
+
+        //Check existence of agent files
+
+        for(i = 0 ; i < 2 ; i++)
+        {
+
+            ret = stat(agentName[i], &st);
+            if(ret == -1)
+            {
+
+                memset(buf, 0, sizeof(buf));
+                snprintf(buf, sizeof(buf) -1, "%s not found, SGSmaster is leaving. \n", agentName[i]);
+                AddToLogFile(logPath,buf);
+                exit(0);
+
+            }
+
+        }
+        
+        //Fork cpm and aem
+
+        for(i = 0 ; i < 2 ; i++)
+        {
+
+            agentPid[i] = fork();
+            
+            if(agentPid[i] == -1)
+            {
+        
+                printf("fork error,return -1");
+                return -1;
+            
+            }
+            if(agentPid[i] == 0)
+            {
+        
+                execlp(agentName[i],agentName[i],NULL);
+                perror("fork()");
+                exit(0);
+        
+            }
+
+        }
+        
+        //while int the loop check they are alive or not
+
+        while(1)
+        {
+
+            sleep(30);
+            for(i = 0 ; i < 2 ; i++)
+            {
+
+                ret = waitpid(agentPid[i], NULL, WNOHANG);
+                // ret != 0 means someone quit
+                if(ret > 0)
+                {
+    
+                    //Write log
+
+                    memset(buf, '\0', sizeof(buf));
+                    snprintf(buf, sizeof(buf) - 1, "%s donw (%d), getting it back right now.\n", agentName[i], agentPid[i]);
+                    AddToLogFile(logPath,buf);
+
+                    //Reset agentPid
+
+                    agentPid[i] = -1;
+
+                    //Try to restart agent
+
+                    agentPid[i] = fork();
+                    
+                    if(agentPid[i] == -1)
+                    {
+                
+                        printf("fork error,return -1");
+                    
+                    }
+                    if(agentPid[i] == 0)
+                    {
+                
+                        execlp(agentName[i],agentName[i],NULL);
+                        perror("fork()");
+                        exit(0);
+                
+                    }
+
+                }
+                else if(ret == 0) //Nothing happens to the agent
+                {
+
+                    memset(buf, '\0', sizeof(buf));
+                    snprintf(buf, sizeof(buf) - 1, "%s donw (%d), getting it back right now.\n", agentName[i], agentPid[i]);
+                    AddToLogFile(logPath,buf);
+
+                }
+
+            }
+            
+        }
+
+    }
+    else
+    {
+
+        AddToLogFile(logPath, "SGSmaster is currently in SmartCampus mode. Only --SmartCampus is available\n");
+        exit(0);
+
+    }
+
+#else
+
 
     //Initialize cpInfo
 
@@ -213,7 +363,7 @@ int main(int argc, char *argv[])
         ShutdownSystemByInput();
 
     }
-    //ret = InitChild(&(cpInfo[4]), LOGGER_PATH, LOGGER_KEY, "Logger", EnumLogger);
+    ret = InitChild(&(cpInfo[4]), LOGGER_PATH, LOGGER_KEY, "Logger", EnumLogger);
     if(ret == -1)
     {
 
@@ -337,6 +487,8 @@ int main(int argc, char *argv[])
 
     }
   
+#endif
+
     return 0;
 
 }
@@ -442,7 +594,9 @@ void ShutdownSystemByInput()
     childProcessInfo *infoPtr = cpInfo;
     printf("shutdown by input\n");//Not safe
 
+#ifdef SMARTCAMPUS
 
+#else
 
     for(i = 0 ; i < 5 ; i++)
     {
@@ -507,6 +661,8 @@ void ShutdownSystemByInput()
     //upload agent queue id
 
     ret = sgsDeleteMsgQueue(sgsMasterId);
+
+#endif
 
     printf("Master Leaving...\n");
 
@@ -675,5 +831,60 @@ void CheckChildAlive()
         */
         
     }
+
+}
+
+int AddToLogFile(char *filePath, char *log)
+{
+
+    FILE *fp = NULL;
+    time_t t = time(NULL);
+    DATETIME timeStruct  = *localtime(&t);
+
+    fp = fopen(filePath,"a");
+
+    if(fp == NULL)
+    {
+
+        printf("Failed to open the log file %s \n",filePath);
+        return -1;
+
+    }
+
+    fprintf(fp,"[%04d-%02d-%02d %02d:%02d:%02d],%s\n"
+        , timeStruct.tm_year + 1900, timeStruct.tm_mon + 1, timeStruct.tm_mday, timeStruct.tm_hour, timeStruct.tm_min, timeStruct.tm_sec, log);
+
+    fclose(fp);
+    return 0;
+
+}
+
+int CheckLogFileSize(char *filePath)
+{
+
+    struct stat st;
+    FILE *fp = NULL;
+    int ret = -1;
+    
+    ret = stat(filePath, &st);
+
+    if(ret == -1)
+    {
+
+        fp = fopen(filePath,"w");
+        fprintf(fp,"No log file detected. Create one here\n");
+        fclose(fp);
+        return 0;
+
+    }
+
+    if(st.st_size > MAXLOGSIZE)
+    {
+
+        fp = fopen(filePath,"w");
+        fclose(fp);
+
+    }
+    return 0;
 
 }
