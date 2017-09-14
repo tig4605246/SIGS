@@ -84,6 +84,8 @@ int AddToLogFile(char *filePath, char *log);
 
 int CheckLogFileSize(char *filePath);
 
+int CheckDuplicateByTime(char *ID, char *time);
+
 //Post definitions for max length
 
 #define SA      struct sockaddr
@@ -117,6 +119,15 @@ char gwId[64] = {0};
 
 char *logPath = "/var/log/cpm70_agentLog";
 
+struct MeterList
+{
+
+    char meterId[64];
+    char prevTime[64];
+    int available;
+
+};
+typedef struct MeterList meterList;
 
 int main(int argc, char *argv[])
 {
@@ -157,7 +168,7 @@ int main(int argc, char *argv[])
     else
     {
 
-        snprintf(gwId, sizeof(gwId) - 1, "There's no gw id at /run/GW_ID");
+        snprintf(gwId, sizeof(gwId) - 1, "[%s,%d]There's no gw id at /run/GW_ID", __FUNCTION__, __LINE__);
         AddToLogFile(logPath, gwId);
 
     }
@@ -168,7 +179,7 @@ int main(int argc, char *argv[])
         //printf("GOGO\n");
         ret = getInfoToJSONAndUpload(buf);
 
-        snprintf(buf, sizeof(buf) - 1, "Upload function return %d\n",ret);
+        snprintf(buf, sizeof(buf) - 1, "[%s,%d]Upload function return %d\n", __FUNCTION__, __LINE__, ret);
         AddToLogFile(logPath, buf);
         CheckLogFileSize(logPath);
 
@@ -196,8 +207,6 @@ int getInfoToJSONAndUpload(char *useless)
     char buf[BUFLEN] = {0};
     char buff[1024];
 
-    static char lastTime[64] = {0};
-
     cJSON *root, *row; 
     cJSON *field;
 
@@ -212,7 +221,7 @@ int getInfoToJSONAndUpload(char *useless)
 
     fpRead = popen(cmd,"r");
 
-    printf("%s\n",cmd);
+    //printf("%s\n",cmd);
 
     memset(buf,'\0',sizeof(buf));
 
@@ -220,14 +229,15 @@ int getInfoToJSONAndUpload(char *useless)
 
     fgets(buf, BUFLEN , fpRead);
 
-    printf("buf is %s\n",buf);
+    //printf("buf is %s\n",buf);
+
     //if it's not ok, skip this time
 
     if(strstr(buf,"ok") == NULL)
     {
 
         //Should return -1 here
-        snprintf(buff, sizeof(buff) - 1, "AAEON agent return not ok:\n%s\n",buf);
+        snprintf(buff, sizeof(buff) - 1, "[%s,%d]AAEON agent return not ok:\n%s\n", __FUNCTION__, __LINE__,buf);
         AddToLogFile(logPath, buff);
         return -1;
 
@@ -291,7 +301,6 @@ int getInfoToJSONAndUpload(char *useless)
                     }
 
                 }
-                //printf("i = %d\n",i);//debugging
 
                 raw[i+1] = strchr(raw[i],';');
 
@@ -304,25 +313,20 @@ int getInfoToJSONAndUpload(char *useless)
                 if(i == 1)//Check Duplicate data
                 {
 
-                    snprintf(buff, sizeof(buff) - 1, "raw[%d] %s, lastTime %s\n", i, raw[i], lastTime);
+                    
+                    snprintf(buff, sizeof(buff) - 1, "[%s,%d]raw[%d] %s\n", __FUNCTION__, __LINE__, i-1, raw[i-1]);
                     AddToLogFile(logPath, buff);
 
-                    if(!strcmp(raw[i], lastTime))
+                    // if ret == -1, it means the data is duplicated. We should skip this data
+
+                    ret = CheckDuplicateByTime(buf, raw[i-1]);
+                    if(ret == -1)
                     {
 
-                        snprintf(buff, sizeof(buff) - 1, "Duplicate time %s\n",lastTime);
-                        AddToLogFile(logPath, buff);
-                        cJSON_Delete(root);
-                        return 0;
+                        numberOfDevices--;
+                        continue;
 
-                    }
-                    else
-                    {
-
-                        memset(lastTime, 0, sizeof(lastTime));
-                        snprintf(lastTime, sizeof(lastTime) -1, "%s", raw[i]);
-
-                    }
+                    } 
                     
                 }
 
@@ -734,5 +738,64 @@ int CheckLogFileSize(char *filePath)
 
     }
     return 0;
+
+}
+
+int CheckDuplicateByTime(char *ID, char *time)
+{
+
+    static meterList mList[100];
+    static int init = 0;
+    int i = 0;
+    char buf[256] = {0};
+
+    if(init == 0)
+    {
+
+        memset(mList, 0, 100 * sizeof(meterList));
+        init = 1;
+
+    }
+
+    while( i < 100)
+    {
+
+        if(mList[i].available == 0)
+        {
+
+            strncpy(mList[i].meterId, ID, sizeof(mList[i].meterId) - 1);
+            strncpy(mList[i].prevTime, time, sizeof(mList[i].prevTime) - 1);
+            mList[i].available = 1;
+            return 0;
+
+        }
+        else
+        {
+
+            if(!strcmp(mList[i].meterId, ID))
+            {
+
+                if(!strcmp(mList[i].prevTime, time))
+                {
+
+                    snprintf(buf, sizeof(buf) -1, "[%s,%d]%s is duplicated (%s)\n", __FUNCTION__, __LINE__, ID, time);
+                    AddToLogFile(logPath, buf);
+                    return -1;
+
+                }
+                else
+                {
+
+                    strncpy(mList[i].prevTime, time, sizeof(mList[i].prevTime) - 1);
+                    return 0;
+
+                }
+
+            }
+
+        }
+        i++;
+
+    }
 
 }

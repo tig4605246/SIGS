@@ -84,6 +84,8 @@ int AddToLogFile(char *filePath, char *log);
 
 int CheckLogFileSize(char *filePath);
 
+int CheckDuplicateByTime(char *ID, char *time);
+
 //Post definitions for max length
 
 #define SA      struct sockaddr
@@ -116,6 +118,16 @@ char *page = "/aemdra/gw/test";
 char gwId[64] = {0};
 
 char *logPath = "/var/log/aemdra_agentLog";
+
+struct MeterList
+{
+
+    char meterId[64];
+    char prevTime[64];
+    int available;
+
+};
+typedef struct MeterList meterList;
 
 
 int main(int argc, char *argv[])
@@ -224,7 +236,7 @@ int getInfoToJSONAndUpload(char *useless)
     {
 
         //Should return -1 here
-        snprintf(buff, sizeof(buff) - 1, "AAEON agent return not ok:\n%s\n",buf);
+        snprintf(buff, sizeof(buff) - 1, "[%s,%d]AAEON agent return not ok:\n%s\n", __FUNCTION__, __LINE__, buf);
         AddToLogFile(logPath, buff);
         return -1;
 
@@ -296,25 +308,24 @@ int getInfoToJSONAndUpload(char *useless)
                     raw[i+1]++;
                 }
                 
-                if(i == 1)
+                if(i == 1)//Check Duplicate data
                 {
 
-                    if(!strcmp(raw[i], lastTime))
+                    
+                    snprintf(buff, sizeof(buff) - 1, "[%s,%d]raw[%d] %s\n", __FUNCTION__, __LINE__, i-1, raw[i-1]);
+                    AddToLogFile(logPath, buff);
+
+                    // if ret == -1, it means the data is duplicated. We should skip this data
+
+                    ret = CheckDuplicateByTime(buf, raw[i-1]);
+                    if(ret == -1)
                     {
 
-                        snprintf(buff, sizeof(buff) - 1, "Duplicate time %s\n",lastTime);
-                        AddToLogFile(logPath, buff);
-                        return 0;
+                        numberOfDevices--;
+                        continue;
 
-                    }
-                    else
-                    {
-
-                        memset(lastTime, 0, sizeof(lastTime));
-                        snprintf(lastTime, sizeof(lastTime) -1, "%s", raw[i]);
-
-                    }
-
+                    } 
+                    
                 }
 
             } 
@@ -736,5 +747,64 @@ int CheckLogFileSize(char *filePath)
 
     }
     return 0;
+
+}
+
+int CheckDuplicateByTime(char *ID, char *time)
+{
+
+    static meterList mList[100];
+    static int init = 0;
+    int i = 0;
+    char buf[256] = {0};
+
+    if(init == 0)
+    {
+
+        memset(mList, 0, 100 * sizeof(meterList));
+        init = 1;
+
+    }
+
+    while( i < 100)
+    {
+
+        if(mList[i].available == 0)
+        {
+
+            strncpy(mList[i].meterId, ID, sizeof(mList[i].meterId) - 1);
+            strncpy(mList[i].prevTime, time, sizeof(mList[i].prevTime) - 1);
+            mList[i].available = 1;
+            return 0;
+
+        }
+        else
+        {
+
+            if(!strcmp(mList[i].meterId, ID))
+            {
+
+                if(!strcmp(mList[i].prevTime, time))
+                {
+
+                    snprintf(buf, sizeof(buf) -1, "[%s,%d]%s is duplicated (%s)\n", __FUNCTION__, __LINE__, ID, time);
+                    AddToLogFile(logPath, buf);
+                    return -1;
+
+                }
+                else
+                {
+
+                    strncpy(mList[i].prevTime, time, sizeof(mList[i].prevTime) - 1);
+                    return 0;
+
+                }
+
+            }
+
+        }
+        i++;
+
+    }
 
 }

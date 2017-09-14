@@ -163,7 +163,9 @@ int main(int argc, char *argv[])
     if(ret < 0)
     {
 
-        printf("SGSmaster aborting\n");
+        memset(buf, '\0', sizeof(buf));
+        snprintf(buf, sizeof(buf) - 1, "[%s,%d]SGSmaster aborting\n", __FUNCTION__, __LINE__);
+        AddToLogFile(logPath,buf);
         return -1;
 
     }
@@ -181,7 +183,7 @@ int main(int argc, char *argv[])
             {
 
                 memset(buf, 0, sizeof(buf));
-                snprintf(buf, sizeof(buf) -1, "%s not found, SGSmaster is leaving. \n", agentName[i]);
+                snprintf(buf, sizeof(buf) -1, "[%s,%d]%s not found, SGSmaster is leaving. \n", __FUNCTION__, __LINE__);
                 AddToLogFile(logPath,buf);
                 exit(0);
 
@@ -199,8 +201,9 @@ int main(int argc, char *argv[])
             if(agentPid[i] == -1)
             {
         
-                printf("fork error,return -1");
-                return -1;
+                memset(buf, '\0', sizeof(buf));
+                snprintf(buf, sizeof(buf) - 1, "[%s,%d]Init fork error, will Retry at next loop", __FUNCTION__, __LINE__);
+                AddToLogFile(logPath,buf);
             
             }
             if(agentPid[i] == 0)
@@ -231,7 +234,7 @@ int main(int argc, char *argv[])
                     //Write log
 
                     memset(buf, '\0', sizeof(buf));
-                    snprintf(buf, sizeof(buf) - 1, "%s is downed (%d), getting it back right now.\n", agentName[i], agentPid[i]);
+                    snprintf(buf, sizeof(buf) - 1, "[%s,%d]%s is downed (%d), getting it back right now.\n", __FUNCTION__, __LINE__, agentName[i], agentPid[i]);
                     AddToLogFile(logPath,buf);
 
                     //Reset agentPid
@@ -245,7 +248,9 @@ int main(int argc, char *argv[])
                     if(agentPid[i] == -1)
                     {
                 
-                        printf("fork error,return -1");
+                        memset(buf, '\0', sizeof(buf));
+                        snprintf(buf, sizeof(buf) - 1, "[%s,%d]fork error,return -1, retry at next loop", __FUNCTION__, __LINE__);
+                        AddToLogFile(logPath,buf);
                     
                     }
                     if(agentPid[i] == 0)
@@ -262,7 +267,7 @@ int main(int argc, char *argv[])
                 {
 
                     memset(buf, '\0', sizeof(buf));
-                    snprintf(buf, sizeof(buf) - 1, "%s is alive and running (%d).\n", agentName[i], agentPid[i]);
+                    snprintf(buf, sizeof(buf) - 1, "[%s,%d]%s is alive and running (%d).\n", __FUNCTION__, __LINE__, agentName[i], agentPid[i]);
                     AddToLogFile(logPath,buf);
 
                 }
