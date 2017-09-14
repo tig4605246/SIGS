@@ -41,7 +41,6 @@
 
 //We declare our own libraries at below
 
-#include "../ipcs/SGSipcs.h"
 #include "../events/SGSEvent.h"
 #include "../controlling/SGScontrol.h"
 #include "../thirdparty/cJSON.h" // cJSON.c -lm
