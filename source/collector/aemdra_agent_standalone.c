@@ -789,7 +789,7 @@ int CheckDuplicateByTime(char *ID, char *time, char *blockId)
                 if(!strcmp(mList[i].prevTime, time))
                 {
 
-                    snprintf(buf, sizeof(buf) -1, "[%s,%d]%s is duplicated (%s)\n", __FUNCTION__, __LINE__, ID, time);
+                    snprintf(buf, sizeof(buf) -1, "[%s,%d]%s %s is duplicated (%s)\n", __FUNCTION__, __LINE__, ID, blocdId, time);
                     AddToLogFile(logPath, buf);
                     return -1;
 
@@ -808,5 +808,6 @@ int CheckDuplicateByTime(char *ID, char *time, char *blockId)
         i++;
 
     }
+    return 0;
 
 }

@@ -401,6 +401,9 @@ int getInfoToJSONAndUpload(char *useless)
 
     output = cJSON_PrintUnformatted(root);
 
+    snprintf(buff, sizeof(buff) - 1, "[%s,%d]JSON Raw:\n%s\n", __FUNCTION__, __LINE__, output);
+    AddToLogFile(logPath, buff);
+
     //format = cJSON_Print(root);
 
     ret = process_http(output);
