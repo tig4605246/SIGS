@@ -84,7 +84,7 @@ int AddToLogFile(char *filePath, char *log);
 
 int CheckLogFileSize(char *filePath);
 
-int CheckDuplicateByTime(char *ID, char *time);
+int CheckDuplicateByTime(char *ID, char *time, char *blockId);
 
 //Post definitions for max length
 
@@ -123,6 +123,7 @@ struct MeterList
 {
 
     char meterId[64];
+    char blockId[64];
     char prevTime[64];
     int available;
 
@@ -308,7 +309,7 @@ int getInfoToJSONAndUpload(char *useless)
                     raw[i+1]++;
                 }
                 
-                if(i == 1)//Check Duplicate data
+                if(i == 2)//Check Duplicate data
                 {
 
                     
@@ -317,7 +318,7 @@ int getInfoToJSONAndUpload(char *useless)
 
                     // if ret == -1, it means the data is duplicated. We should skip this data
 
-                    ret = CheckDuplicateByTime(buf, raw[i-1]);
+                    ret = CheckDuplicateByTime(buf, raw[i-2], raw[i-1]);
                     if(ret == -1)
                     {
 
@@ -750,7 +751,7 @@ int CheckLogFileSize(char *filePath)
 
 }
 
-int CheckDuplicateByTime(char *ID, char *time)
+int CheckDuplicateByTime(char *ID, char *time, char *blockId)
 {
 
     static meterList mList[100];
@@ -774,6 +775,7 @@ int CheckDuplicateByTime(char *ID, char *time)
 
             strncpy(mList[i].meterId, ID, sizeof(mList[i].meterId) - 1);
             strncpy(mList[i].prevTime, time, sizeof(mList[i].prevTime) - 1);
+            strncpy(mList[i].blockId, blockId, sizeof(mList[i].prevTime) - 1);
             mList[i].available = 1;
             return 0;
 
@@ -781,7 +783,7 @@ int CheckDuplicateByTime(char *ID, char *time)
         else
         {
 
-            if(!strcmp(mList[i].meterId, ID))
+            if(!strcmp(mList[i].meterId, ID) && !strcmp(mList[i].blockId, blockId))
             {
 
                 if(!strcmp(mList[i].prevTime, time))

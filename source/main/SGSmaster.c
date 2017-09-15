@@ -183,7 +183,7 @@ int main(int argc, char *argv[])
             {
 
                 memset(buf, 0, sizeof(buf));
-                snprintf(buf, sizeof(buf) -1, "[%s,%d]%s not found, SGSmaster is leaving. \n", __FUNCTION__, __LINE__);
+                snprintf(buf, sizeof(buf) -1, "[%s,%d]%s not found, SGSmaster is leaving. \n", __FUNCTION__, __LINE__, agentName[i]);
                 AddToLogFile(logPath,buf);
                 exit(0);
 

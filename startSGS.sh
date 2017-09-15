@@ -2,7 +2,7 @@
 
 #set up directories and start up the SEG 
 
-SGSPATH=/home/kelier-nb/SGS/
+SGSPATH=/home/ntust/SIGS/
 
 #The name for distinguishing every GW
 
