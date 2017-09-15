@@ -775,7 +775,7 @@ int CheckDuplicateByTime(char *ID, char *time, char *blockId)
 
             strncpy(mList[i].meterId, ID, sizeof(mList[i].meterId) - 1);
             strncpy(mList[i].prevTime, time, sizeof(mList[i].prevTime) - 1);
-            strncpy(mList[i].blockId, blockId, sizeof(mList[i].prevTime) - 1);
+            strncpy(mList[i].blockId, blockId, sizeof(mList[i].blockId) - 1);
             mList[i].available = 1;
             return 0;
 
@@ -789,7 +789,7 @@ int CheckDuplicateByTime(char *ID, char *time, char *blockId)
                 if(!strcmp(mList[i].prevTime, time))
                 {
 
-                    snprintf(buf, sizeof(buf) -1, "[%s,%d]%s %s is duplicated (%s)\n", __FUNCTION__, __LINE__, ID, blocdId, time);
+                    snprintf(buf, sizeof(buf) -1, "[%s,%d]%s %s is duplicated (%s)\n", __FUNCTION__, __LINE__, ID, blockId, time);
                     AddToLogFile(logPath, buf);
                     return -1;
 
