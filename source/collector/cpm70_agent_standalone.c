@@ -261,10 +261,6 @@ int getInfoToJSONAndUpload(char *useless)
     while((numberOfDevices) > 0)
     {
 
-        //Create an object inside the "rows"
-
-        cJSON_AddItemToArray(row, field=cJSON_CreateObject());
-
         //Initialize char pointer array
 
         for(i = 0 ; i < 33 ; i++)
@@ -339,6 +335,10 @@ int getInfoToJSONAndUpload(char *useless)
             }
 
             //Insert data here
+
+            //Create an object inside the "rows"
+
+            cJSON_AddItemToArray(row, field=cJSON_CreateObject());
 
             i = 0;
 
