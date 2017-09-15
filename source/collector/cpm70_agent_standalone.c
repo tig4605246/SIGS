@@ -287,6 +287,7 @@ int getInfoToJSONAndUpload(char *useless)
         if(strlen(buf) != 0)
         {
             
+            ret = 0;
             for(i = 0 ; i < 30 ; i++)
             {
 
@@ -324,13 +325,18 @@ int getInfoToJSONAndUpload(char *useless)
                     {
 
                         numberOfDevices--;
-                        continue;
+                        break;
 
                     } 
                     
                 }
 
             } 
+
+            if(ret == -1)
+            {
+                continue;
+            }
 
             //Insert data here
 
