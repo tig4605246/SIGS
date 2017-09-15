@@ -259,9 +259,7 @@ int getInfoToJSONAndUpload(char *useless)
     while((numberOfDevices) > 0)
     {
 
-        //Create an object inside the "rows"
-
-        cJSON_AddItemToArray(row, field=cJSON_CreateObject());
+        
 
         //Initialize char pointer array
 
@@ -284,6 +282,12 @@ int getInfoToJSONAndUpload(char *useless)
 
         if(strlen(buf) != 0)
         {
+
+            //Create an object inside the "rows"
+
+            cJSON_AddItemToArray(row, field=cJSON_CreateObject());
+
+            cJSON_AddStringToObject(field,"GWID",gwId);//Add GWID to object first
             
             for(i = 0 ; i < 40 ; i++)
             {
@@ -323,13 +327,18 @@ int getInfoToJSONAndUpload(char *useless)
                     {
 
                         numberOfDevices--;
-                        continue;
+                        break;
 
                     } 
                     
                 }
 
             } 
+
+            if(ret == -1)
+            {
+                continue;
+            }
 
             //Insert data here
 
@@ -338,7 +347,6 @@ int getInfoToJSONAndUpload(char *useless)
             if(1)
             {
 
-                cJSON_AddStringToObject(field,"GWID",gwId);
                 cJSON_AddStringToObject(field,"devID",buf);
 
                 cJSON_AddStringToObject(field,"lastReportTime",raw[i++]);
