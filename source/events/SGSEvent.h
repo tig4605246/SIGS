@@ -37,7 +37,9 @@
 
 #ifndef LIB_CURL
 
-#define LIB_CURL
+#define NO_CURL
+
+//#define LIB_CURL
 
 #endif
 
