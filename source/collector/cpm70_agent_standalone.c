@@ -94,7 +94,7 @@ int CheckDuplicateByTime(char *ID, char *time);
 
 //Upload interval
 
-int upload_interval = 5;
+int upload_interval = 30;
 
 //I don't know what this is for
 
