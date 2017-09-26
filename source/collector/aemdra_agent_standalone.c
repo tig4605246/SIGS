@@ -313,7 +313,7 @@ int getInfoToJSONAndUpload(char *useless)
                     raw[i+1]++;
                 }
                 
-                if(i == 2)//Check Duplicate data
+                if(0)//if(i == 2)//Check Duplicate data
                 {
 
                     
