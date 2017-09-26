@@ -2,7 +2,7 @@
 
     Name: Xi-Ping Xu
     Date: March 1,2017
-    Last Update: July 15,2017
+    Last Update: September 26,2017
     Program statement: 
         Main master, Receive commands from server and issue controlling messages to all sub masters
 

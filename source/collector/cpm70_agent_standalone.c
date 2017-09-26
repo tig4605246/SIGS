@@ -350,40 +350,40 @@ int getInfoToJSONAndUpload(char *useless)
                 cJSON_AddStringToObject(field,"devID",buf);
 
                 cJSON_AddStringToObject(field,"lastReportTime",raw[i++]);
-                cJSON_AddStringToObject(field,"wire",raw[i++]);
-                cJSON_AddStringToObject(field,"freq",raw[i++]);
-                cJSON_AddStringToObject(field,"ua",raw[i++]);
-                cJSON_AddStringToObject(field,"ub",raw[i++]);
+                cJSON_AddNumberToObject(field,"wire",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"freq",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"ua",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"ub",atof(raw[i++]));
 
-                cJSON_AddStringToObject(field,"uc",raw[i++]);
-                cJSON_AddStringToObject(field,"u_avg",raw[i++]);
-                cJSON_AddStringToObject(field,"uab",raw[i++]);
-                cJSON_AddStringToObject(field,"ubc",raw[i++]);
-                cJSON_AddStringToObject(field,"uca",raw[i++]);
+                cJSON_AddNumberToObject(field,"uc",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"u_avg",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"uab",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"ubc",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"uca",atof(raw[i++]));
 
-                cJSON_AddStringToObject(field,"uln_avg",raw[i++]);
-                cJSON_AddStringToObject(field,"ia",raw[i++]);
-                cJSON_AddStringToObject(field,"ib",raw[i++]);
-                cJSON_AddStringToObject(field,"ic",raw[i++]);
-                cJSON_AddStringToObject(field,"i_avg",raw[i++]);
+                cJSON_AddNumberToObject(field,"uln_avg",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"ia",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"ib",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"ic",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"i_avg",atof(raw[i++]));
 
-                cJSON_AddStringToObject(field,"pa",raw[i++]);
-                cJSON_AddStringToObject(field,"pb",raw[i++]);
-                cJSON_AddStringToObject(field,"pc",raw[i++]);
-                cJSON_AddStringToObject(field,"p_sum",raw[i++]);
-                cJSON_AddStringToObject(field,"sa",raw[i++]);
+                cJSON_AddNumberToObject(field,"pa",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"pb",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"pc",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"p_sum",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"sa",atof(raw[i++]));
 
-                cJSON_AddStringToObject(field,"sb",raw[i++]);
-                cJSON_AddStringToObject(field,"sc",raw[i++]);
-                cJSON_AddStringToObject(field,"s_sum",raw[i++]);
-                cJSON_AddStringToObject(field,"pfa",raw[i++]);
-                cJSON_AddStringToObject(field,"pfb",raw[i++]);
+                cJSON_AddNumberToObject(field,"sb",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"sc",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"s_sum",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"pfa",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"pfb",atof(raw[i++]));
 
-                cJSON_AddStringToObject(field,"pfc",raw[i++]);
-                cJSON_AddStringToObject(field,"pf_avg",raw[i++]);
-                cJSON_AddStringToObject(field,"ae_tot",raw[i++]);
-                cJSON_AddStringToObject(field,"uavg_thd",raw[i++]);
-                cJSON_AddStringToObject(field,"iavg_thd",raw[i++]);
+                cJSON_AddNumberToObject(field,"pfc",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"pf_avg",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"ae_tot",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"uavg_thd",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"iavg_thd",atof(raw[i++]));
                 
 
             }
