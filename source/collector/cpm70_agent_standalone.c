@@ -807,7 +807,7 @@ int CheckDuplicateByTime(char *ID, char *time)
         while(mList[i].available == 1)
         {
     
-            snprintf(buf, sizeof(buf) -1, "[%s,%d]mList[%d] %s  (%s)\n", __FUNCTION__, __LINE__, i, mList[i].blockId, mList[i].prevTime);
+            snprintf(buf, sizeof(buf) -1, "[%s,%d]mList[%d] %s  (%s)\n", __FUNCTION__, __LINE__, i, mList[i].meterId, mList[i].prevTime);
             AddToLogFile(logPath, buf);
         
         }
