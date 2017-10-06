@@ -765,6 +765,20 @@ int CheckDuplicateByTime(char *ID, char *time)
 
     }
 
+    snprintf(buf, sizeof(buf) -1, "[%s,%d] Time list:\n", __FUNCTION__, __LINE__);
+    AddToLogFile(logPath, buf);
+
+    while(mList[i].available == 1)
+    {
+
+        snprintf(buf, sizeof(buf) -1, "[%s,%d]mList[%d] %s  (%s)\n", __FUNCTION__, __LINE__, i, mList[i].meterId, mList[i].prevTime);
+        AddToLogFile(logPath, buf);
+        i++;
+    
+    }
+
+    i = 0;
+
     while( i < 100)
     {
 
@@ -803,15 +817,6 @@ int CheckDuplicateByTime(char *ID, char *time)
 
         }
         i++;
-
-        while(mList[i].available == 1)
-        {
-    
-            snprintf(buf, sizeof(buf) -1, "[%s,%d]mList[%d] %s  (%s)\n", __FUNCTION__, __LINE__, i, mList[i].meterId, mList[i].prevTime);
-            AddToLogFile(logPath, buf);
-            i++;
-        
-        }
 
     }
 
