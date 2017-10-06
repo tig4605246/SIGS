@@ -313,7 +313,7 @@ int getInfoToJSONAndUpload(char *useless)
                     raw[i+1]++;
                 }
                 
-                if(0)//if(i == 1)//Check Duplicate data
+                if(i == 1)//Check Duplicate data
                 {
 
                     
@@ -803,6 +803,14 @@ int CheckDuplicateByTime(char *ID, char *time)
 
         }
         i++;
+
+        while(mList[i].available == 1)
+        {
+    
+            snprintf(buf, sizeof(buf) -1, "[%s,%d]mList[%d] %s  (%s)\n", __FUNCTION__, __LINE__, i, mList[i].blockId, mList[i].prevTime);
+            AddToLogFile(logPath, buf);
+        
+        }
 
     }
 

@@ -313,7 +313,7 @@ int getInfoToJSONAndUpload(char *useless)
                     raw[i+1]++;
                 }
                 
-                if(0)//if(i == 2)//Check Duplicate data
+                if(i == 2)//Check Duplicate data
                 {
 
                     
@@ -816,6 +816,18 @@ int CheckDuplicateByTime(char *ID, char *time, char *blockId)
         i++;
 
     }
+
+    i = 0;
+
+    while(mList[i].available == 1)
+    {
+
+        snprintf(buf, sizeof(buf) -1, "[%s,%d]mList[%d] %s %s  (%s)\n", __FUNCTION__, __LINE__, i, mList[i].meterId, mList[i].blockId, mList[i].prevTime);
+        AddToLogFile(logPath, buf);
+    
+    }
+
+
     return 0;
 
 }
