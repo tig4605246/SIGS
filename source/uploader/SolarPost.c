@@ -811,7 +811,9 @@ int PostToServer()
 
     //First, get irr and temp, They'll be the firsts in dataInfo linked list
 
-    tempArray = cJSON_CreateArray();
+    tempArray = cJSON_CreateArray();//This is for PVTemp
+
+    //irrTempArray = cJSON_CreateArray();//This is for irr 
 
     i = 0;
 

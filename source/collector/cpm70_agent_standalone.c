@@ -819,5 +819,5 @@ int CheckDuplicateByTime(char *ID, char *time)
         i++;
 
     }
-
+    return 0;
 }

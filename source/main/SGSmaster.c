@@ -28,7 +28,10 @@
 #include "../events/SGSEvent.h"
 #include "../controlling/SGScontrol.h"
 
-#define SMARTCAMPUS
+
+//Enable this definition to switch to smart campus mode
+
+//#define SMARTCAMPUS
 
 //This structure is used for storing child process info
 
@@ -98,7 +101,9 @@ int uploadAgentMsgId    = -1;       //  uploadAgentAgent's queue id
 
 /* Only for smart campus */
 #ifdef SMARTCAMPUS 
+
 pid_t agentPid[2] = {-1};
+
 #endif
 
 int main(int argc, char *argv[])
