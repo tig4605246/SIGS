@@ -9,6 +9,9 @@ PROG8=SolarCollector
 PROG9=SolarPost
 PROG10=SolarPut
 PROG11=cpm70_agent_standalone
+PROG12=aemdra_agent_standalone
+PROG13=SolarPostOldForm
+PROG14=GWInfo
 
 
 TEST1=openSql
@@ -56,6 +59,10 @@ all:
 	$(CC) -o ../../bin/$(PROG10) ../uploader/$(PROG10).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c  ../thirdparty/cJSON.c ../thirdparty/sqlite3.c -pthread -lm  -ldl -lcurl
 
 	#$(CC) -o ../../bin/cpm70_agent ../collector/$(PROG11).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c  ../thirdparty/cJSON.c -pthread -lm
+
+	$(CC) -o ../../bin/$(PROG13) ../uploader/$(PROG13).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c ../thirdparty/cJSON.c -pthread -lm `pkg-config --cflags --libs libcurl`
+
+	$(CC) -o ../../bin/$(PROG14) ../collector/$(PROG14).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c -pthread -lm -lcurl #`pkg-config --cflags --libs libmodbus`
 
 
 #Below is testing functions

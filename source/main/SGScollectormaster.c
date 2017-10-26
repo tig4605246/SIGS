@@ -50,6 +50,12 @@ typedef struct{
 
 void ShutDownBySignal(int sigNum);
 
+//Intent    :  Make sure our collector child is working
+//Pre       :  Nothing
+//Post      :  Nothing
+
+void CheckChildAlive(int eventHandlerId);
+
 childProcessInfo cpInfo[MAXBUFFERINFOBLOCK]; //  All info about sub-masters are here, be caredul with it
 int agentMsgId = -1;
 
@@ -60,6 +66,7 @@ int main()
     int eventHandlerId = -1;    //  id for message queue to Event-Handler
     int collectorMasterId = -1;
     int i = 0, count = 10;
+    int checkAliveInterval = 60;
     pid_t pid;
     char buf[MSGBUFFSIZE];
     char originInfo[MSGBUFFSIZE];
@@ -210,6 +217,7 @@ int main()
                 sgsSendQueueMsg(eventHandlerId, buf, EnumCollector);
                 cpInfo[i].pid = -1;
                 memset(cpInfo[i].childName, '\0', sizeof(cpInfo[i].childName));
+                memset(cpInfo[i].childPath, '\0', sizeof(cpInfo[i].childPath));
 
                 //If we add a continue here, we can avoid unused block between two used blocks
 
@@ -540,6 +548,24 @@ int main()
 
         }
 
+        //Watch dog for children
+
+        if(checkAliveInterval > 0)
+        {
+
+            checkAliveInterval--;
+
+        }
+        else
+        {
+
+            CheckChildAlive(eventHandlerId);
+            checkAliveInterval = 6000;
+
+        }
+
+        
+
     }
 
 }
@@ -565,6 +591,70 @@ void ShutDownBySignal(int sigNum)
     }
 
     exit(0);
+    return;
+
+}
+
+void CheckChildAlive(int eventHandlerId)
+{
+
+    int i = 0;
+    int ret = -1;
+    char buf[MSGBUFFSIZE];
+
+    while(i < MAXBUFFERINFOBLOCK)
+    {
+
+        //Check the child status every loop
+
+        if(cpInfo[i].pid > 0)
+        {
+
+            ret = waitpid(cpInfo[i].pid, NULL, WNOHANG);
+            
+            if(ret != 0)
+            {
+    
+                printf("%s;pid %d Agent %s exits unexpectedly, return code %d\n", ERROR, cpInfo[i].pid, cpInfo[i].childName, ret);
+                memset(buf,'\0',sizeof(buf));
+                snprintf(buf,511,"%s;[%s,%d]Collector-Master: pid %d Agent %s exits unexpectedly, return code %d"
+                                                                    , ERROR, __FUNCTION__, __LINE__, cpInfo[i].pid, cpInfo[i].childName, ret);
+                sgsSendQueueMsg(eventHandlerId, buf, EnumCollector);
+    
+                cpInfo[i].pid = -1;
+    
+                //Invoke children again
+    
+                cpInfo[i].pid = fork();
+                if(cpInfo[i].pid == 0)
+                {
+    
+                    memset(buf,'\0',sizeof(buf));
+                    snprintf(buf,MSGBUFFSIZE,"%d",i+1);
+                    execlp(cpInfo[i].childPath, cpInfo[i].childPath, buf, NULL);
+                    perror("fork()");
+                    exit(0);
+    
+                }
+    
+                //If we add a continue here, we can avoid unused block between two used blocks
+    
+            }
+            else
+            {
+    
+                memset(buf,'\0',sizeof(buf));
+                snprintf(buf,511,"%s;[%s,%d]Collector-Master: pid %d Agent %s is alive"
+                                                                    , LOG, __FUNCTION__, __LINE__, cpInfo[i].pid, cpInfo[i].childName);
+                sgsSendQueueMsg(eventHandlerId, buf, EnumCollector);
+    
+            }
+
+        }
+
+        i++;
+
+    }
     return;
 
 }

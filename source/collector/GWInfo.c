@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
     dInfo = NULL;
     shmId = -1;
 
-    ret = sgsInitDataInfo(NULL, &dInfo, 0, "./conf/Collect/ZKWZKSCollector", -1, &numberOfData);
+    ret = sgsInitDataInfo(NULL, &dInfo, 0, "./conf/Collect/SolarCollector", -1, &numberOfData);
 
     if(ret < 0 )
     {

@@ -117,7 +117,7 @@ char *page = "/cpm70/gw/test";
 
 char gwId[64] = {0};
 
-char *logPath = "/var/log/cpm70_agentLog";
+char *logPath = "./log/cpm70_agentLog";
 
 struct MeterList
 {
@@ -635,13 +635,13 @@ int my_write(int fd, void *buffer, int length)
             if(written_bytes<=0)
             {       
 
-                    if(errno==EINTR)
+                if(errno==EINTR)
 
-                        written_bytes=0;
+                    written_bytes=0;
 
-                    else             
+                else             
 
-                        return(-1);
+                    return(-1);
 
             }
 

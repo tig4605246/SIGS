@@ -74,6 +74,12 @@ int my_write(int fd, void *buffer, int length);
 
 int my_read(int fd, void *buffer, int length);
 
+//Intent : Convert string to float
+//Pre : string to convert
+//Post : float number 
+
+float stof(const char* s)
+
 //Intent : close program correctly
 //Pre : signal number catched by sigaction
 //Post : Nothing 
@@ -117,7 +123,7 @@ char *page = "/aemdra/gw/test";
 
 char gwId[64] = {0};
 
-char *logPath = "/var/log/aemdra_agentLog";
+char *logPath = "./log/aemdra_agentLog";
 
 struct MeterList
 {
@@ -350,52 +356,52 @@ int getInfoToJSONAndUpload(char *useless)
                 cJSON_AddStringToObject(field,"devID",buf);
 
                 cJSON_AddStringToObject(field,"lastReportTime",raw[i++]);
-                cJSON_AddNumberToObject(field,"blockId",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"wire",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"freq",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"ua",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"blockId",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"wire",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"freq",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"ua",stof(raw[i++]));
 
-                cJSON_AddNumberToObject(field,"ub",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"uc",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"u_avg",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"uab",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"ubc",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"ub",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"uc",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"u_avg",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"uab",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"ubc",stof(raw[i++]));
 
-                cJSON_AddNumberToObject(field,"uca",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"uln_avg",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"ia",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"ib",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"ic",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"uca",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"uln_avg",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"ia",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"ib",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"ic",stof(raw[i++]));
 
-                cJSON_AddNumberToObject(field,"i_avg",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"pa",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"pb",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"pc",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"p_sum",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"i_avg",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"pa",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"pb",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"pc",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"p_sum",stof(raw[i++]));
 
-                cJSON_AddNumberToObject(field,"qa",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"qb",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"qc",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"q_sum",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"sa",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"qa",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"qb",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"qc",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"q_sum",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"sa",stof(raw[i++]));
 
-                cJSON_AddNumberToObject(field,"sb",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"sc",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"s_sum",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"pfa",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"pfb",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"sb",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"sc",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"s_sum",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"pfa",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"pfb",stof(raw[i++]));
 
-                cJSON_AddNumberToObject(field,"pfc",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"pf_avg",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"aea",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"aeb",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"aec",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"pfc",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"pf_avg",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"aea",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"aeb",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"aec",stof(raw[i++]));
 
-                cJSON_AddNumberToObject(field,"ae_tot",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"rea",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"reb",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"rec",atof(raw[i++]));
-                cJSON_AddNumberToObject(field,"re_tot",atof(raw[i++]));
+                cJSON_AddNumberToObject(field,"ae_tot",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"rea",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"reb",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"rec",stof(raw[i++]));
+                cJSON_AddNumberToObject(field,"re_tot",stof(raw[i++]));
                 
 
             }
@@ -831,7 +837,25 @@ int CheckDuplicateByTime(char *ID, char *time, char *blockId)
 
     }
 
-    
+    float stof(const char* s){
+        float rez = 0, fact = 1;
+        if (*s == '-'){
+          s++;
+          fact = -1;
+        };
+        for (int point_seen = 0; *s; s++){
+          if (*s == '.'){
+            point_seen = 1; 
+            continue;
+          };
+          int d = *s - '0';
+          if (d >= 0 && d <= 9){
+            if (point_seen) fact /= 10.0f;
+            rez = rez * 10.0f + (float)d;
+          };
+        };
+        return rez * fact;
+      };
 
 
     return 0;

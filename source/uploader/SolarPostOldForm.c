@@ -406,7 +406,7 @@ int GetConfig()
     snprintf(postConfig.Station_ID, 15, "T910142");
     snprintf(postConfig.GW_ID, 15, "01");
 
-    fp = fopen("./conf/Upload/SolarPost", "r");
+    fp = fopen("./conf/Upload/SolarPostOldForm", "r");
 
     if(fp == NULL)
     {
@@ -558,7 +558,7 @@ int SetConfig(char *result, char *address)
     if(flag != NULL && temp->type == 2)
     {
 
-        fp = fopen("./conf/Upload/SolarPost_tmp", "w");
+        fp = fopen("./conf/Upload/SolarPostOldForm_tmp", "w");
 
         if(fp == NULL)
         {
@@ -720,12 +720,12 @@ int SetConfig(char *result, char *address)
 
     }
     cJSON_Delete(root);
-    ret = rename("./conf/Upload/SolarPost_tmp", "./conf/Upload/SolarPost");
+    ret = rename("./conf/Upload/SolarPost_tmp", "./conf/Upload/SolarPostOldForm");
     if(ret != 0)
     {
 
         memset(buf, 0, sizeof(buf));
-        snprintf(buf, sizeof(buf) - 1, "%s;Rename SolarPost file failed\n", ERROR);
+        snprintf(buf, sizeof(buf) - 1, "%s;Rename SolarPostOldForm file failed\n", ERROR);
         sgsSendQueueMsg(eventHandlerId, buf, msgType);
 
     }
@@ -761,11 +761,12 @@ int PostToServer()
     cJSON *inverter = NULL;
     cJSON *tempArray = NULL;
     cJSON *irrArray = NULL;
+    cJSON *alarmArray = NULL;
     cJSON *duplicatTempArray = NULL;
     cJSON *duplicateIrrArray = NULL;
     cJSON *tempObj = NULL;
-    int i = 0, count = 10, ret = -1, inverterID = 1, tempID = 1, irrID;
-    int firstTempArray = 1, firstIrrArray = 1;
+    int i = 0, count = 10, ret = -1, inverterID = 1;
+    int PVTemp = 0;
     typedef struct sysNode
     {
 
@@ -816,12 +817,6 @@ int PostToServer()
 
     //2. get solar info & form JSON at the same time
 
-    //First, get irr and temp, They'll be the firsts in dataInfo linked list
-
-    tempArray = cJSON_CreateArray();//This is for PVTemp
-
-    irrArray = cJSON_CreateArray();//This is for irr 
-
     i = 0;
 
     //Second, Get inverter info & form JSON
@@ -831,6 +826,10 @@ int PostToServer()
     root = cJSON_CreateObject();
 
     rows = cJSON_CreateArray();
+
+    //Add Field ID to root
+
+    cJSON_AddItemToObject(root, "Station_ID",cJSON_CreateString("T0510604") );
 
     //create rows, inverter obj and do the first time insert
 
@@ -842,16 +841,13 @@ int PostToServer()
 
     time(&nowTime);
 
-    cJSON_AddNumberToObject(inverter, "Timestamp", nowTime);
+    //Insert data to first inverter object
+
     cJSON_AddNumberToObject(inverter, "upload_timestamp", nowTime);
-    cJSON_AddStringToObject(inverter, "MAC_Address", postConfig.MAC_Address);
-    cJSON_AddStringToObject(inverter, "GW_ID", postConfig.GW_ID);
-    cJSON_AddStringToObject(inverter, "Station_ID", postConfig.Station_ID);
+
     memset(buf, 0, sizeof(buf));
     snprintf(buf, sizeof(buf) - 1, "%02d", inverterID);
     cJSON_AddStringToObject(inverter, "InverterID", buf);//insert inverterID (count manually by inverterID)
-
-    firstTempArray = 1;
 
     while(tempInfo[0] != NULL)
     {
@@ -869,17 +865,11 @@ int PostToServer()
             cJSON_AddNumberToObject(inverter, "Memory", systemInfo.memoryUsage);
             cJSON_AddNumberToObject(inverter, "Storage", systemInfo.storageUsage);
             cJSON_AddNumberToObject(inverter, "CPU", systemInfo.cpuUsage);
-            
-            //Add Irr array
 
-            duplicateIrrArray = cJSON_Duplicate(irrArray, 1);
-            cJSON_AddItemToObject(inverter, "Irr", duplicateIrrArray);
-            //cJSON_AddNumberToObject(inverter, "Irr_Status", irrInfo.status);
+            //Add Irr and PVTemp
 
-            //Add Temp array
-
-            duplicatTempArray = cJSON_Duplicate(tempArray, 1);
-            cJSON_AddItemToObject(inverter, "PVTemp", duplicatTempArray);
+            cJSON_AddNumberToObject(inverter, "Irr", irrInfo.irr);
+            cJSON_AddNumberToObject(inverter, "PVTemp", PVTemp);
 
             //Add Inverter status
 
@@ -893,17 +883,12 @@ int PostToServer()
                 inverter = cJSON_CreateObject();
                 cJSON_AddItemToArray(rows, inverter);
 
-                cJSON_AddNumberToObject(inverter, "Timestamp", nowTime);
                 cJSON_AddNumberToObject(inverter, "upload_timestamp", nowTime);
-                cJSON_AddStringToObject(inverter, "GW_ID", postConfig.GW_ID);
-                cJSON_AddStringToObject(inverter, "MAC_Address", postConfig.MAC_Address);
-                cJSON_AddStringToObject(inverter, "Station_ID", postConfig.Station_ID);
                 memset(buf, 0, sizeof(buf));
 
                 //Next Inverter ID
 
-                inverterID++; 
-                tempID = 1; 
+                inverterID++;  
                 snprintf(buf, sizeof(buf) - 1, "%02d", inverterID);
 
                 //insert inverterID (count manually by inverterID)
@@ -948,36 +933,9 @@ int PostToServer()
             else if(strstr(tempInfo[0]->valueName, "Irradiation")) // deal with IrrStatus together
             {
 
-                // old irr struct, we'll keep it for now
-
                 irrInfo.irr = dLog.value.i;
 
-                //Create Irr array 
-
-                if(firstIrrArray)
-                {
-
-                    firstIrrArray = 0;
-                    irrArray = cJSON_CreateArray();
-
-                }
                 
-                memset(buf,0,sizeof(buf));
-                snprintf(buf, 31, "%02d", irrID++);
-                cJSON_AddItemToArray(irrArray, obj = cJSON_CreateObject());
-                cJSON_AddNumberToObject(obj, "Irr", dLog.value.i);
-
-                //Get IrrStatus by reaching to next value node
-
-                if(!strcmp(tempInfo[0]->next->valueName,"IrrStatus"))
-                    cJSON_AddStringToObject(obj, "Irradiation", "1");
-                    
-                else
-                    cJSON_AddStringToObject(obj, "Temp_Status", "0");
-
-                //Add IrrID, which is counted manually
-
-                cJSON_AddStringToObject(obj, "IrrID", buf);
 
             }
             else if(strstr(tempInfo[0]->valueName, "IrrStatus"))
@@ -989,21 +947,8 @@ int PostToServer()
             }
             else if(strstr(tempInfo[0]->valueName, "Temperature")) // same as Irr Array
             {
-                
-                if(firstTempArray)
-                {
 
-                    firstTempArray = 0;
-                    tempArray = cJSON_CreateArray();
-
-                }
-                
-                memset(buf,0,sizeof(buf));
-                snprintf(buf, 31, "%02d", tempID++);
-                cJSON_AddItemToArray(tempArray, obj = cJSON_CreateObject());
-                cJSON_AddNumberToObject(obj, "Temp", dLog.value.i);
-                cJSON_AddStringToObject(obj, "Temp_Status", "1");
-                cJSON_AddStringToObject(obj, "TempID", buf);
+                PVTemp = dLog.value.i;
 
             }
             else if(strstr(tempInfo[0]->valueName, "Voltage(Vab)"))
@@ -1139,7 +1084,17 @@ int PostToServer()
             else if(strstr(tempInfo[0]->valueName, "Inverter_Error"))
             {
 
-                cJSON_AddStringToObject(inverter, "Alarm", dLog.value.s);
+                cJSON_AddItemToObject(inverter,"Alarm", alarmArray = cJSON_CreateArray());
+
+                cJSON_AddStringToObject(alarmArray, "alarm_01", dLog.value.s);
+                cJSON_AddStringToObject(alarmArray, "alarm_02", dLog.value.s);
+                cJSON_AddStringToObject(alarmArray, "alarm_03", dLog.value.s);
+                cJSON_AddStringToObject(alarmArray, "alarm_04", dLog.value.s);
+                cJSON_AddStringToObject(alarmArray, "alarm_05", dLog.value.s);
+                cJSON_AddStringToObject(alarmArray, "alarm_06", dLog.value.s);
+                cJSON_AddStringToObject(alarmArray, "alarm_07", dLog.value.s);
+                cJSON_AddStringToObject(alarmArray, "alarm_08", dLog.value.s);
+                cJSON_AddStringToObject(alarmArray, "alarm_09", dLog.value.s);
 
             }
 
