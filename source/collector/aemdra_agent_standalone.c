@@ -426,6 +426,9 @@ int getInfoToJSONAndUpload(char *useless)
 
     output = cJSON_PrintUnformatted(root);
 
+    snprintf(buff, sizeof(buff) - 1, "[%s,%d]raw data: \n%s\n",__FUNCTION__,__LINE__,output);
+    AddToLogFile(logPath, buff);
+
     //printf("aemdra output:\n%s\n",output);
 
     //format = cJSON_Print(root);
