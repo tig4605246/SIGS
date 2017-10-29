@@ -58,7 +58,9 @@ all:
 
 	$(CC) -o ../../bin/$(PROG10) ../uploader/$(PROG10).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c  ../thirdparty/cJSON.c ../thirdparty/sqlite3.c -pthread -lm  -ldl -lcurl
 
-	#$(CC) -o ../../bin/cpm70_agent ../collector/$(PROG11).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c  ../thirdparty/cJSON.c -pthread -lm
+	$(CC) -o ../../bin/cpm70_agent ../collector/$(PROG11).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c  ../thirdparty/cJSON.c -pthread -lm
+
+	$(CC) -o ../../bin/aemdra_agent ../collector/$(PROG12).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c  ../thirdparty/cJSON.c -pthread -lm
 
 	$(CC) -o ../../bin/$(PROG13) ../uploader/$(PROG13).c ../ipcs/SGSipcs.c ../definition/SGSdefinitions.c ../controlling/SGScontrol.c ../events/SGSEvent.c ../thirdparty/cJSON.c -pthread -lm `pkg-config --cflags --libs libcurl`
 

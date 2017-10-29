@@ -78,7 +78,7 @@ int my_read(int fd, void *buffer, int length);
 //Pre : string to convert
 //Post : float number 
 
-float stof(const char* s)
+float stof(const char* s);
 
 //Intent : close program correctly
 //Pre : signal number catched by sigaction
@@ -123,7 +123,7 @@ char *page = "/aemdra/gw/test";
 
 char gwId[64] = {0};
 
-char *logPath = "./log/aemdra_agentLog";
+char *logPath = "./aemdra_agentLog";
 
 struct MeterList
 {
@@ -430,7 +430,7 @@ int getInfoToJSONAndUpload(char *useless)
 
     //format = cJSON_Print(root);
 
-    ret = process_http(output);
+    //ret = process_http(output);
 
     //Free JSON
 
@@ -836,28 +836,31 @@ int CheckDuplicateByTime(char *ID, char *time, char *blockId)
         i++;
 
     }
-
-    float stof(const char* s){
-        float rez = 0, fact = 1;
-        if (*s == '-'){
-          s++;
-          fact = -1;
-        };
-        for (int point_seen = 0; *s; s++){
-          if (*s == '.'){
-            point_seen = 1; 
-            continue;
-          };
-          int d = *s - '0';
-          if (d >= 0 && d <= 9){
-            if (point_seen) fact /= 10.0f;
-            rez = rez * 10.0f + (float)d;
-          };
-        };
-        return rez * fact;
-      };
-
-
     return 0;
 
+}
+
+float stof(const char* s)
+{
+    float rez = 0, fact = 1;
+    if (*s == '-')
+    {
+      s++;
+      fact = -1;
+    }
+    for (int point_seen = 0; *s; s++)
+    {
+      if (*s == '.')
+      {
+        point_seen = 1; 
+        continue;
+      }
+      int d = *s - '0';
+      if (d >= 0 && d <= 9)
+      {
+        if (point_seen) fact /= 10.0f;
+        rez = rez * 10.0f + (float)d;
+      }
+    }
+    return rez * fact;
 }

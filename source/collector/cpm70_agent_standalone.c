@@ -117,7 +117,7 @@ char *page = "/cpm70/gw/test";
 
 char gwId[64] = {0};
 
-char *logPath = "./log/cpm70_agentLog";
+char *logPath = "./cpm70_agentLog";
 
 struct MeterList
 {
@@ -411,7 +411,7 @@ int getInfoToJSONAndUpload(char *useless)
 
     //format = cJSON_Print(root);
 
-    ret = process_http(output);
+    //ret = process_http(output);
 
     //Free JSON
 

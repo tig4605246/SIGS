@@ -362,7 +362,7 @@ int main(int argc, char *argv[])
             char buf[1024] = {0};
             fgets(buf, 1023, fp);
             printf("buf is \n%s\n",buf);
-            SetConfig(buf, "203.73.24.133:9000/PV_rawdata");
+            SetConfig(buf, "203.73.24.133:9000/solar_rawdata");
 #endif
 
         }
@@ -394,7 +394,7 @@ int GetConfig()
 
     snprintf(postConfig.GW_ver, 15, "Alpha Build V1.0");
 
-    snprintf(postConfig.IP[i], 127, "203.73.24.133:9000/PV_rawdata");
+    snprintf(postConfig.IP[i], 127, "140.118.70.136:9010/solar_rawdata");
     
     postConfig.Send_Rate = 30;
 
@@ -424,9 +424,9 @@ int GetConfig()
 
             fgets(buf, 127, fp);
 
-            name = strtok(buf, " ");
+            name = strtok(buf, ";");
             printf("name is %s\n",name);
-            value = strtok(NULL, " ");
+            value = strtok(NULL, ";");
             printf("value is %s\n", value);
             if(name != NULL)
             {
@@ -1064,7 +1064,7 @@ int PostToServer()
 
                 memset(buf,0,sizeof(buf));
                 snprintf(buf, sizeof(buf) - 1, "%lld", dLog.value.ll);
-                cJSON_AddStringToObject(inverter, "ACP_Daily", buf);
+                cJSON_AddNumberToObject(inverter, "ACP_Daily", dLog.value.ll);
 
             }
             else if(strstr(tempInfo[0]->valueName, "Life_Wh"))
@@ -1072,7 +1072,7 @@ int PostToServer()
 
                 memset(buf,0,sizeof(buf));
                 snprintf(buf, sizeof(buf) - 1, "%lld", dLog.value.ll);
-                cJSON_AddStringToObject(inverter, "ACP_Life", buf);
+                cJSON_AddNumberToObject(inverter, "ACP_Life", dLog.value.ll);
 
             }
             else if(strstr(tempInfo[0]->valueName, "Inverter_Temp"))
@@ -1084,17 +1084,19 @@ int PostToServer()
             else if(strstr(tempInfo[0]->valueName, "Inverter_Error"))
             {
 
+                cJSON_AddStringToObject(inverter,"Alarm_Log",dLog.value.s);
+
                 cJSON_AddItemToObject(inverter,"Alarm", alarmArray = cJSON_CreateArray());
 
-                cJSON_AddStringToObject(alarmArray, "alarm_01", dLog.value.s);
-                cJSON_AddStringToObject(alarmArray, "alarm_02", dLog.value.s);
-                cJSON_AddStringToObject(alarmArray, "alarm_03", dLog.value.s);
-                cJSON_AddStringToObject(alarmArray, "alarm_04", dLog.value.s);
-                cJSON_AddStringToObject(alarmArray, "alarm_05", dLog.value.s);
-                cJSON_AddStringToObject(alarmArray, "alarm_06", dLog.value.s);
-                cJSON_AddStringToObject(alarmArray, "alarm_07", dLog.value.s);
-                cJSON_AddStringToObject(alarmArray, "alarm_08", dLog.value.s);
-                cJSON_AddStringToObject(alarmArray, "alarm_09", dLog.value.s);
+                cJSON_AddNumberToObject(alarmArray, "alarm_01", 0);
+                cJSON_AddNumberToObject(alarmArray, "alarm_02", 0);
+                cJSON_AddNumberToObject(alarmArray, "alarm_03", 0);
+                cJSON_AddNumberToObject(alarmArray, "alarm_04", 0);
+                cJSON_AddNumberToObject(alarmArray, "alarm_05", 0);
+                cJSON_AddNumberToObject(alarmArray, "alarm_06", 0);
+                cJSON_AddNumberToObject(alarmArray, "alarm_07", 0);
+                cJSON_AddNumberToObject(alarmArray, "alarm_08", 0);
+                cJSON_AddNumberToObject(alarmArray, "alarm_09", 0);
 
             }
 

@@ -110,7 +110,7 @@ char errResult[256];
 typedef struct postNode
 {
 
-    char GW_ver[16];        //string
+    char GW_Ver[16];        //string
     char IP[4][128];        //string
     epochTime Date_Time;    //time_t
     int Send_Rate;          //float to int
@@ -392,9 +392,9 @@ int GetConfig()
 
     memset(&(postConfig),0,sizeof(postConfig));
 
-    snprintf(postConfig.GW_ver, 15, "Alpha Build V1.0");
+    snprintf(postConfig.GW_Ver, 15, "Alpha Build V1.0");
 
-    snprintf(postConfig.IP[i], 127, "203.73.24.133:9000/PV_rawdata");
+    snprintf(postConfig.IP[i], 127, "140.118.70.136:9010/new_rawdata");
     
     postConfig.Send_Rate = 30;
 
@@ -424,16 +424,16 @@ int GetConfig()
 
             fgets(buf, 127, fp);
 
-            name = strtok(buf, " ");
+            name = strtok(buf, ";");
             printf("name is %s\n",name);
-            value = strtok(NULL, " ");
+            value = strtok(NULL, ";");
             printf("value is %s\n", value);
             if(name != NULL)
             {
-                if(!strcmp(name, "GW_ver"))
+                if(!strcmp(name, "GW_Ver"))
                 {
     
-                    snprintf(postConfig.GW_ver, 15, "%s", value);
+                    snprintf(postConfig.GW_Ver, 15, "%s", value);
     
                 }
                 else if(!strcmp(name, "IP_1"))
@@ -524,11 +524,12 @@ int SetConfig(char *result, char *address)
 {
 
     cJSON *root;
+    cJSON *ipArray;
     cJSON *temp;
     cJSON *flag;
     char buf[1200];
-    char Resend_time_s[32];
-    char Resend_time_e[32];
+    char Resend_Time_S[32];
+    char Resend_Time_E[32];
     FILE *fp;
     int i = 0, resend = 0, ret = -1;
     pid_t pid;
@@ -543,7 +544,7 @@ int SetConfig(char *result, char *address)
         
     }
 
-    temp = cJSON_GetObjectItem(root, "Upload_data");
+    temp = cJSON_GetObjectItem(root, "Upload_Data");
 
     if(temp != NULL && temp->type == 1)
     {
@@ -553,7 +554,7 @@ int SetConfig(char *result, char *address)
 
     }
 
-    flag = cJSON_GetObjectItem(root, "Config_flag");
+    flag = cJSON_GetObjectItem(root, "Config_Flag");
 
     if(flag != NULL && temp->type == 2)
     {
@@ -579,7 +580,7 @@ int SetConfig(char *result, char *address)
 
                     case 1:
                     memset(buf,0,sizeof(buf));
-                    snprintf(buf, sizeof(buf) -1, "GW_ver");
+                    snprintf(buf, sizeof(buf) -1, "GW_Ver");
                     break;
 
                     case 2:
@@ -614,12 +615,12 @@ int SetConfig(char *result, char *address)
 
                     case 8:
                     memset(buf,0,sizeof(buf));
-                    snprintf(buf, sizeof(buf) -1, "Send_rate");
+                    snprintf(buf, sizeof(buf) -1, "Send_Rate");
                     break;
 
                     case 9:
                     memset(buf,0,sizeof(buf));
-                    snprintf(buf, sizeof(buf) -1, "Gain_rate");
+                    snprintf(buf, sizeof(buf) -1, "Gain_Rate");
                     break;
 
                     case 10:
@@ -629,7 +630,7 @@ int SetConfig(char *result, char *address)
 
                     case 11:
                     memset(buf,0,sizeof(buf));
-                    snprintf(buf, sizeof(buf) -1, "Backup_time");
+                    snprintf(buf, sizeof(buf) -1, "Backup_Time");
                     break;
 
                     case 12:
@@ -650,21 +651,21 @@ int SetConfig(char *result, char *address)
                     case 15:
                     if(!resend) break;
                     memset(buf,0,sizeof(buf));
-                    memset(Resend_time_s,0,sizeof(Resend_time_s));
-                    snprintf(buf, sizeof(buf) -1, "Resend_time_s");
+                    memset(Resend_Time_S,0,sizeof(Resend_Time_S));
+                    snprintf(buf, sizeof(buf) -1, "Resend_Time_S");
                     printf("time_s type %d\n", temp->type);
                     temp = cJSON_GetObjectItem(root, buf);
-                    if(temp != NULL ) snprintf(Resend_time_s, sizeof(Resend_time_s) - 1, "%s", temp->valuestring );
+                    if(temp != NULL ) snprintf(Resend_Time_S, sizeof(Resend_Time_S) - 1, "%s", temp->valuestring );
                     break;
 
                     case 16:
                     if(!resend) break;
                     memset(buf,0,sizeof(buf));
-                    memset(Resend_time_e,0,sizeof(Resend_time_e));
-                    snprintf(buf, sizeof(buf) -1, "Resend_time_e");
+                    memset(Resend_Time_E,0,sizeof(Resend_Time_E));
+                    snprintf(buf, sizeof(buf) -1, "Resend_Time_E");
                     printf("time_e type %d\n", temp->type);
                     temp = cJSON_GetObjectItem(root, buf);
-                    if(temp != NULL ) snprintf(Resend_time_e, sizeof(Resend_time_e) - 1, "%s", temp->valuestring );
+                    if(temp != NULL ) snprintf(Resend_Time_E, sizeof(Resend_Time_E) - 1, "%s", temp->valuestring );
                     break;
 
                     case 17:
@@ -675,7 +676,26 @@ int SetConfig(char *result, char *address)
 
                 }
 
-                if(i < 15)
+                //Process IP
+
+                if(i > 1 && i < 7)
+                {
+
+                    ipArray = cJSON_GetObjectItem(root,"IP");
+                    if(ipArray != NULL)
+                    {
+
+                        temp = cJSON_GetArrayItem(ipArray, i - 1);
+                        if(temp->valuestring != NULL)
+                            fprintf(fp, "%s;%s\n", temp->string, temp->valuestring);
+                    }
+
+
+                }
+
+                //Process the rest of the configs
+
+                else if(i < 15)
                 {
 
                     temp = cJSON_GetObjectItem(root, buf);
@@ -683,7 +703,7 @@ int SetConfig(char *result, char *address)
                     if(i == 10 && temp != NULL )
                     {
 
-                        printf("resend type is %d\n", temp->type);  
+                        printf("Resend type is %d\n", temp->type);  
                         if(temp->type == 2);
                         {
                             resend = 1;
@@ -729,7 +749,7 @@ int SetConfig(char *result, char *address)
         sgsSendQueueMsg(eventHandlerId, buf, msgType);
 
     }
-    printf("resend = %d, time_s = %s, time_e = %s\n", resend, Resend_time_s, Resend_time_e);
+    printf("resend = %d, time_s = %s, time_e = %s\n", resend, Resend_Time_S, Resend_Time_E);
     fclose(fp);
     if(resend)
     {
@@ -737,7 +757,7 @@ int SetConfig(char *result, char *address)
         pid = fork();
         if(pid == 0)
         {
-            execlp("./SolarPut","./SolarPut", Resend_time_s, Resend_time_e, address,NULL);
+            execlp("./SolarPut","./SolarPut", Resend_Time_S, Resend_Time_E, address,NULL);
             perror("execlp");
             exit(0);
         }
@@ -894,7 +914,7 @@ int PostToServer()
                 cJSON_AddItemToArray(rows, inverter);
 
                 cJSON_AddNumberToObject(inverter, "Timestamp", nowTime);
-                cJSON_AddNumberToObject(inverter, "upload_timestamp", nowTime);
+                cJSON_AddNumberToObject(inverter, "Upload_Timestamp", nowTime);
                 cJSON_AddStringToObject(inverter, "GW_ID", postConfig.GW_ID);
                 cJSON_AddStringToObject(inverter, "MAC_Address", postConfig.MAC_Address);
                 cJSON_AddStringToObject(inverter, "Station_ID", postConfig.Station_ID);
@@ -908,7 +928,7 @@ int PostToServer()
 
                 //insert inverterID (count manually by inverterID)
 
-                cJSON_AddStringToObject(inverter, "InverterID", buf);
+                cJSON_AddNumberToObject(inverter, "InverterID", inverterID);
 
             }
             
@@ -965,19 +985,19 @@ int PostToServer()
                 memset(buf,0,sizeof(buf));
                 snprintf(buf, 31, "%02d", irrID++);
                 cJSON_AddItemToArray(irrArray, obj = cJSON_CreateObject());
-                cJSON_AddNumberToObject(obj, "Irr", dLog.value.i);
+                cJSON_AddNumberToObject(obj, "Value", dLog.value.i);
 
                 //Get IrrStatus by reaching to next value node
 
                 if(!strcmp(tempInfo[0]->next->valueName,"IrrStatus"))
-                    cJSON_AddStringToObject(obj, "Irradiation", "1");
+                    cJSON_AddStringToObject(obj, "Status", "1");
                     
                 else
-                    cJSON_AddStringToObject(obj, "Temp_Status", "0");
+                    cJSON_AddStringToObject(obj, "Status", "0");
 
                 //Add IrrID, which is counted manually
 
-                cJSON_AddStringToObject(obj, "IrrID", buf);
+                cJSON_AddStringToObject(obj, "ID", buf);
 
             }
             else if(strstr(tempInfo[0]->valueName, "IrrStatus"))
@@ -1001,9 +1021,9 @@ int PostToServer()
                 memset(buf,0,sizeof(buf));
                 snprintf(buf, 31, "%02d", tempID++);
                 cJSON_AddItemToArray(tempArray, obj = cJSON_CreateObject());
-                cJSON_AddNumberToObject(obj, "Temp", dLog.value.i);
-                cJSON_AddStringToObject(obj, "Temp_Status", "1");
-                cJSON_AddStringToObject(obj, "TempID", buf);
+                cJSON_AddNumberToObject(obj, "Value", dLog.value.i);
+                cJSON_AddStringToObject(obj, "Status", "1");
+                cJSON_AddStringToObject(obj, "ID", buf);
 
             }
             else if(strstr(tempInfo[0]->valueName, "Voltage(Vab)"))
@@ -1529,12 +1549,12 @@ ssize_t process_http( char *content, char *address)
 
     free(tmp);
 
-    obj = cJSON_GetObjectItem(root, "Upload_data");
+    obj = cJSON_GetObjectItem(root, "Upload_Data");
 
     if( obj != NULL)
     {
 
-        printf("Get Upload_data attribute %s type %d \n", obj->string, obj->type );
+        printf("Get Upload_Data attribute %s type %d \n", obj->string, obj->type );
 
         if(obj->type == 1) //upload unsuccessfully
         {
@@ -1547,11 +1567,11 @@ ssize_t process_http( char *content, char *address)
         {
 
             printf("Upload success\n");
-            obj = cJSON_GetObjectItem(root, "Config_flag");
+            obj = cJSON_GetObjectItem(root, "Config_Flag");
             if( obj != NULL)
             {
 
-                printf("Get Config_flag attribute\n");
+                printf("Get Config_Flag attribute\n");
                 if(obj->type == 2) //Set config
                 {
 
@@ -1567,6 +1587,10 @@ ssize_t process_http( char *content, char *address)
         }
         cJSON_Delete(root);
 
+    }
+    else
+    {
+        cJSON_Delete(root);
     }
     
     //close the socket

@@ -31,7 +31,7 @@
 
 //Enable this definition to switch to smart campus mode
 
-//#define SMARTCAMPUS
+#define SMARTCAMPUS
 
 //This structure is used for storing child process info
 
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
     struct stat st;
     char agentName[2][64] = {{"./cpm70_agent"}, {"./aemdra_agent"}};
     FILE *fp = NULL;
-    char logPath[32] = {"/var/log/SGSmasterLog"};
+    char logPath[32] = {"./SGSmasterLog"};
 
     //Help
 
