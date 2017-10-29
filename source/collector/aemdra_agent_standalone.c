@@ -313,6 +313,11 @@ int getInfoToJSONAndUpload(char *useless)
 
                 raw[i+1] = strchr(raw[i],';');
 
+                //Debug printing
+
+                snprintf(buff, sizeof(buff) - 1, "[%s,%d]raw[%d] %s\n", __FUNCTION__, __LINE__, i-1, raw[i-1]);
+                AddToLogFile(logPath, buff);
+
                 if(raw[i+1] != NULL) 
                 {
                     *raw[i+1] = 0;
