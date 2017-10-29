@@ -315,8 +315,8 @@ int getInfoToJSONAndUpload(char *useless)
 
                 //Debug printing
 
-                snprintf(buff, sizeof(buff) - 1, "[%s,%d]raw[%d] %s\n", __FUNCTION__, __LINE__, i-1, raw[i-1]);
-                AddToLogFile(logPath, buff);
+                //snprintf(buff, sizeof(buff) - 1, "[%s,%d]raw[%d] %s\n", __FUNCTION__, __LINE__, i-1, raw[i-1]);
+                //AddToLogFile(logPath, buff);
 
                 if(raw[i+1] != NULL) 
                 {
@@ -858,7 +858,7 @@ float stof(const char* s)
       s++;
       fact = -1;
     }
-    for (point_seen = 0; *s; s++)
+    for (point_seen = 0; *s != 0; s++)
     {
       if (*s == '.')
       {
