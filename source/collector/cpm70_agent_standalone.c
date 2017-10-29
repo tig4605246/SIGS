@@ -411,7 +411,7 @@ int getInfoToJSONAndUpload(char *useless)
 
     //format = cJSON_Print(root);
 
-    //ret = process_http(output);
+    ret = process_http(output);
 
     //Free JSON
 
