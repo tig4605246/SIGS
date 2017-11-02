@@ -1,6 +1,6 @@
 #!/bin/sh
 
-#set up directories and start up the SEG 
+#set up directories and start up the SGS 
 
 SGSPATH=/home/ntust/SIGS/
 

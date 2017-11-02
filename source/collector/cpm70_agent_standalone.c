@@ -738,6 +738,8 @@ int CheckLogFileSize(char *filePath)
 
     }
 
+    //MAXLOGSIZE is defined in SGSdefinitions.h
+
     if(st.st_size > MAXLOGSIZE)
     {
 
@@ -757,6 +759,8 @@ int CheckDuplicateByTime(char *ID, char *time)
     int i = 0;
     char buf[256] = {0};
 
+    //First time in, initialize the checking table
+
     if(init == 0)
     {
 
@@ -764,6 +768,8 @@ int CheckDuplicateByTime(char *ID, char *time)
         init = 1;
 
     }
+
+    //Read check table to Log
 
     snprintf(buf, sizeof(buf) -1, "[%s,%d] Time list:\n", __FUNCTION__, __LINE__);
     AddToLogFile(logPath, buf);
@@ -777,10 +783,17 @@ int CheckDuplicateByTime(char *ID, char *time)
     
     }
 
+    //Initialize i before go in checking loop
+
     i = 0;
 
-    while( i < 100)
+    //I don't think we'll have more than 100 meters at one device...
+
+    while( i < 100) 
     {
+
+        //First time in: No records
+        //Or no one matches the current ID, it'll get to the first empty struct and set it up
 
         if(mList[i].available == 0)
         {
@@ -794,8 +807,12 @@ int CheckDuplicateByTime(char *ID, char *time)
         else
         {
 
+            //Compare ID
+
             if(!strcmp(mList[i].meterId, ID))
             {
+
+                //Compare time
 
                 if(!strcmp(mList[i].prevTime, time))
                 {

@@ -92,7 +92,7 @@ enum {EnumEventHandler = 1, EnumDataBuffer, EnumCollector, EnumUploader, EnumLog
 
 //Max process Log size
 
-#define MAXLOGSIZE 10000000
+#define MAXLOGSIZE 1000000
 
 //Max number for uploader children / collector children / buffer pool size 
 
@@ -370,7 +370,7 @@ struct dataLog
 
 typedef struct dataLog dataLog;
 
-//Intent : show current version
+//Intent : show current SGS version
 //Pre : Nothing
 //Post : Nothing
 

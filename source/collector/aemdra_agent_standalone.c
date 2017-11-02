@@ -280,6 +280,9 @@ int getInfoToJSONAndUpload(char *useless)
 
         fgets(buf, BUFLEN , fpRead);
 
+        snprintf(buff, sizeof(buff) - 1, "[%s,%d]Data from AAEON:\n %s\n", __FUNCTION__, __LINE__, buf);
+        AddToLogFile(logPath, buff);
+
         //Set the last char to be zero, prevents overflow
 
         buf[strlen(buf) - 1] = '\0';
