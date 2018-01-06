@@ -189,7 +189,7 @@ int main(int argc, char *argv[])
         snprintf(buf, sizeof(buf) - 1, "Upload function return %d\n",ret);
         AddToLogFile(logPath, buf);
         CheckLogFileSize(logPath);
-
+        printf("Go sleep\n");
         sleep(upload_interval);
 
     }
@@ -790,7 +790,7 @@ int CheckDuplicateByTime(char *ID, char *time, char *blockId)
     static int init = 0;
     int i = 0;
     char buf[256] = {0};
-
+    printf("Dup\n");
     if(init == 0)
     {
 
