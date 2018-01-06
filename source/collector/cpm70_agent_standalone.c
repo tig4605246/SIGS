@@ -700,6 +700,7 @@ int AddToLogFile(char *filePath, char *log)
     FILE *fp = NULL;
     time_t t = time(NULL);
     DATETIME timeStruct  = *localtime(&t);
+    int i= 0;
 
     fp = fopen(filePath,"a");
 
@@ -711,8 +712,14 @@ int AddToLogFile(char *filePath, char *log)
 
     }
 
-    fprintf(fp,"[%04d-%02d-%02d %02d:%02d:%02d],%s\n"
-        , timeStruct.tm_year + 1900, timeStruct.tm_mon + 1, timeStruct.tm_mday, timeStruct.tm_hour, timeStruct.tm_min, timeStruct.tm_sec, log);
+    fprintf(fp,"[%04d-%02d-%02d %02d:%02d:%02d]\n"
+        , timeStruct.tm_year + 1900, timeStruct.tm_mon + 1, timeStruct.tm_mday, timeStruct.tm_hour, timeStruct.tm_min, timeStruct.tm_sec);
+
+    while(i < 65534 && *(log + i) != '\0')
+    {
+        fprintf(fp,"%c",*(log + i));
+        i++;
+    }
 
     fclose(fp);
     return 0;
