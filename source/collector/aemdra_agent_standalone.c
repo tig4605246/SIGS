@@ -262,9 +262,8 @@ int getInfoToJSONAndUpload(char *useless)
 
 
     //Read Detail to buf at this loop
-    fgets(buf, BUFLEN , fpRead);
 
-    while(strlen(buf) > 0)
+    do
     {
 
         
@@ -286,12 +285,12 @@ int getInfoToJSONAndUpload(char *useless)
         AddToLogFile(logPath, buff);
 
         //Set the last char to be zero, prevents overflow
-
-        buf[strlen(buf) - 1] = '\0';
+        if(strlen(buf) > 0)
+            buf[strlen(buf) - 1] = '\0';
 
         //printf("buf len %lu\n%s",strlen(buf),buf);//debugging
 
-        if(strlen(buf) != 0)
+        if(strlen(buf) > 0)
         {
 
             //Create an object inside the "rows"
@@ -430,7 +429,7 @@ int getInfoToJSONAndUpload(char *useless)
 
         numberOfDevices -= 1;
 
-    }
+    }while(strlen(buf) > 0);
 
     // We check the JSON data at here
 
