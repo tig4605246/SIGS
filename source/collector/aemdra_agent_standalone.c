@@ -469,7 +469,7 @@ ssize_t process_http( char *content)
 	char sendline[MAXLINE + 1], recvline[MAXLINE + 1];
     int i = 0, ret = 0;
     char *error = NULL;
-    char buf[2048];
+    char buf[BUFLEN];
 	ssize_t n;
 
     //Intialize host entity with server ip address
