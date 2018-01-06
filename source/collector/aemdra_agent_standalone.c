@@ -262,11 +262,9 @@ int getInfoToJSONAndUpload(char *useless)
 
 
     //Read Detail to buf at this loop
-
+    printf("Do\n");
     do
     {
-
-        
 
         //Initialize char pointer array
 
