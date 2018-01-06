@@ -48,7 +48,7 @@
 
 
 #define CMDLEN 128
-#define BUFLEN 2048
+#define BUFLEN 65535
 
 //Intent : execute cpm70_agent-tx, and format the data
 //Pre : buf for result 

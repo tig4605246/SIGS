@@ -394,7 +394,7 @@ int GetConfig()
 
     snprintf(postConfig.GW_Ver, 15, "Alpha Build V1.0");
 
-    snprintf(postConfig.IP[i], 127, "140.118.70.136:9010/new_rawdata");
+    snprintf(postConfig.IP[i], 127, "118.163.154.141:8082/v1/pwr/rawdata");
     
     postConfig.Send_Rate = 30;
 
@@ -1191,10 +1191,12 @@ int PostToServer()
         printf(LIGHT_GREEN"postConfig.IP[%d] is %s\n"NONE, i, postConfig.IP[i]);
 
         ret = process_http(jsonBuff, postConfig.IP[i]);
+        count--;
+        printf("count = %d\n",count);
         if(ret < 0 && count > 0)
         {
  
-            count--;
+            usleep(500000);
             continue;
 
         }
@@ -1205,13 +1207,14 @@ int PostToServer()
             count = 10;
 
         }
-        else if(count < 0)
+        else if(count <= 0)
         {
 
             memset(buf,0,sizeof(buf));
             snprintf(buf,sizeof(buf) -1, "%s;upload to %s failed",ERROR, postConfig.IP[i]);
             sgsSendQueueMsg(eventHandlerId, buf, msgId);
             count = 10;
+            i++;
 
         }
         
@@ -1390,12 +1393,28 @@ ssize_t process_http( char *content, char *address)
 
     hname = strtok(adrBuf, ":");
     serverPort = strtok(NULL, "/");
+
     tmp = strtok(NULL, "/");
 
-    //Get what's behind the / 
-
     memset(page, 0, sizeof(page));
-    snprintf(page, sizeof(page), "/%s",tmp);
+
+    while(tmp != NULL) // loop until we get every slice of "/"
+    {
+
+        //Get what's behind the / 
+
+        
+        snprintf(str, sizeof(str), "/%s",tmp);
+        strcat(page, str);
+        tmp = strtok(NULL, "/");
+
+    }
+
+    page[strlen(page) - 1] = '\0';
+
+    memset(str, 0, sizeof(str));
+    
+    printf("Parsed address:\nhname:%s\nserverPort:%s\ntmp:%s\npage:%s\n",hname,serverPort,tmp,page);
 
     //Intialize host entity with server ip address
 
