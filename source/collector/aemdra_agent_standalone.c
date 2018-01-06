@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
 
     }
 
-
+    printf("Go\n");
     //Catch aborting signal
 
     act.sa_handler = (__sighandler_t)stopAndLeave;
@@ -175,12 +175,12 @@ int main(int argc, char *argv[])
     }
     else
     {
-
+        printf("Go add log\n");
         snprintf(gwId, sizeof(gwId) - 1, "There's no gw id at /run/GW_ID");
         AddToLogFile(logPath, gwId);
 
     }
-
+    printf("Go While\n");
     while(1)
     {
 
