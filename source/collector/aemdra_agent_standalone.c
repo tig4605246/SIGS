@@ -222,12 +222,13 @@ int getInfoToJSONAndUpload(char *useless)
     //Ready the command at here
 
     memset(cmd,0,sizeof(sizeof(cmd)));
-
+    
     snprintf(cmd,CMDLEN,"/home/aaeon/API/aemdra-agent-tx --get-dev-status");
-
+    printf("Ask Info with:\n %s\n",cmd);
     //execute command
 
     fpRead = popen(cmd,"r");
+    printf("Ask done\n");
 
     //printf("%s\n",cmd);
 
