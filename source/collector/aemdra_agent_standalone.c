@@ -262,8 +262,9 @@ int getInfoToJSONAndUpload(char *useless)
 
 
     //Read Detail to buf at this loop
+    fgets(buf, BUFLEN , fpRead);
 
-    while((numberOfDevices) > 0)
+    while(strlen(buf) > 0)
     {
 
         
