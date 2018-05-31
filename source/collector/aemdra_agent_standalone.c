@@ -245,7 +245,7 @@ int getInfoToJSONAndUpload(char *useless)
     tempPt = strstr(buf,";");
     *tempPt = 0;
     tempPt++;
-    numberOfDevices = atoi(tempPt);
+    //numberOfDevices = atoi(tempPt);
     //printf("device number is %d\n",numberOfDevices);
     
     // Initialize cJSON
@@ -331,7 +331,6 @@ int getInfoToJSONAndUpload(char *useless)
                     if(ret == -1)
                     {
 
-                        numberOfDevices--;
                         break;
 
                     } 
@@ -351,7 +350,8 @@ int getInfoToJSONAndUpload(char *useless)
 
             if(1)
             {
-
+                //20180524 tig4605246
+                strcat(buf, raw[1]);
                 cJSON_AddStringToObject(field,"devID",buf);
 
                 cJSON_AddStringToObject(field,"lastReportTime",raw[i++]);
@@ -416,8 +416,6 @@ int getInfoToJSONAndUpload(char *useless)
             break;
 
         }
-
-        numberOfDevices -= 1;
 
     }while(strlen(buf) > 0);
 

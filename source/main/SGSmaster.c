@@ -31,7 +31,7 @@
 
 //Enable this definition to switch to smart campus mode
 
-//#define SMARTCAMPUS
+#define SMARTCAMPUS
 
 //This structure is used for storing child process info
 
