@@ -48,7 +48,7 @@
 
 
 #define CMDLEN 128
-#define BUFLEN 65535
+#define BUFLEN 131070
 
 //Intent : execute cpm70_agent-tx, and format the data
 //Pre : buf for result 
@@ -95,8 +95,8 @@ int CheckDuplicateByTime(char *ID, char *time, char *blockId);
 //Post definitions for max length
 
 #define SA      struct sockaddr
-#define MAXLINE 16384
-#define MAXSUB  16384
+#define MAXLINE 65534
+#define MAXSUB  65534
 
 //Upload interval
 
@@ -116,8 +116,9 @@ char *hname = "140.118.70.136";
 
 //the RESTAPI 
 
-//char *page = "/aemdra/rawdata/post/";
-char *page = "/aemdra/gw/test";
+//char *page = "/aemdra/rawdata/post/";//Deprecated
+char *page = "/aemdra/gw/test";//Formal url
+
 
 //the gw id
 
@@ -551,7 +552,7 @@ ssize_t process_http( char *content)
 		 "Host: %s\r\n"
 		 "Content-type: application/json; charset=UTF-8\r\n"
          "User-Agent: Kelier/0.1\r\n"
-		 "Content-Length: %lu\r\n\r\n"
+		 "Content-Length: %u\r\n\r\n"
 		 "%s", page, hname, strlen(content), content);
 
     //print out the content
@@ -574,6 +575,8 @@ ssize_t process_http( char *content)
     }
     snprintf(buf, sizeof(buf) - 1, "[%s,%d]Write() done\n",__FUNCTION__,__LINE__);
     AddToLogFile(logPath, buf);
+
+    memset(recvline,0,sizeof(recvline));
 
     //Get the result
 
@@ -775,7 +778,7 @@ int CheckLogFileSize(char *filePath)
 int CheckDuplicateByTime(char *ID, char *time, char *blockId)
 {
 
-    static meterList mList[100];
+    static meterList mList[200];
     static int init = 0;
     int i = 0;
     char buf[256] = {0};
@@ -801,7 +804,7 @@ int CheckDuplicateByTime(char *ID, char *time, char *blockId)
 
     i = 0;
 
-    while( i < 100)
+    while( i < 200)
     {
 
         if(mList[i].available == 0)

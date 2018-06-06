@@ -48,7 +48,7 @@
 
 
 #define CMDLEN 128
-#define BUFLEN 65535
+#define BUFLEN 131070
 
 //Intent : execute cpm70_agent-tx, and format the data
 //Pre : buf for result 
@@ -89,8 +89,8 @@ int CheckDuplicateByTime(char *ID, char *time);
 //Post definitions for max length
 
 #define SA      struct sockaddr
-#define MAXLINE 16384
-#define MAXSUB  16384
+#define MAXLINE 65534
+#define MAXSUB  65534
 
 //Upload interval
 
@@ -110,8 +110,9 @@ char *hname = "140.118.70.136";
 
 //the RESTAPI 
 
-//char *page = "/cpm70/rawdata/post/";
-char *page = "/cpm70/gw/test";
+//char *page = "/cpm70/rawdata/post/";//Deprecated
+char *page = "/cpm70/gw/test";//Formal
+//char *page = "/cpm70/test/TS702018";
 
 //the gw id
 
@@ -536,7 +537,7 @@ ssize_t process_http( char *content)
 		 "Host: %s\r\n"
 		 "Content-type: application/json; charset=UTF-8\r\n"
          "User-Agent: Kelier/0.1\r\n"
-		 "Content-Length: %lu\r\n\r\n"
+		 "Content-Length: %u\r\n\r\n"
 		 "%s", page, hname, strlen(content), content);
 
     //print out the content
@@ -558,6 +559,8 @@ ssize_t process_http( char *content)
     }
     snprintf(buf, sizeof(buf) - 1, "[%s,%d]Write() done\n",__FUNCTION__,__LINE__);
     AddToLogFile(logPath, buf);
+
+    memset(recvline,0,sizeof(recvline));
 
     //Get the result
 
